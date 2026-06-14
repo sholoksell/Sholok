@@ -1,0 +1,20 @@
+{
+  "name": "sholok-blog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sholok Blog Platform - Full Stack (Backend + Frontend + Admin)",
+  "scripts": {
+    "predev": "npx kill-port 5050 5180 5184",
+    "dev": "concurrently --kill-others-on-fail -n \"Backend,Frontend,Admin\" -c \"cyan.bold,green.bold,magenta.bold\" \"npm run dev --prefix backend\" \"npm run dev:only --prefix frontend\" \"npm run dev --prefix admin\"",
+    "dev:web": "concurrently --kill-others-on-fail -n \"Backend,Frontend\" -c \"cyan.bold,green.bold\" \"npm run dev --prefix backend\" \"npm run dev:only --prefix frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev:only --prefix frontend",
+    "dev:admin": "npm run dev --prefix admin",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend && npm install --prefix admin",
+    "build": "npm run build --prefix frontend && npm run build --prefix admin"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "kill-port": "^2.0.1"
+  }
+}

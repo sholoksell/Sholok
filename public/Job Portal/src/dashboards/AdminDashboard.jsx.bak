@@ -1,0 +1,286 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { jobsAPI, dashboardAPI, authAPI } from "../services/api";
+import "./Dashboard.css";
+
+export default function AdminDashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({});
+  const [jobs, setJobs] = useState([]);
+  const [filter, setFilter] = useState("pending");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [vendors, setVendors] = useState([]);
+  const [activeTab, setActiveTab] = useState("jobs");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [rejectModal, setRejectModal] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const loadStats = async () => {
+    try {
+      const data = await dashboardAPI.getStats();
+      setStats(data);
+    } catch {}
+  };
+
+  const loadJobs = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page, limit: 15 });
+      if (filter !== "all") params.set("status", filter);
+      if (search) params.set("search", search);
+      const data = await jobsAPI.getAll(params.toString());
+      setJobs(data.jobs);
+      setTotalPages(data.pages);
+    } catch {}
+    setLoading(false);
+  };
+
+  const loadVendors = async () => {
+    try {
+      const data = await authAPI.getUsers("role=vendor&limit=50");
+      setVendors(data.users);
+    } catch {}
+  };
+
+  useEffect(() => { loadStats(); }, []);
+  useEffect(() => { loadJobs(); }, [filter, page, search]);
+  useEffect(() => { if (activeTab === "vendors") loadVendors(); }, [activeTab]);
+
+  const handleSendToSuperAdmin = async (id) => {
+    try {
+      await jobsAPI.sendToSuperAdmin(id);
+      setMsg("সুপার অ্যাডমিনের কাছে পাঠানো হয়েছে");
+      loadJobs();
+      loadStats();
+    } catch (err) {
+      setMsg(err.message);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectModal) return;
+    try {
+      await jobsAPI.reject(rejectModal, rejectReason);
+      setMsg("চাকরি প্রত্যাখ্যান করা হয়েছে");
+      setRejectModal(null);
+      setRejectReason("");
+      loadJobs();
+      loadStats();
+    } catch (err) {
+      setMsg(err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Delete this job?")) return;
+    try {
+      await jobsAPI.delete(id);
+      loadJobs();
+      loadStats();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const statusLabel = { pending: "অপেক্ষমান", review: "পর্যালোচনায়", approved: "অনুমোদিত", rejected: "প্রত্যাখ্যাত" };
+
+  return (
+    <div className="dashboard">
+      <div className="dashboard__header">
+        <h1>অ্যাডমিন ড্যাশবোর্ড</h1>
+        <p>স্বাগতম, {user?.name} — চাকরি পর্যালোচনা ও ব্যবস্থাপনা</p>
+      </div>
+
+      {msg && (
+        <div style={{ padding: "10px 16px", background: "#E3FCEF", borderRadius: 8, marginBottom: 16, color: "#006644", fontWeight: 600 }}>
+          {msg}
+          <button onClick={() => setMsg("")} style={{ float: "right", fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="stats-grid">
+        <div className="stat-card stat-card--blue">
+          <div className="stat-card__label">মোট চাকরি</div>
+          <div className="stat-card__value">{stats.totalJobs || 0}</div>
+        </div>
+        <div className="stat-card stat-card--orange">
+          <div className="stat-card__label">অপেক্ষমান</div>
+          <div className="stat-card__value">{stats.pending || 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card__label">পর্যালোচনায়</div>
+          <div className="stat-card__value">{stats.review || 0}</div>
+        </div>
+        <div className="stat-card stat-card--green">
+          <div className="stat-card__label">অনুমোদিত</div>
+          <div className="stat-card__value">{stats.approved || 0}</div>
+        </div>
+        <div className="stat-card stat-card--red">
+          <div className="stat-card__label">প্রত্যাখ্যাত</div>
+          <div className="stat-card__value">{stats.rejected || 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card__label">মোট ভেন্ডর</div>
+          <div className="stat-card__value">{stats.totalVendors || 0}</div>
+        </div>
+      </div>
+
+      {/* Main Tabs */}
+      <div className="dashboard__tabs" style={{ marginBottom: 24 }}>
+        <button className={`dash-tab ${activeTab === "jobs" ? "active" : ""}`} onClick={() => setActiveTab("jobs")}>
+          চাকরি ব্যবস্থাপনা
+        </button>
+        <button className={`dash-tab ${activeTab === "vendors" ? "active" : ""}`} onClick={() => setActiveTab("vendors")}>
+          ভেন্ডর তালিকা
+        </button>
+      </div>
+
+      {activeTab === "jobs" && (
+        <>
+          {/* Toolbar */}
+          <div className="dashboard__toolbar">
+            <div className="dashboard__tabs">
+              {["all", "pending", "review", "approved", "rejected"].map((s) => (
+                <button
+                  key={s}
+                  className={`dash-tab ${filter === s ? "active" : ""}`}
+                  onClick={() => { setFilter(s); setPage(1); }}
+                >
+                  {s === "all" ? "সকল" : statusLabel[s]}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              className="dashboard__search"
+              placeholder="চাকরি খুঁজুন..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Jobs Table */}
+          <div className="jobs-table-wrapper">
+            {loading ? (
+              <div className="dashboard-empty"><p>লোড হচ্ছে...</p></div>
+            ) : jobs.length === 0 ? (
+              <div className="dashboard-empty">
+                <h3>কোনো চাকরি পাওয়া যায়নি</h3>
+              </div>
+            ) : (
+              <table className="jobs-table">
+                <thead>
+                  <tr>
+                    <th>শিরোনাম</th>
+                    <th>কোম্পানি</th>
+                    <th>ভেন্ডর</th>
+                    <th>অবস্থান</th>
+                    <th>স্ট্যাটাস</th>
+                    <th>তারিখ</th>
+                    <th>অ্যাকশন</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jobs.map((job) => (
+                    <tr key={job._id}>
+                      <td className="job-title-cell">{job.title}</td>
+                      <td>{job.company}</td>
+                      <td>{job.createdBy?.name || "N/A"}</td>
+                      <td>{job.location}</td>
+                      <td>
+                        <span className={`status-badge status-badge--${job.status}`}>
+                          {statusLabel[job.status]}
+                        </span>
+                      </td>
+                      <td>{new Date(job.createdAt).toLocaleDateString("bn-BD")}</td>
+                      <td>
+                        {job.status === "pending" && (
+                          <>
+                            <button className="action-btn action-btn--primary" onClick={() => handleSendToSuperAdmin(job._id)}>
+                              সুপার অ্যাডমিনে পাঠান
+                            </button>
+                            <button className="action-btn action-btn--danger" onClick={() => { setRejectModal(job._id); setRejectReason(""); }}>
+                              প্রত্যাখ্যান
+                            </button>
+                          </>
+                        )}
+                        <button className="action-btn action-btn--outline" onClick={() => handleDelete(job._id)}>
+                          মুছুন
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)}>« আগে</button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button key={i + 1} className={page === i + 1 ? "active" : ""} onClick={() => setPage(i + 1)}>
+                  {i + 1}
+                </button>
+              ))}
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>পরে »</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === "vendors" && (
+        <div className="jobs-table-wrapper">
+          {vendors.length === 0 ? (
+            <div className="dashboard-empty"><h3>কোনো ভেন্ডর নেই</h3></div>
+          ) : (
+            <table className="jobs-table">
+              <thead>
+                <tr>
+                  <th>নাম</th>
+                  <th>ইমেইল</th>
+                  <th>কোম্পানি</th>
+                  <th>যোগদানের তারিখ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vendors.map((v) => (
+                  <tr key={v._id}>
+                    <td>{v.name}</td>
+                    <td>{v.email}</td>
+                    <td>{v.company || "—"}</td>
+                    <td>{new Date(v.createdAt).toLocaleDateString("bn-BD")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModal && (
+        <div className="modal-overlay" onClick={() => setRejectModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>প্রত্যাখ্যানের কারণ</h3>
+            <textarea
+              rows="3"
+              style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid var(--border)" }}
+              placeholder="কারণ লিখুন (ঐচ্ছিক)"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setRejectModal(null)}>বাতিল</button>
+              <button className="action-btn action-btn--danger" onClick={handleReject}>প্রত্যাখ্যান করুন</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

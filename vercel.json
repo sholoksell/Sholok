@@ -1,0 +1,23 @@
+{
+  "buildCommand": "node scripts/build-vercel.cjs",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/shopping/admin/:path*", "destination": "/shopping/admin/index.html" },
+    { "source": "/shopping/admin", "destination": "/shopping/admin/index.html" },
+    { "source": "/shopping/:path*", "destination": "/shopping/index.html" },
+    { "source": "/shopping", "destination": "/shopping/index.html" },
+    { "source": "/blog/admin/:path*", "destination": "/blog/admin/index.html" },
+    { "source": "/blog/admin", "destination": "/blog/admin/index.html" },
+    { "source": "/blog/:path*", "destination": "/blog/index.html" },
+    { "source": "/blog", "destination": "/blog/index.html" },
+    { "source": "/news/:path*", "destination": "/news/index.html" },
+    { "source": "/news", "destination": "/news/index.html" },
+    { "source": "/smart-store/:path*", "destination": "/smart-store/index.html" },
+    { "source": "/smart-store", "destination": "/smart-store/index.html" },
+    { "source": "/job-portal/:path*", "destination": "/job-portal/index.html" },
+    { "source": "/job-portal", "destination": "/job-portal/index.html" },
+    { "source": "/home/admin/:path*", "destination": "/home/admin/index.html" },
+    { "source": "/home/admin", "destination": "/home/admin/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

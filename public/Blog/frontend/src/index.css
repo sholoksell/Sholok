@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    min-height: 100vh;
+  }
+  .dark body { @apply bg-gray-950 text-gray-100; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary-600 to-accent-500 text-white font-semibold px-6 py-2.5 rounded-full
+      hover:from-primary-700 hover:to-accent-600 transition-all duration-300 shadow-lg hover:shadow-primary-500/30
+      active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-outline {
+    @apply border-2 border-primary-500 text-primary-600 font-semibold px-6 py-2.5 rounded-full
+      hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all duration-300 active:scale-95;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800
+      hover:shadow-lg transition-all duration-300;
+  }
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700
+      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+      placeholder:text-gray-400 transition-all duration-200;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent;
+  }
+  .glass {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-white/20 dark:border-gray-700/50;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { @apply bg-gray-100 dark:bg-gray-900; }
+::-webkit-scrollbar-thumb { @apply bg-primary-400 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-primary-500; }
+
+/* Quill Editor */
+.ql-toolbar { @apply rounded-t-xl border-gray-200 dark:border-gray-700 !important; background: #f9fafb; }
+.dark .ql-toolbar { background: #111827; }
+.ql-container { @apply rounded-b-xl border-gray-200 dark:border-gray-700 !important; min-height: 300px; }
+.ql-editor { @apply text-gray-900 dark:text-gray-100 !important; font-size: 16px; line-height: 1.75; }
+.dark .ql-editor { background: #111827; }
+
+/* Skeleton shimmer */
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.dark .shimmer {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 200% 100%;
+}
+
+/* Prose styles for blog content */
+.blog-content { @apply text-gray-800 dark:text-gray-200 leading-relaxed; }
+.blog-content h1, .blog-content h2, .blog-content h3 { @apply font-bold text-gray-900 dark:text-white mt-8 mb-4; }
+.blog-content h1 { @apply text-3xl; }
+.blog-content h2 { @apply text-2xl; }
+.blog-content h3 { @apply text-xl; }
+.blog-content p { @apply mb-4 leading-7; }
+.blog-content img { @apply rounded-xl my-6 max-w-full; }
+.blog-content a { @apply text-primary-600 underline hover:text-primary-700; }
+.blog-content blockquote { @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 dark:text-gray-400 my-4; }
+.blog-content code { @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono; }
+.blog-content pre { @apply bg-gray-900 text-green-400 p-4 rounded-xl my-4 overflow-x-auto; }
+.blog-content ul, .blog-content ol { @apply pl-6 mb-4; }
+.blog-content li { @apply mb-2; }

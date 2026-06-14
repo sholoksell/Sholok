@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <!-- TODO: Set the document title to the name of your application -->
+    <title>Sholok Web</title>
+    <meta name="description" content="Sholok Web Portal" />
+    <meta name="author" content="Sholok" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- TODO: Update og:title to match your application name -->
+    <meta property="og:title" content="Sholok Web" />
+    <meta property="og:description" content="Sholok Web Portal" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <style>
+      .custom-marker { background: transparent !important; border: none !important; }
+      .leaflet-container { font-family: inherit; }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

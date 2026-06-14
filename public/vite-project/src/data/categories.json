@@ -1,0 +1,832 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Grocery & Staples",
+      "icon": "🛒",
+      "slug": "grocery-staples",
+      "description": "Daily essentials and staple items",
+      "subcategories": [
+        {
+          "name": "Rice",
+          "slug": "rice",
+          "children": ["Miniket Rice", "Najirshail Rice", "Basmati Rice", "Brown Rice", "Chinigura Rice"]
+        },
+        {
+          "name": "Atta & Flour",
+          "slug": "atta-flour",
+          "children": ["Wheat Flour", "Maida", "Suji", "Gram Flour", "Rice Flour"]
+        },
+        {
+          "name": "Lentils (Dal)",
+          "slug": "lentils-dal",
+          "children": ["Masoor Dal", "Mung Dal", "Chana Dal", "Motor Dal", "Musur Dal"]
+        },
+        {
+          "name": "Edible Oil",
+          "slug": "edible-oil",
+          "children": ["Soybean Oil", "Mustard Oil", "Sunflower Oil", "Palm Oil", "Rice Bran Oil"]
+        },
+        {
+          "name": "Salt & Sugar",
+          "slug": "salt-sugar",
+          "children": ["Table Salt", "Pink Salt", "White Sugar", "Brown Sugar", "Rock Salt"]
+        },
+        {
+          "name": "Spices",
+          "slug": "spices",
+          "children": ["Turmeric Powder", "Chili Powder", "Cumin Powder", "Coriander Powder", "Garam Masala"]
+        },
+        {
+          "name": "Ready Mix",
+          "slug": "ready-mix",
+          "children": ["Cake Mix", "Haleem Mix", "Khichuri Mix", "Polao Mix", "Pudding Mix"]
+        },
+        {
+          "name": "Noodles & Pasta",
+          "slug": "noodles-pasta",
+          "children": ["Instant Noodles", "Pasta", "Vermicelli", "Rice Noodles"]
+        },
+        {
+          "name": "Sauces & Ketchup",
+          "slug": "sauces-ketchup",
+          "children": ["Tomato Ketchup", "Chili Sauce", "Soy Sauce", "Mayonnaise", "Pasta Sauce"]
+        },
+        {
+          "name": "Baking Items",
+          "slug": "baking-items",
+          "children": ["Baking Powder", "Baking Soda", "Yeast", "Vanilla Essence", "Food Color"]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Fresh Produce",
+      "icon": "🥬",
+      "slug": "fresh-produce",
+      "description": "Fresh vegetables, fruits, meat and fish",
+      "subcategories": [
+        {
+          "name": "Fresh Vegetables",
+          "slug": "fresh-vegetables",
+          "children": ["Potato", "Onion", "Tomato", "Carrot", "Cabbage", "Cauliflower", "Brinjal", "Green Chili"]
+        },
+        {
+          "name": "Fresh Fruits",
+          "slug": "fresh-fruits",
+          "children": ["Banana", "Apple", "Orange", "Grapes", "Mango", "Papaya", "Watermelon", "Pineapple"]
+        },
+        {
+          "name": "Fresh Meat",
+          "slug": "fresh-meat",
+          "children": ["Beef", "Mutton", "Goat Meat", "Lamb"]
+        },
+        {
+          "name": "Chicken",
+          "slug": "chicken",
+          "children": ["Broiler Chicken", "Deshi Chicken", "Chicken Breast", "Chicken Drumstick", "Chicken Wings"]
+        },
+        {
+          "name": "Fish",
+          "slug": "fish",
+          "children": ["Hilsa", "Rui", "Katla", "Pangash", "Tilapia", "Shrimp", "Prawn"]
+        },
+        {
+          "name": "Eggs",
+          "slug": "eggs",
+          "children": ["Brown Eggs", "White Eggs", "Duck Eggs", "Quail Eggs"]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Dairy & Frozen",
+      "icon": "🥛",
+      "slug": "dairy-frozen",
+      "description": "Milk, dairy products and frozen items",
+      "subcategories": [
+        {
+          "name": "Milk",
+          "slug": "milk",
+          "children": ["Fresh Milk", "UHT Milk", "Powder Milk", "Condensed Milk", "Evaporated Milk"]
+        },
+        {
+          "name": "Yogurt",
+          "slug": "yogurt",
+          "children": ["Plain Yogurt", "Flavored Yogurt", "Greek Yogurt", "Drinking Yogurt"]
+        },
+        {
+          "name": "Butter & Ghee",
+          "slug": "butter-ghee",
+          "children": ["Butter", "Ghee", "Margarine"]
+        },
+        {
+          "name": "Cheese",
+          "slug": "cheese",
+          "children": ["Cheddar Cheese", "Mozzarella Cheese", "Cream Cheese", "Cheese Spread"]
+        },
+        {
+          "name": "Ice Cream",
+          "slug": "ice-cream",
+          "children": ["Vanilla Ice Cream", "Chocolate Ice Cream", "Strawberry Ice Cream", "Kulfi"]
+        },
+        {
+          "name": "Frozen Snacks",
+          "slug": "frozen-snacks",
+          "children": ["Samosa", "Spring Roll", "Paratha", "Pizza", "French Fries"]
+        },
+        {
+          "name": "Frozen Meat",
+          "slug": "frozen-meat",
+          "children": ["Frozen Chicken", "Frozen Beef", "Frozen Fish"]
+        },
+        {
+          "name": "Frozen Vegetables",
+          "slug": "frozen-vegetables",
+          "children": ["Mixed Vegetables", "Green Peas", "Corn", "Spinach"]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Beverages",
+      "icon": "🥤",
+      "slug": "beverages",
+      "description": "Soft drinks, juice, tea, coffee and more",
+      "subcategories": [
+        {
+          "name": "Soft Drinks",
+          "slug": "soft-drinks",
+          "children": ["Cola", "Lemon Drinks", "Orange Drinks", "Ginger Ale"]
+        },
+        {
+          "name": "Juice",
+          "slug": "juice",
+          "children": ["Mango Juice", "Orange Juice", "Apple Juice", "Mixed Fruit Juice", "Lemon Juice"]
+        },
+        {
+          "name": "Tea",
+          "slug": "tea",
+          "children": ["Black Tea", "Green Tea", "Herbal Tea", "Tea Bags", "Instant Tea"]
+        },
+        {
+          "name": "Coffee",
+          "slug": "coffee",
+          "children": ["Instant Coffee", "Ground Coffee", "Coffee Beans", "3-in-1 Coffee"]
+        },
+        {
+          "name": "Energy Drinks",
+          "slug": "energy-drinks",
+          "children": ["Red Bull", "Monster", "Local Energy Drinks"]
+        },
+        {
+          "name": "Mineral Water",
+          "slug": "mineral-water",
+          "children": ["500ml Bottle", "1 Liter Bottle", "2 Liter Bottle", "5 Liter Bottle"]
+        },
+        {
+          "name": "Powder Drinks",
+          "slug": "powder-drinks",
+          "children": ["Tang", "Horlicks", "Ovaltine", "Milo", "Boost"]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Snacks & Confectionery",
+      "icon": "🍪",
+      "slug": "snacks-confectionery",
+      "description": "Biscuits, cakes, chips, chocolates and more",
+      "subcategories": [
+        {
+          "name": "Biscuits",
+          "slug": "biscuits",
+          "children": ["Cream Biscuits", "Glucose Biscuits", "Marie Biscuits", "Crackers", "Cookies"]
+        },
+        {
+          "name": "Cakes",
+          "slug": "cakes",
+          "children": ["Pound Cake", "Cupcakes", "Muffins", "Pastries", "Cake Rusk"]
+        },
+        {
+          "name": "Chips",
+          "slug": "chips",
+          "children": ["Potato Chips", "Tortilla Chips", "Corn Chips", "Namkeen"]
+        },
+        {
+          "name": "Chocolates",
+          "slug": "chocolates",
+          "children": ["Milk Chocolate", "Dark Chocolate", "White Chocolate", "Chocolate Bars"]
+        },
+        {
+          "name": "Candy",
+          "slug": "candy",
+          "children": ["Hard Candy", "Soft Candy", "Lollipop", "Jelly", "Mint Candy"]
+        },
+        {
+          "name": "Nuts",
+          "slug": "nuts",
+          "children": ["Peanuts", "Cashew Nuts", "Almonds", "Walnuts", "Mixed Nuts"]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Personal Care",
+      "icon": "🧴",
+      "slug": "personal-care",
+      "description": "Personal hygiene and beauty products",
+      "subcategories": [
+        {
+          "name": "Soap",
+          "slug": "soap",
+          "children": ["Beauty Soap", "Antibacterial Soap", "Ayurvedic Soap", "Liquid Soap"]
+        },
+        {
+          "name": "Shampoo",
+          "slug": "shampoo",
+          "children": ["Anti-Dandruff Shampoo", "Hair Fall Control", "Herbal Shampoo", "2-in-1 Shampoo"]
+        },
+        {
+          "name": "Conditioner",
+          "slug": "conditioner",
+          "children": ["Hair Conditioner", "Leave-in Conditioner", "Deep Conditioning Mask"]
+        },
+        {
+          "name": "Toothpaste",
+          "slug": "toothpaste",
+          "children": ["Fluoride Toothpaste", "Herbal Toothpaste", "Whitening Toothpaste", "Sensitive Toothpaste"]
+        },
+        {
+          "name": "Toothbrush",
+          "slug": "toothbrush",
+          "children": ["Soft Bristle", "Medium Bristle", "Electric Toothbrush", "Kids Toothbrush"]
+        },
+        {
+          "name": "Face Wash",
+          "slug": "face-wash",
+          "children": ["Oil Control Face Wash", "Acne Face Wash", "Brightening Face Wash"]
+        },
+        {
+          "name": "Body Lotion",
+          "slug": "body-lotion",
+          "children": ["Moisturizing Lotion", "Whitening Lotion", "Herbal Lotion"]
+        },
+        {
+          "name": "Deodorant",
+          "slug": "deodorant",
+          "children": ["Spray Deodorant", "Roll-on Deodorant", "Stick Deodorant"]
+        },
+        {
+          "name": "Shaving Items",
+          "slug": "shaving-items",
+          "children": ["Shaving Cream", "Aftershave", "Razor", "Shaving Gel"]
+        },
+        {
+          "name": "Sanitary Napkins",
+          "slug": "sanitary-napkins",
+          "children": ["Day Pads", "Night Pads", "Panty Liners", "Menstrual Cup"]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Baby Care",
+      "icon": "👶",
+      "slug": "baby-care",
+      "description": "Baby food, diapers and care products",
+      "subcategories": [
+        {
+          "name": "Baby Food",
+          "slug": "baby-food",
+          "children": ["Cerelac", "Baby Formula", "Baby Snacks", "Baby Juice"]
+        },
+        {
+          "name": "Baby Diapers",
+          "slug": "baby-diapers",
+          "children": ["Newborn Diapers", "Small Size", "Medium Size", "Large Size", "XL Size"]
+        },
+        {
+          "name": "Baby Wipes",
+          "slug": "baby-wipes",
+          "children": ["Wet Wipes", "Dry Wipes", "Hand & Face Wipes"]
+        },
+        {
+          "name": "Baby Lotion",
+          "slug": "baby-lotion",
+          "children": ["Baby Moisturizer", "Baby Oil", "Baby Powder"]
+        },
+        {
+          "name": "Baby Soap",
+          "slug": "baby-soap",
+          "children": ["Baby Bar Soap", "Baby Liquid Soap"]
+        },
+        {
+          "name": "Baby Shampoo",
+          "slug": "baby-shampoo",
+          "children": ["Tear-Free Shampoo", "Baby Hair Oil", "2-in-1 Baby Wash"]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Household & Cleaning",
+      "icon": "🧹",
+      "slug": "household-cleaning",
+      "description": "Cleaning supplies and household items",
+      "subcategories": [
+        {
+          "name": "Dishwashing",
+          "slug": "dishwashing",
+          "children": ["Dishwashing Liquid", "Dishwashing Bar", "Dishwasher Tablets", "Scouring Pad"]
+        },
+        {
+          "name": "Floor Cleaner",
+          "slug": "floor-cleaner",
+          "children": ["Tile Cleaner", "Wood Floor Cleaner", "Disinfectant Cleaner"]
+        },
+        {
+          "name": "Toilet Cleaner",
+          "slug": "toilet-cleaner",
+          "children": ["Liquid Toilet Cleaner", "Toilet Bowl Cleaner", "Toilet Rim Block"]
+        },
+        {
+          "name": "Detergent",
+          "slug": "detergent",
+          "children": ["Washing Powder", "Liquid Detergent", "Detergent Bar", "Fabric Softener"]
+        },
+        {
+          "name": "Tissue & Napkins",
+          "slug": "tissue-napkins",
+          "children": ["Facial Tissue", "Toilet Tissue", "Kitchen Towel", "Paper Napkin"]
+        },
+        {
+          "name": "Garbage Bags",
+          "slug": "garbage-bags",
+          "children": ["Small Bags", "Medium Bags", "Large Bags", "Biodegradable Bags"]
+        },
+        {
+          "name": "Air Freshener",
+          "slug": "air-freshener",
+          "children": ["Spray Air Freshener", "Automatic Air Freshener", "Gel Air Freshener"]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Home & Kitchen",
+      "icon": "🏠",
+      "slug": "home-kitchen",
+      "description": "Kitchen tools and home essentials",
+      "subcategories": [
+        {
+          "name": "Storage Containers",
+          "slug": "storage-containers",
+          "children": ["Plastic Containers", "Glass Containers", "Steel Containers", "Food Jars"]
+        },
+        {
+          "name": "Kitchen Tools",
+          "slug": "kitchen-tools",
+          "children": ["Knife Set", "Cutting Board", "Peeler", "Grater", "Measuring Cups"]
+        },
+        {
+          "name": "Cookware",
+          "slug": "cookware",
+          "children": ["Non-Stick Pans", "Pressure Cooker", "Pots", "Kadai", "Frying Pan"]
+        },
+        {
+          "name": "Plates & Glasses",
+          "slug": "plates-glasses",
+          "children": ["Dinner Plates", "Bowls", "Glasses", "Cups", "Serving Dishes"]
+        },
+        {
+          "name": "Cleaning Tools",
+          "slug": "cleaning-tools",
+          "children": ["Mop", "Broom", "Dustpan", "Scrubber", "Cleaning Cloth"]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Health & Wellness",
+      "icon": "💊",
+      "slug": "health-wellness",
+      "description": "Health products and wellness items",
+      "subcategories": [
+        {
+          "name": "Vitamins",
+          "slug": "vitamins",
+          "children": ["Vitamin C", "Vitamin D", "Multivitamins", "Calcium Tablets", "Iron Supplements"]
+        },
+        {
+          "name": "First Aid",
+          "slug": "first-aid",
+          "children": ["Bandages", "Antiseptic", "Cotton", "Medical Tape", "First Aid Kit"]
+        },
+        {
+          "name": "Hand Sanitizer",
+          "slug": "hand-sanitizer",
+          "children": ["Gel Sanitizer", "Liquid Sanitizer", "Spray Sanitizer"]
+        },
+        {
+          "name": "Masks",
+          "slug": "masks",
+          "children": ["Surgical Masks", "N95 Masks", "Cloth Masks", "Face Shield"]
+        },
+        {
+          "name": "Thermometer",
+          "slug": "thermometer",
+          "children": ["Digital Thermometer", "Infrared Thermometer", "Strip Thermometer"]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Gadget",
+      "icon": "📱",
+      "slug": "gadget",
+      "description": "Mobile accessories and small electronics",
+      "subcategories": [
+        {
+          "name": "Mobile Accessories",
+          "slug": "mobile-accessories",
+          "children": ["Phone Cases", "Screen Protector", "Phone Stand", "Pop Socket"]
+        },
+        {
+          "name": "Headphones",
+          "slug": "headphones",
+          "children": ["Earphones", "Wireless Headphones", "Gaming Headset", "TWS Earbuds"]
+        },
+        {
+          "name": "Chargers",
+          "slug": "chargers",
+          "children": ["Fast Charger", "Type-C Charger", "Micro USB Charger", "Wireless Charger"]
+        },
+        {
+          "name": "Power Bank",
+          "slug": "power-bank",
+          "children": ["5000mAh", "10000mAh", "20000mAh", "30000mAh"]
+        },
+        {
+          "name": "Smart Watch",
+          "slug": "smart-watch",
+          "children": ["Fitness Tracker", "Smart Band", "Smart Watch"]
+        },
+        {
+          "name": "Small Electronics",
+          "slug": "small-electronics",
+          "children": ["USB Cable", "OTG Cable", "Memory Card", "Card Reader", "Bluetooth Speaker"]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Fish & Meat",
+      "icon": "🐟",
+      "slug": "fish-meat",
+      "description": "Fresh fish, seafood and meat",
+      "subcategories": [
+        {
+          "name": "Fish",
+          "slug": "fish-kh",
+          "children": ["Rui", "Tuna", "Hilsa", "Catla", "Pangash", "Tilapia", "Prawn", "Shrimp"]
+        },
+        {
+          "name": "Meat",
+          "slug": "meat-kh",
+          "children": ["Beef", "Mutton", "Goat Meat", "Lamb"]
+        },
+        {
+          "name": "Chicken",
+          "slug": "chicken-kh",
+          "children": ["Broiler Chicken", "Deshi Chicken", "Chicken Breast", "Chicken Wings", "Chicken Drumstick"]
+        },
+        {
+          "name": "Seafood",
+          "slug": "seafood",
+          "children": ["Crab", "Lobster", "Squid", "Oyster", "Clam"]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Fruits & Vegetable",
+      "icon": "🥦",
+      "slug": "fruits-vegetable",
+      "description": "Fresh fruits and vegetables",
+      "subcategories": [
+        {
+          "name": "Fresh Fruits",
+          "slug": "fresh-fruits-kh",
+          "children": ["Orange", "Apple", "Banana", "Mango", "Grapes", "Papaya", "Watermelon", "Pineapple"]
+        },
+        {
+          "name": "Fresh Vegetable",
+          "slug": "fresh-vegetable",
+          "children": ["Potato", "Onion", "Tomato", "Carrot", "Cabbage", "Cauliflower", "Brinjal", "Green Chili"]
+        },
+        {
+          "name": "Dry Fruits",
+          "slug": "dry-fruits",
+          "children": ["Raisins", "Dates", "Dried Mango", "Apricot", "Prunes", "Dried Figs"]
+        },
+        {
+          "name": "Baby Food",
+          "slug": "baby-food-kh",
+          "children": ["Puree", "Baby Cereal", "Fruit Pouch", "Vegetable Blend"]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Cooking Essentials",
+      "icon": "🍳",
+      "slug": "cooking-essentials",
+      "description": "Flour, oil and everyday cooking items",
+      "subcategories": [
+        {
+          "name": "Flour",
+          "slug": "flour-kh",
+          "children": ["Wheat Flour", "Maida", "Suji", "Gram Flour", "Rice Flour", "Corn Flour"]
+        },
+        {
+          "name": "Oil",
+          "slug": "oil-kh",
+          "children": ["Soybean Oil", "Mustard Oil", "Sunflower Oil", "Palm Oil", "Coconut Oil", "Olive Oil"]
+        },
+        {
+          "name": "Spices & Masala",
+          "slug": "spices-masala",
+          "children": ["Turmeric", "Chili Powder", "Cumin", "Coriander", "Garam Masala", "Bay Leaf"]
+        },
+        {
+          "name": "Salt & Sugar",
+          "slug": "salt-sugar-kh",
+          "children": ["Table Salt", "White Sugar", "Brown Sugar", "Rock Salt", "Powdered Sugar"]
+        },
+        {
+          "name": "Vinegar & Sauce",
+          "slug": "vinegar-sauce",
+          "children": ["White Vinegar", "Apple Cider Vinegar", "Soy Sauce", "Chili Sauce", "Tomato Ketchup"]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Biscuits & Cakes",
+      "icon": "🍪",
+      "slug": "biscuits-cakes",
+      "description": "Biscuits, cookies, cakes and bakery items",
+      "subcategories": [
+        {
+          "name": "Biscuits",
+          "slug": "biscuits-kh",
+          "children": ["Cream Biscuits", "Glucose Biscuits", "Marie Biscuits", "Crackers", "Cookies", "Digestive"]
+        },
+        {
+          "name": "Cakes",
+          "slug": "cakes-kh",
+          "children": ["Pound Cake", "Cupcakes", "Muffins", "Pastries", "Cake Rusk", "Swiss Roll"]
+        },
+        {
+          "name": "Bread",
+          "slug": "bread",
+          "children": ["White Bread", "Brown Bread", "Multigrain Bread", "Bun", "Toast Bread"]
+        },
+        {
+          "name": "Wafers & Snacks",
+          "slug": "wafers-snacks",
+          "children": ["Wafer Biscuits", "Puffed Rice", "Popcorn", "Nachos", "Pretzels"]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Household Tools",
+      "icon": "🔧",
+      "slug": "household-tools",
+      "description": "Home tools and hardware items",
+      "subcategories": [
+        {
+          "name": "Cleaning Tools",
+          "slug": "cleaning-tools-kh",
+          "children": ["Mop", "Broom", "Dustpan", "Scrubber", "Cleaning Cloth", "Bucket"]
+        },
+        {
+          "name": "Kitchen Tools",
+          "slug": "kitchen-tools-kh",
+          "children": ["Knife Set", "Cutting Board", "Peeler", "Grater", "Can Opener", "Ladle"]
+        },
+        {
+          "name": "Storage & Organisation",
+          "slug": "storage-organisation",
+          "children": ["Plastic Containers", "Baskets", "Organiser Box", "Shelf Dividers", "Hangers"]
+        },
+        {
+          "name": "Light & Electricals",
+          "slug": "light-electricals",
+          "children": ["LED Bulb", "Tube Light", "Extension Cord", "Switch", "Plug"]
+        },
+        {
+          "name": "Pest Control",
+          "slug": "pest-control",
+          "children": ["Cockroach Killer", "Mosquito Coil", "Rat Trap", "Mosquito Repellent", "Fly Trap"]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Pet Care",
+      "icon": "🐾",
+      "slug": "pet-care",
+      "description": "Food and accessories for pets",
+      "subcategories": [
+        {
+          "name": "Dog Food",
+          "slug": "dog-food",
+          "children": ["Dry Dog Food", "Wet Dog Food", "Dog Treats", "Puppy Food"]
+        },
+        {
+          "name": "Cat Food",
+          "slug": "cat-food",
+          "children": ["Dry Cat Food", "Wet Cat Food", "Cat Treats", "Kitten Food"]
+        },
+        {
+          "name": "Pet Accessories",
+          "slug": "pet-accessories",
+          "children": ["Pet Collar", "Leash", "Pet Bed", "Pet Toys", "Food Bowl", "Water Bowl"]
+        },
+        {
+          "name": "Pet Hygiene",
+          "slug": "pet-hygiene",
+          "children": ["Pet Shampoo", "Pet Wipes", "Flea Spray", "Pet Comb", "Nail Clipper"]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Beauty & Healths",
+      "icon": "💄",
+      "slug": "beauty-healths",
+      "description": "Beauty products and health care",
+      "subcategories": [
+        {
+          "name": "Skin Care",
+          "slug": "skin-care",
+          "children": ["Face Cream", "Sunscreen", "Serum", "Toner", "Face Mask", "Eye Cream"]
+        },
+        {
+          "name": "Hair Care",
+          "slug": "hair-care",
+          "children": ["Hair Oil", "Hair Serum", "Hair Mask", "Hair Color", "Hair Spray"]
+        },
+        {
+          "name": "Makeup",
+          "slug": "makeup",
+          "children": ["Lipstick", "Foundation", "Mascara", "Eyeliner", "Blush", "Compact Powder"]
+        },
+        {
+          "name": "Perfume & Fragrance",
+          "slug": "perfume-fragrance",
+          "children": ["Perfume", "Body Mist", "Attar", "Deodorant", "Roll-on"]
+        },
+        {
+          "name": "Vitamins & Supplements",
+          "slug": "vitamins-supplements",
+          "children": ["Multivitamin", "Vitamin C", "Vitamin D", "Omega 3", "Calcium", "Iron Tablets"]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Jam & Jelly",
+      "icon": "🍓",
+      "slug": "jam-jelly",
+      "description": "Jam, jelly, honey and spreads",
+      "subcategories": [
+        {
+          "name": "Fruit Jam",
+          "slug": "fruit-jam",
+          "children": ["Strawberry Jam", "Mango Jam", "Mixed Fruit Jam", "Pineapple Jam", "Grape Jam"]
+        },
+        {
+          "name": "Jelly",
+          "slug": "jelly-kh",
+          "children": ["Grape Jelly", "Apple Jelly", "Strawberry Jelly", "Mixed Berry Jelly"]
+        },
+        {
+          "name": "Honey",
+          "slug": "honey",
+          "children": ["Pure Honey", "Wild Honey", "Black Seed Honey", "Flavored Honey"]
+        },
+        {
+          "name": "Spreads",
+          "slug": "spreads",
+          "children": ["Peanut Butter", "Nutella", "Butter Spread", "Cream Cheese Spread"]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Milk & Dairy",
+      "icon": "🥛",
+      "slug": "milk-dairy",
+      "description": "Milk, butter, cheese and dairy products",
+      "subcategories": [
+        {
+          "name": "Milk",
+          "slug": "milk-kh",
+          "children": ["Fresh Milk", "UHT Milk", "Powder Milk", "Condensed Milk", "Flavored Milk"]
+        },
+        {
+          "name": "Butter & Ghee",
+          "slug": "butter-ghee-kh",
+          "children": ["Butter", "Ghee", "Margarine", "Clarified Butter"]
+        },
+        {
+          "name": "Cheese",
+          "slug": "cheese-kh",
+          "children": ["Cheddar Cheese", "Mozzarella", "Cream Cheese", "Cheese Spread", "Processed Cheese"]
+        },
+        {
+          "name": "Yogurt",
+          "slug": "yogurt-kh",
+          "children": ["Plain Yogurt", "Flavored Yogurt", "Greek Yogurt", "Drinking Yogurt", "Set Curd"]
+        },
+        {
+          "name": "Cream",
+          "slug": "cream",
+          "children": ["Fresh Cream", "Whipping Cream", "Sour Cream", "Half and Half"]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Drinks",
+      "icon": "🥤",
+      "slug": "drinks",
+      "description": "Soft drinks, juice, water and other beverages",
+      "subcategories": [
+        {
+          "name": "Soft Drinks",
+          "slug": "soft-drinks-kh",
+          "children": ["Cola", "Lemon Drinks", "Orange Drinks", "Mango Drinks", "Energy Drinks"]
+        },
+        {
+          "name": "Juice",
+          "slug": "juice-kh",
+          "children": ["Mango Juice", "Orange Juice", "Apple Juice", "Mixed Fruit Juice", "Lemon Juice"]
+        },
+        {
+          "name": "Water",
+          "slug": "water",
+          "children": ["Mineral Water", "Sparkling Water", "Alkaline Water", "Purified Water"]
+        },
+        {
+          "name": "Tea & Coffee",
+          "slug": "tea-coffee",
+          "children": ["Black Tea", "Green Tea", "Herbal Tea", "Instant Coffee", "3-in-1 Coffee"]
+        },
+        {
+          "name": "Lassi & Shakes",
+          "slug": "lassi-shakes",
+          "children": ["Mango Lassi", "Sweet Lassi", "Fruit Shake", "Chocolate Shake", "Milkshake"]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Breakfast",
+      "icon": "🍳",
+      "slug": "breakfast",
+      "description": "Breakfast cereals, oats and morning essentials",
+      "subcategories": [
+        {
+          "name": "Cereals",
+          "slug": "cereals",
+          "children": ["Corn Flakes", "Wheat Flakes", "Muesli", "Granola", "Rice Krispies"]
+        },
+        {
+          "name": "Oats & Porridge",
+          "slug": "oats-porridge",
+          "children": ["Rolled Oats", "Instant Oats", "Steel Cut Oats", "Oat Bran", "Porridge Mix"]
+        },
+        {
+          "name": "Eggs",
+          "slug": "eggs-kh",
+          "children": ["Brown Eggs", "White Eggs", "Duck Eggs", "Quail Eggs", "Boiled Eggs"]
+        },
+        {
+          "name": "Bread & Butter",
+          "slug": "bread-butter",
+          "children": ["White Bread", "Brown Bread", "Toast", "Butter", "Jam"]
+        },
+        {
+          "name": "Pancake & Waffle Mix",
+          "slug": "pancake-waffle",
+          "children": ["Pancake Mix", "Waffle Mix", "Crepe Mix", "Maple Syrup", "Honey"]
+        }
+      ]
+    }
+  ]
+}

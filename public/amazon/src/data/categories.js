@@ -1,0 +1,30 @@
+export const categories = [
+  { id: 1, name: "Electronics", icon: "💻", slug: "electronics" },
+  { id: 2, name: "Fashion", icon: "👗", slug: "fashion" },
+  { id: 3, name: "Home & Kitchen", icon: "🏠", slug: "home" },
+  { id: 4, name: "Beauty", icon: "💄", slug: "beauty" },
+  { id: 5, name: "Sports", icon: "⚽", slug: "sports" },
+  { id: 6, name: "Books", icon: "📚", slug: "books" },
+  { id: 7, name: "Gaming", icon: "🎮", slug: "gaming" },
+  { id: 8, name: "Toys", icon: "🧸", slug: "toys" },
+  { id: 9, name: "Automotive", icon: "🚗", slug: "automotive" },
+  { id: 10, name: "Health", icon: "💊", slug: "health" },
+  { id: 11, name: "Grocery", icon: "🛒", slug: "grocery" },
+  { id: 12, name: "Baby", icon: "👶", slug: "baby" },
+  { id: 13, name: "Tools", icon: "🔧", slug: "tools" },
+  { id: 14, name: "Jewellery", icon: "💎", slug: "jewellery" },
+];
+
+export const navCategories = [
+  { label: "Today's Deals", link: "/search?tag=deals" },
+  { label: "Customer Service", link: "/help" },
+  { label: "Gift Cards", link: "/gift-cards" },
+  { label: "Electronics", link: "/search?category=Electronics" },
+  { label: "Fashion", link: "/search?category=Fashion" },
+  { label: "Home & Kitchen", link: "/search?category=Home" },
+  { label: "Books", link: "/search?category=Books" },
+  { label: "Sports", link: "/search?category=Sports" },
+  { label: "Gaming", link: "/search?category=Gaming" },
+  { label: "Beauty", link: "/search?category=Beauty" },
+  { label: "Sell", link: "/sell" },
+];
