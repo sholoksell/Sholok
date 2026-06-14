@@ -40,6 +40,12 @@ const SmartStoreRedirect = () => {
   return null;
 };
 
+// TV redirect component - redirects to Video Platform sub-app at /tv/
+const TVRedirect = () => {
+  window.location.replace('/tv/');
+  return null;
+};
+
 // Lazy load other pages for better performance
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const News = lazy(() => import("./pages/News"));
@@ -59,7 +65,6 @@ const SmartStore = lazy(() => import("./pages/SmartStore"));
 const Pay = lazy(() => import("./pages/Pay"));
 const Webtoon = lazy(() => import("./pages/Webtoon"));
 const Series = lazy(() => import("./pages/Series"));
-const TV = lazy(() => import("./pages/TV"));
 const Music = lazy(() => import("./pages/Music"));
 const Dictionary = lazy(() => import("./pages/Dictionary"));
 const Finance = lazy(() => import("./pages/Finance"));
@@ -107,7 +112,8 @@ const App = () => (
                 <Route path="/health" element={<Health />} />
                 <Route path="/webtoon" element={<Webtoon />} />
                 <Route path="/series" element={<Series />} />
-                <Route path="/tv" element={<TV />} />
+                <Route path="/tv" element={<TVRedirect />} />
+                <Route path="/tv/*" element={<TVRedirect />} />
                 <Route path="/music" element={<Music />} />
                 <Route path="/dictionary" element={<Dictionary />} />
                 <Route path="/finance" element={<Finance />} />

@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5003/api";
+const API_BASE = "/tv-api";
 
 function getToken(): string | null {
   return localStorage.getItem("vivora_token");
@@ -23,7 +23,12 @@ async function request(url: string, options: RequestInit = {}) {
   } catch {
     throw new Error("Server is not responding. Please make sure the backend server is running.");
   }
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("Server is not responding. Please make sure the backend server is running.");
+  }
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }
@@ -162,7 +167,12 @@ async function adminRequest(url: string, options: RequestInit = {}) {
   } catch {
     throw new Error("Server is not responding. Please make sure the backend server is running.");
   }
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("Server is not responding. Please make sure the backend server is running.");
+  }
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }

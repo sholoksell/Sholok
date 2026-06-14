@@ -18,6 +18,7 @@ const copies = [
   { from: 'public/Smart_Store/dist',        to: 'dist/smart-store' },
   { from: 'public/Job Portal/dist',         to: 'dist/job-portal' },
   { from: 'public/multi-vendor admin/dist', to: 'dist/home/admin' },
+  { from: 'public/Video Controls Admin/dist', to: 'dist/tv' },
 ];
 
 function copyDir(src, dest) {

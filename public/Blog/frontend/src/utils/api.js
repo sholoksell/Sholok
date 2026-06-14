@@ -14,7 +14,14 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // If the server returns HTML instead of JSON (e.g. catch-all CDN rewrite),
+    // treat it as an unavailable API so callers fall back to empty state.
+    if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
+      return Promise.reject(new Error('API unavailable'));
+    }
+    return res;
+  },
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('sholok_blog_token');
