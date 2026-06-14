@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { STATIC_CAFES } from '@/data/staticCafes';
 import Header from '@/components/portal/Header';
 import Footer from '@/components/portal/Footer';
 import { Button } from '@/components/ui/button';
@@ -456,12 +457,22 @@ const CafePage = () => {
         if ((filters[k] as string[]).length > 0) params[k] = filters[k];
       });
       const res = await axios.get(`${API_BASE}/cafes`, { params });
-      setCafes(res.data.cafes || []);
-      setTotal(res.data.total || 0);
+      const apiCafes = res.data?.cafes;
+      if (Array.isArray(apiCafes) && apiCafes.length > 0) {
+        setCafes(apiCafes);
+        setTotal(res.data.total || apiCafes.length);
+      } else {
+        throw new Error('no data');
+      }
     } catch {
-      setError('Could not load cafes. Please ensure the server is running on port 5001.');
-      setCafes([]);
-      setTotal(0);
+      // API unavailable — use static sample data filtered by city/search
+      const filtered = (STATIC_CAFES as any[]).filter(c => {
+        const cityMatch = c.city.toLowerCase() === selectedCity.toLowerCase();
+        const searchMatch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.area.toLowerCase().includes(search.toLowerCase());
+        return cityMatch && searchMatch;
+      });
+      setCafes(filtered);
+      setTotal(filtered.length);
     } finally {
       setLoading(false);
     }
