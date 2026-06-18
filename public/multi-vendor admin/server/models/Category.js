@@ -3,11 +3,15 @@ const mongoose = require("mongoose");
 const CategorySchema = new mongoose.Schema(
   {
     name:        { type: String, required: true, unique: true, trim: true },
+    nameBn:      { type: String, trim: true, default: "" },
+    nameEn:      { type: String, trim: true, default: "" },
     slug:        { type: String, unique: true, lowercase: true },
     icon:        { type: String, default: "Tag" },
     image:       { type: String, default: "" },
     color:       { type: String, default: "from-violet-500 to-fuchsia-500" },
     description: { type: String, default: "" },
+    descriptionBn: { type: String, default: "" },
+    descriptionEn: { type: String, default: "" },
     parent:      { type: mongoose.Schema.Types.ObjectId, ref: "Category", default: null },
     order:       { type: Number, default: 0 },
     isActive:    { type: Boolean, default: true },

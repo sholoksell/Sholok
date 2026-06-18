@@ -7,11 +7,13 @@ import { VideoCard } from "@/components/VideoCard";
 import { useEffect, useState, useRef } from "react";
 import { videoApi, commentApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage, getLocalizedField } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
 const Watch = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const { language } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [video, setVideo] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -104,7 +106,8 @@ const Watch = () => {
 
   if (!video) return <Layout><div className="text-center py-20">Video not found</div></Layout>;
 
-  const videoTitle = video.title;
+  const videoTitle = getLocalizedField(video, "title", language);
+  const videoDescription = getLocalizedField(video, "description", language);
   const channelName = video.channel?.name || "Unknown";
   const channelAvatar = video.channel?.avatar || video.channel?.name?.[0] || "🎬";
   const channelId = video.channel?._id || "you";
@@ -177,7 +180,7 @@ const Watch = () => {
           <div className="mt-4 p-4 rounded-xl bg-secondary/60">
             <p className="text-sm font-semibold">{viewCount} • {uploadDate}</p>
             <p className="text-sm mt-2 text-foreground/90">
-              {video.description}
+              {videoDescription}
             </p>
             {video.tags?.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
@@ -253,7 +256,7 @@ const Watch = () => {
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Up next</h3>
           {suggestions.map((s: any) => {
             const sId = s._id;
-            const sTitle = s.title;
+            const sTitle = getLocalizedField(s, "title", language);
             const sThumb = s.thumbnailPath ? videoApi.getThumbnailUrl(s._id) : "";
             const sChannel = s.channel?.name || "Unknown";
             const sViews = `${s.views?.toLocaleString() || 0} views`;

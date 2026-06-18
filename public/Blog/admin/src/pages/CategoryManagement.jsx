@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { FiPlus, FiEdit3, FiTrash2, FiSave, FiX } from 'react-icons/fi';
+import { useLanguage } from '../context/LanguageContext';
 
-const EMPTY_FORM = { name: '', description: '', icon: '', color: '#6941ff', group: 'entertainment', order: 0 };
+const EMPTY_FORM = { name: '', nameBn: '', nameEn: '', description: '', icon: '', color: '#6941ff', group: 'entertainment', order: 0 };
 
 export default function CategoryManagement() {
+  const { getLocalizedField } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -45,7 +47,7 @@ export default function CategoryManagement() {
   };
 
   const handleEdit = (cat) => {
-    setForm({ name: cat.name, description: cat.description || '', icon: cat.icon || '', color: cat.color || '#6941ff', group: cat.group || 'entertainment', order: cat.order || 0 });
+    setForm({ name: cat.name, nameBn: cat.nameBn || '', nameEn: cat.nameEn || '', description: cat.description || '', icon: cat.icon || '', color: cat.color || '#6941ff', group: cat.group || 'entertainment', order: cat.order || 0 });
     setEditingId(cat._id);
     setShowForm(true);
   };
@@ -98,6 +100,14 @@ export default function CategoryManagement() {
               <input type="text" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} className="input" />
             </div>
             <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Name (Bangla)</label>
+              <input type="text" value={form.nameBn} onChange={(e) => setForm(f => ({ ...f, nameBn: e.target.value }))} className="input" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Name (English)</label>
+              <input type="text" value={form.nameEn} onChange={(e) => setForm(f => ({ ...f, nameEn: e.target.value }))} className="input" />
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Icon (emoji)</label>
               <input type="text" value={form.icon} onChange={(e) => setForm(f => ({ ...f, icon: e.target.value }))} className="input" placeholder="🎨" />
             </div>
@@ -147,7 +157,7 @@ export default function CategoryManagement() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
-                    <p className="font-semibold text-gray-900">{cat.name}</p>
+                    <p className="font-semibold text-gray-900">{getLocalizedField(cat, 'name')}</p>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">{cat.group}</span>
                     <span className="text-xs text-gray-400">{cat.postCount || 0} posts</span>
                   </div>

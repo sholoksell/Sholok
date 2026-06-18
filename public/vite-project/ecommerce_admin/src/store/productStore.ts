@@ -14,8 +14,10 @@ export interface ProductVariant {
 export interface Product {
   id: string;
   name: string;
+  nameBn: string;
   slug: string;
   description: string;
+  descriptionBn: string;
   categoryId: string | null;
   brand: string;
   regularPrice: number;
@@ -63,8 +65,10 @@ interface ProductState {
 const mapApiProduct = (apiProd: ApiProduct): Product => ({
   id: apiProd._id,
   name: apiProd.name,
+  nameBn: apiProd.nameBn || '',
   slug: apiProd.slug,
   description: apiProd.description,
+  descriptionBn: apiProd.descriptionBn || '',
   categoryId: (apiProd.categoryId && typeof apiProd.categoryId === 'object') ? (apiProd.categoryId as any)._id : apiProd.categoryId,
   brand: '',
   regularPrice: apiProd.regularPrice,
@@ -131,8 +135,10 @@ export const useProductStore = create<ProductState>()((set) => ({
     try {
       const data = await productApi.create({
         name: product.name,
+        nameBn: product.nameBn || '',
         slug: product.slug,
         description: product.description,
+        descriptionBn: product.descriptionBn || '',
         shortDescription: product.description.substring(0, 160),
         categoryId: product.categoryId || '',
         regularPrice: product.regularPrice,
@@ -168,8 +174,10 @@ export const useProductStore = create<ProductState>()((set) => ({
     try {
       const updateData: any = {};
       if (updates.name) updateData.name = updates.name;
+      if (updates.nameBn !== undefined) updateData.nameBn = updates.nameBn;
       if (updates.slug) updateData.slug = updates.slug;
       if (updates.description) updateData.description = updates.description;
+      if (updates.descriptionBn !== undefined) updateData.descriptionBn = updates.descriptionBn;
       if (updates.categoryId) updateData.categoryId = updates.categoryId;
       if (updates.regularPrice) updateData.regularPrice = updates.regularPrice;
       if (updates.salePrice !== undefined) updateData.salePrice = updates.salePrice;

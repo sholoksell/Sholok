@@ -17,6 +17,10 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  nameBn: {
+    type: String,
+    default: '',
+  },
   slug: {
     type: String,
     required: true,
@@ -26,7 +30,15 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  descriptionBn: {
+    type: String,
+    default: '',
+  },
   shortDescription: {
+    type: String,
+    default: '',
+  },
+  shortDescriptionBn: {
     type: String,
     default: '',
   },

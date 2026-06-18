@@ -1,29 +1,34 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { categories } from '../../data/categories';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { FiChevronRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
-const megaSections = [
+const getMegaSections = (t) => [
   {
-    title: 'Digital Content & Devices',
+    title: t('digitalContent'),
     items: ['Echo & Alexa', 'Fire Tablets', 'Fire TV', 'Kindle E-Readers', 'Prime Video', 'Amazon Music', 'Audible'],
   },
   {
-    title: 'Shop by Department',
+    title: t('shopByDepartment'),
     items: ['Electronics', 'Computers', 'Smart Home', 'Gaming', 'Fashion', 'Beauty', 'Sports'],
   },
   {
-    title: 'Programs & Features',
-    items: ["Today's Deals", 'Prime', 'Gift Cards', 'Subscribe & Save', 'Amazon Fresh', 'New Releases', 'Best Sellers'],
+    title: t('programsFeatures'),
+    items: [t('todaysDeals'), t('prime'), 'Gift Cards', t('subscribeSave'), 'Amazon Fresh', 'New Releases', t('bestSellers')],
   },
   {
-    title: 'Help & Settings',
-    items: ['Your Account', 'Customer Service', 'Sign In', 'Manage Content & Devices', 'Wish List', 'Sign Out'],
+    title: t('helpSettings'),
+    items: [t('yourAccount'), t('customerService'), t('signIn'), t('manageContent'), t('wishList'), t('signOut')],
   },
 ];
 
-const MegaMenu = ({ onClose }) => (
+const MegaMenu = ({ onClose }) => {
+  const { t } = useLanguage();
+  const megaSections = getMegaSections(t);
+
+  return (
   <motion.div
     initial={{ opacity: 0, y: -6 }}
     animate={{ opacity: 1, y: 0 }}
@@ -36,7 +41,7 @@ const MegaMenu = ({ onClose }) => (
       <div className="w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center">
         <span className="text-white text-xs font-bold">U</span>
       </div>
-      <span className="text-white text-sm font-bold">Hello, Sign in</span>
+      <span className="text-white text-sm font-bold">{t('helloSignIn')}</span>
     </div>
 
     {/* Sections */}
@@ -60,7 +65,7 @@ const MegaMenu = ({ onClose }) => (
 
       {/* All categories */}
       <div className="border-t border-amazon-border">
-        <p className="px-4 pt-3 pb-1 text-amazon-dark font-bold text-sm">All Categories</p>
+        <p className="px-4 pt-3 pb-1 text-amazon-dark font-bold text-sm">{t('allCategories')}</p>
         {categories.map((cat) => (
           <Link
             key={cat.id}
@@ -75,6 +80,7 @@ const MegaMenu = ({ onClose }) => (
       </div>
     </div>
   </motion.div>
-);
+  );
+};
 
 export default MegaMenu;

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Package, Search, Filter, MoreHorizontal, Plus, Eye, EyeOff, Star } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const products: { id: number; name: string; vendor: string; category: string; price: string; stock: number; status: string; featured: boolean }[] = [];
 
@@ -14,19 +15,20 @@ const statusBadge = (status: string) => {
 };
 
 export default function ProductsPage() {
+  const { t } = useLanguage();
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold gradient-text-neon">Product Catalog</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage all vendor products, categories, and inventory</p>
+          <h1 className="text-2xl font-bold gradient-text-neon">{t("productCatalog")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("manageVendorProducts")}</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-sm text-muted-foreground hover:bg-secondary transition-colors">
-            <Filter className="w-4 h-4" /> Filters
+            <Filter className="w-4 h-4" /> {t("filters")}
           </button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-primary-foreground" style={{ background: "var(--gradient-neon)" }}>
-            <Plus className="w-4 h-4" /> Add Product
+            <Plus className="w-4 h-4" /> {t("addProduct")}
           </button>
         </div>
       </div>
@@ -34,10 +36,10 @@ export default function ProductsPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Total Products", value: "24,891" },
-          { label: "Active", value: "22,450" },
-          { label: "Pending Approval", value: "342" },
-          { label: "Out of Stock", value: "89" },
+          { label: t("totalProducts"), value: "24,891" },
+          { label: t("active"), value: "22,450" },
+          { label: t("pendingApproval"), value: "342" },
+          { label: t("outOfStock"), value: "89" },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card p-4">
             <p className="text-lg font-bold font-mono text-foreground">{stat.value}</p>
@@ -51,18 +53,18 @@ export default function ProductsPage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-sm">
             <Search className="w-4 h-4 text-muted-foreground" />
-            <input type="text" placeholder="Search products..." className="bg-transparent flex-1 outline-none text-foreground placeholder:text-muted-foreground" />
+            <input type="text" placeholder={t("searchProducts")} className="bg-transparent flex-1 outline-none text-foreground placeholder:text-muted-foreground" />
           </div>
         </div>
         <table className="data-grid">
           <thead>
             <tr>
-              <th>Product</th>
-              <th>Vendor</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
+              <th>{t("product")}</th>
+              <th>{t("vendor")}</th>
+              <th>{t("category")}</th>
+              <th>{t("price")}</th>
+              <th>{t("stock")}</th>
+              <th>{t("status")}</th>
               <th></th>
             </tr>
           </thead>

@@ -40,6 +40,10 @@ router.post(
       const video = await Video.create({
         title: req.body.title || "Untitled Video",
         description: req.body.description || "",
+        titleBn: req.body.titleBn || "",
+        titleEn: req.body.titleEn || req.body.title || "",
+        descriptionBn: req.body.descriptionBn || "",
+        descriptionEn: req.body.descriptionEn || req.body.description || "",
         videoPath: videoFile.path,
         thumbnailPath: thumbnailFile?.path || "",
         duration: req.body.duration || "0:00",
@@ -323,9 +327,13 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const { title, description, category, tags, status } = req.body;
+    const { title, description, titleBn, titleEn, descriptionBn, descriptionEn, category, tags, status } = req.body;
     if (title) video.title = title;
     if (description !== undefined) video.description = description;
+    if (titleBn !== undefined) video.titleBn = titleBn;
+    if (titleEn !== undefined) video.titleEn = titleEn;
+    if (descriptionBn !== undefined) video.descriptionBn = descriptionBn;
+    if (descriptionEn !== undefined) video.descriptionEn = descriptionEn;
     if (category) video.category = category;
     if (tags) video.tags = tags;
     if (status) video.status = status;

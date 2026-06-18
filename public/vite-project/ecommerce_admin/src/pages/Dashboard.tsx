@@ -10,6 +10,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import TakaIcon from '@/components/TakaIcon';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   AreaChart,
   Area,
@@ -70,6 +71,7 @@ function getTimeAgo(dateStr: string): string {
 }
 
 export default function Dashboard() {
+  const { t } = useLanguage();
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
@@ -90,7 +92,7 @@ export default function Dashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
         <p className="text-muted-foreground">Welcome back! Here's your store overview.</p>
       </div>
 

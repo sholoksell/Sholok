@@ -2,12 +2,15 @@ import { ReactNode } from "react";
 import AdminSidebar from "./AdminSidebar";
 import { Bell, Search, Settings, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  const { language, setLanguage, t } = useLanguage();
+
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminUser");
@@ -24,10 +27,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm cursor-pointer hover:bg-secondary transition-colors">
               <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">Search anything...</span>
+              <span className="hidden sm:inline">{t("searchAnything")}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLanguage(language === "bn" ? "en" : "bn")}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-muted hover:bg-secondary transition-colors text-muted-foreground"
+              title="Toggle language"
+            >
+              {language === "bn" ? "বাং" : "EN"}
+            </button>
             <button className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
               <Bell className="w-4 h-4" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-neon-green pulse-dot" />
@@ -47,7 +57,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">{t("logout")}</span>
             </button>
           </div>
         </header>

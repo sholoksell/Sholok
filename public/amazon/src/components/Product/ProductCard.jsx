@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import StarRating from '../common/StarRating';
 import PrimeBadge from '../common/PrimeBadge';
 import { FiShoppingCart } from 'react-icons/fi';
@@ -10,12 +11,14 @@ const ProductCard = ({ product, compact = false }) => {
   const [imgError, setImgError] = useState(false);
   const { addToCart, isInCart } = useCart();
   const { addToast } = useToast();
+  const { t, getLocalizedField } = useLanguage();
+  const localizedTitle = getLocalizedField(product, 'title');
 
   const handleAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product, 1);
-    addToast(`"${product.title.slice(0, 40)}..." added to cart`, 'success');
+    addToast(`"${localizedTitle.slice(0, 40)}..." ${t('addedToCartToast')}`, 'success');
   };
 
   const fallback = `https://placehold.co/400x400/EAEDED/565959?text=${encodeURIComponent(product.brand || 'Product')}`;
@@ -29,7 +32,7 @@ const ProductCard = ({ product, compact = false }) => {
       <div className="relative overflow-hidden bg-[#F7F8F8] flex items-center justify-center aspect-square">
         {product.isSponsored && (
           <span className="absolute top-1.5 left-1.5 bg-white/90 text-[10px] text-amazon-text-gray px-1 rounded z-10">
-            Sponsored
+            {t('sponsored')}
           </span>
         )}
         {product.badge && (
@@ -39,7 +42,7 @@ const ProductCard = ({ product, compact = false }) => {
         )}
         <img
           src={!product.image || imgError ? fallback : product.image}
-          alt={product.title}
+          alt={localizedTitle}
           onError={() => setImgError(true)}
           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-2"
           loading="lazy"
@@ -50,7 +53,7 @@ const ProductCard = ({ product, compact = false }) => {
       <div className="p-3 flex flex-col flex-1">
         {/* Title */}
         <p className="text-amazon-dark text-sm leading-snug line-clamp-2 mb-1 hover:text-amazon-orange transition-colors">
-          {product.title}
+          {localizedTitle}
         </p>
 
         {/* Brand */}
@@ -67,7 +70,7 @@ const ProductCard = ({ product, compact = false }) => {
         {/* Bought count */}
         {product.boughtCount && !compact && (
           <p className="text-xs text-amazon-text-gray mb-1">
-            {product.boughtCount} bought past month
+            {product.boughtCount} {t('boughtPastMonth')}
           </p>
         )}
 
@@ -81,7 +84,7 @@ const ProductCard = ({ product, compact = false }) => {
           </div>
           {product.originalPrice && (
             <p className="text-xs text-amazon-text-gray">
-              Was:{' '}
+              {t('was')}{' '}
               <span className="line-through">৳{Math.round(product.originalPrice * 110).toLocaleString()}</span>
             </p>
           )}
@@ -91,7 +94,7 @@ const ProductCard = ({ product, compact = false }) => {
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {product.isPrime && <PrimeBadge />}
               {product.freeDelivery && (
-                <span className="text-xs text-amazon-green font-medium">FREE delivery</span>
+                <span className="text-xs text-amazon-green font-medium">{t('freeDelivery')}</span>
               )}
             </div>
           )}
@@ -99,7 +102,7 @@ const ProductCard = ({ product, compact = false }) => {
           {/* Delivery date */}
           {product.deliveryDate && !compact && (
             <p className="text-xs text-amazon-dark mt-0.5">
-              Get it <span className="font-bold">{product.deliveryDate}</span>
+              {t('getIt')} <span className="font-bold">{product.deliveryDate}</span>
             </p>
           )}
 
@@ -113,7 +116,7 @@ const ProductCard = ({ product, compact = false }) => {
             }`}
           >
             <FiShoppingCart size={13} />
-            {isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
+            {isInCart(product.id) ? t('inCart') : t('addToCart')}
           </button>
         </div>
       </div>

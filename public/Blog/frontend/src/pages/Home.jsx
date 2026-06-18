@@ -4,14 +4,8 @@ import { Helmet } from 'react-helmet-async';
 import api from '../utils/api';
 import BlogCard from '../components/BlogCard';
 import BloggerCard from '../components/BloggerCard';
+import { useLanguage } from '../context/LanguageContext';
 import { FiArrowRight, FiTrendingUp, FiStar, FiUsers } from 'react-icons/fi';
-
-const CATEGORIES = [
-  { name: 'Entertainment', slug: 'entertainment', icon: '🎨', desc: 'Movies, Music, Art', color: 'from-pink-500 to-rose-500' },
-  { name: 'Lifestyle', slug: 'lifestyle', icon: '🛍️', desc: 'Fashion, Food, Home', color: 'from-purple-500 to-violet-500' },
-  { name: 'Hobbies & Travel', slug: 'hobbies-travel', icon: '🧭', desc: 'Travel, Sports, Games', color: 'from-blue-500 to-cyan-500' },
-  { name: 'Knowledge', slug: 'knowledge', icon: '🧠', desc: 'Tech, Health, Business', color: 'from-green-500 to-emerald-500' },
-];
 
 function SkeletonCard() {
   return (
@@ -27,6 +21,13 @@ function SkeletonCard() {
 }
 
 export default function Home() {
+  const { t } = useLanguage();
+  const CATEGORIES = [
+    { name: t('entertainment'), slug: 'entertainment', icon: '🎨', desc: t('entDesc'), color: 'from-pink-500 to-rose-500' },
+    { name: t('lifestyle'), slug: 'lifestyle', icon: '🛍️', desc: t('lifeDesc'), color: 'from-purple-500 to-violet-500' },
+    { name: t('hobbiesTravel'), slug: 'hobbies-travel', icon: '🧭', desc: t('hobbiesDesc'), color: 'from-blue-500 to-cyan-500' },
+    { name: t('knowledge'), slug: 'knowledge', icon: '🧠', desc: t('knowledgeDesc'), color: 'from-green-500 to-emerald-500' },
+  ];
   const [featuredPosts, setFeaturedPosts] = useState([]);
   const [trendingPosts, setTrendingPosts] = useState([]);
   const [latestPosts, setLatestPosts] = useState([]);
@@ -79,33 +80,33 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 mb-6">
               <span className="px-3 py-1 bg-accent-500/20 border border-accent-500/30 text-accent-300 rounded-full text-xs font-semibold uppercase tracking-wider">
-                🔥 Featured Platform
+                {t('featuredPlatform')}
               </span>
             </div>
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Share Your Story<br />
+              {t('heroTitle1')}<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-accent-300">
-                With The World
+                {t('heroTitle2')}
               </span>
             </h1>
             <p className="text-lg text-white/70 mb-8 max-w-xl leading-relaxed">
-              Discover amazing stories, share your passions, connect with millions of bloggers. Your voice matters here.
+              {t('heroDescription')}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/register" className="bg-gradient-to-r from-primary-500 to-accent-500 text-white font-semibold px-8 py-3.5 rounded-full hover:opacity-90 transition-all duration-300 shadow-2xl hover:shadow-accent-500/30 flex items-center gap-2">
-                Start Writing <FiArrowRight className="w-4 h-4" />
+                {t('startWriting')} <FiArrowRight className="w-4 h-4" />
               </Link>
               <Link to="/search?sort=trending" className="bg-white/10 backdrop-blur-sm text-white font-semibold px-8 py-3.5 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300 flex items-center gap-2">
-                <FiTrendingUp className="w-4 h-4" /> Explore Trending
+                <FiTrendingUp className="w-4 h-4" /> {t('exploreTrending')}
               </Link>
             </div>
 
             {/* Stats */}
             <div className="flex flex-wrap gap-8 mt-10 pt-8 border-t border-white/10">
               {[
-                { label: 'Active Bloggers', value: '10K+', icon: FiUsers },
-                { label: 'Blog Posts', value: '50K+', icon: FiStar },
-                { label: 'Monthly Readers', value: '2M+', icon: FiTrendingUp },
+                { label: t('activeBloggers'), value: '10K+', icon: FiUsers },
+                { label: t('blogPosts'), value: '50K+', icon: FiStar },
+                { label: t('monthlyReaders'), value: '2M+', icon: FiTrendingUp },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -125,7 +126,7 @@ export default function Home() {
       {/* Categories Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold font-heading text-gray-900 dark:text-white">Explore Categories</h2>
+          <h2 className="text-2xl font-bold font-heading text-gray-900 dark:text-white">{t('exploreCategories')}</h2>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {CATEGORIES.map((cat) => (
@@ -136,7 +137,7 @@ export default function Home() {
               <h3 className="font-bold font-heading text-lg leading-tight">{cat.name}</h3>
               <p className="text-white/70 text-xs mt-1">{cat.desc}</p>
               <div className="flex items-center gap-1 mt-3 text-white/80 text-xs font-medium">
-                Explore <FiArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                {t('explore')} <FiArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
           ))}
@@ -152,10 +153,10 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-6 bg-gradient-to-b from-primary-600 to-accent-500 rounded-full" />
-                  <h2 className="text-xl font-bold font-heading text-gray-900 dark:text-white">🔥 Trending Now</h2>
+                  <h2 className="text-xl font-bold font-heading text-gray-900 dark:text-white">{t('trendingNow')}</h2>
                 </div>
                 <Link to="/search?sort=trending" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
-                  See all <FiArrowRight className="w-3.5 h-3.5" />
+                  {t('seeAll')} <FiArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
               {loading ? (
@@ -170,7 +171,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-400 text-center py-8">No trending posts yet. Be the first to write!</p>
+                <p className="text-gray-400 text-center py-8">{t('noTrendingYet')}</p>
               )}
             </section>
 
@@ -179,10 +180,10 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full" />
-                  <h2 className="text-xl font-bold font-heading text-gray-900 dark:text-white">✨ Latest Posts</h2>
+                  <h2 className="text-xl font-bold font-heading text-gray-900 dark:text-white">{t('latestPosts')}</h2>
                 </div>
                 <Link to="/search?sort=latest" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
-                  See all <FiArrowRight className="w-3.5 h-3.5" />
+                  {t('seeAll')} <FiArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
               {loading ? (
@@ -197,7 +198,7 @@ export default function Home() {
               {!loading && (
                 <div className="text-center mt-6">
                   <Link to="/search" className="btn-outline inline-flex items-center gap-2">
-                    Load More <FiArrowRight className="w-4 h-4" />
+                    {t('loadMore')} <FiArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               )}
@@ -210,7 +211,7 @@ export default function Home() {
             <div className="card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-1 h-5 bg-gradient-to-b from-accent-500 to-primary-500 rounded-full" />
-                <h3 className="font-bold text-gray-900 dark:text-white">🌟 Top Bloggers</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">🌟 {t('topBloggers')}</h3>
               </div>
               {loading ? (
                 <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 shimmer rounded-xl" />)}</div>
@@ -220,16 +221,16 @@ export default function Home() {
                 </div>
               )}
               <Link to="/search?type=users" className="mt-4 w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center justify-center gap-2">
-                See All Bloggers <FiArrowRight className="w-4 h-4" />
+                {t('seeAll')} {t('bloggersTab')} <FiArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
             {/* Quick Write CTA */}
             <div className="rounded-2xl bg-gradient-to-br from-primary-600 to-accent-600 p-6 text-white">
-              <h3 className="font-heading font-bold text-lg mb-2">Start Writing Today</h3>
-              <p className="text-white/70 text-sm mb-4">Share your knowledge and connect with readers worldwide.</p>
+              <h3 className="font-heading font-bold text-lg mb-2">{t('startWriting')}</h3>
+              <p className="text-white/70 text-sm mb-4">{t('heroDescription').slice(0, 60)}...</p>
               <Link to="/write" className="bg-white text-primary-700 font-semibold px-5 py-2.5 rounded-full hover:bg-white/90 transition text-sm inline-flex items-center gap-2">
-                Write a Post <FiArrowRight className="w-4 h-4" />
+                {t('writePost')} <FiArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
@@ -237,7 +238,7 @@ export default function Home() {
             {featuredPosts.length > 0 && (
               <div className="card p-5">
                 <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <span>⭐</span> Featured Posts
+                  <span>⭐</span> {t('featuredBadge').replace('⭐ ', '')}  {/* Featured Posts */}
                 </h3>
                 <div className="space-y-4">
                   {featuredPosts.slice(0, 3).map((post) => (

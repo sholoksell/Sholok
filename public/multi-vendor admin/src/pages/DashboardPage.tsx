@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
 import { fetchAdminStats } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -67,6 +68,7 @@ const itemVariants = {
 };
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const { data, isLoading } = useQuery({
     queryKey: ["adminStats"],
     queryFn: () => fetchAdminStats().then(r => r.data),
@@ -96,21 +98,21 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold gradient-text-neon">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Welcome back, Super Admin. Here's what's happening.</p>
+          <h1 className="text-2xl font-bold gradient-text-neon">{t("dashboard")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("welcomeBack")}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="pulse-dot bg-neon-green" />
-          <span className="text-xs text-muted-foreground font-mono">LIVE</span>
+          <span className="text-xs text-muted-foreground font-mono">{t("live")}</span>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Revenue" value={isLoading ? "..." : fmtTaka(stats.totalRevenue ?? 0)} change="" changeType="up" icon={TakaIcon} delay={0} />
-        <StatCard title="Total Orders" value={isLoading ? "..." : (stats.totalOrders ?? 0).toLocaleString()} change="" changeType="up" icon={ShoppingCart} variant="purple" delay={0.05} />
-        <StatCard title="Active Vendors" value={isLoading ? "..." : (stats.totalSellers ?? 0).toLocaleString()} change="" changeType="up" icon={Store} variant="warm" delay={0.1} />
-        <StatCard title="Total Users" value={isLoading ? "..." : (stats.totalUsers ?? 0).toLocaleString()} change="" changeType="up" icon={Users} delay={0.15} />
+        <StatCard title={t("totalRevenue")} value={isLoading ? "..." : fmtTaka(stats.totalRevenue ?? 0)} change="" changeType="up" icon={TakaIcon} delay={0} />
+        <StatCard title={t("totalOrders")} value={isLoading ? "..." : (stats.totalOrders ?? 0).toLocaleString()} change="" changeType="up" icon={ShoppingCart} variant="purple" delay={0.05} />
+        <StatCard title={t("activeVendors")} value={isLoading ? "..." : (stats.totalSellers ?? 0).toLocaleString()} change="" changeType="up" icon={Store} variant="warm" delay={0.1} />
+        <StatCard title={t("totalUsers")} value={isLoading ? "..." : (stats.totalUsers ?? 0).toLocaleString()} change="" changeType="up" icon={Users} delay={0.15} />
       </div>
 
       {/* Charts Row */}
@@ -118,10 +120,10 @@ export default function DashboardPage() {
         {/* Revenue Chart */}
         <motion.div variants={itemVariants} className="lg:col-span-2 glass-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Revenue Overview</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t("revenueOverview")}</h3>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-neon-green" /> Revenue</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-neon-purple" /> Orders</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-neon-green" /> {t("revenue")}</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-neon-purple" /> {t("orders")}</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
@@ -151,7 +153,7 @@ export default function DashboardPage() {
 
         {/* Category Breakdown */}
         <motion.div variants={itemVariants} className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Category Performance</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">{t("categoryPerformance")}</h3>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={categoryData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" strokeWidth={0}>
@@ -183,22 +185,22 @@ export default function DashboardPage() {
         {/* Recent Orders */}
         <motion.div variants={itemVariants} className="lg:col-span-2 glass-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Recent Orders</h3>
-            <button className="text-xs text-primary hover:underline">View All</button>
+            <h3 className="text-sm font-semibold text-foreground">{t("recentOrders")}</h3>
+            <button className="text-xs text-primary hover:underline">{t("viewAll")}</button>
           </div>
           <table className="data-grid">
             <thead>
               <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Vendor</th>
-                <th>Amount</th>
-                <th>Status</th>
+                <th>{t("orderId")}</th>
+                <th>{t("customer")}</th>
+                <th>{t("vendor")}</th>
+                <th>{t("amount")}</th>
+                <th>{t("status")}</th>
               </tr>
             </thead>
             <tbody>
               {recentOrders.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-muted-foreground py-4 text-xs">No orders yet</td></tr>
+                <tr><td colSpan={5} className="text-center text-muted-foreground py-4 text-xs">{t("noOrdersYet")}</td></tr>
               ) : recentOrders.map((order: { _id: string; orderNumber: string; shippingAddress?: { name: string }; total?: number; totalAmount?: number; status: string }) => (
                 <tr key={order._id}>
                   <td className="font-mono text-primary text-xs">{order.orderNumber}</td>
@@ -216,7 +218,7 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="glass-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Globe className="w-4 h-4 text-neon-blue" /> Portal Modules
+              <Globe className="w-4 h-4 text-neon-blue" /> {t("portalModules")}
             </h3>
           </div>
           <div className="space-y-2">
@@ -240,8 +242,8 @@ export default function DashboardPage() {
       {/* Vendor Performance */}
       <motion.div variants={itemVariants} className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground">Top Vendors by Sales</h3>
-          <button className="text-xs text-primary hover:underline">View All Vendors</button>
+          <h3 className="text-sm font-semibold text-foreground">{t("topVendorsBySales")}</h3>
+          <button className="text-xs text-primary hover:underline">{t("viewAllVendors")}</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
           {vendorPerformance.map((vendor, i) => (

@@ -3,28 +3,30 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Grid3x3, ShoppingCart, User } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const MobileBottomNav = () => {
   const location = useLocation();
   const cartItemCount = useCartStore((state) => state.getCartItemCount());
   const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
 
   const navItems = [
     {
       icon: Home,
-      label: 'Home',
+      label: t('home'),
       path: '/',
       active: location.pathname === '/',
     },
     {
       icon: Grid3x3,
-      label: 'Categories',
+      label: t('categories'),
       path: '/categories',
       active: location.pathname.startsWith('/category'),
     },
     {
       icon: ShoppingCart,
-      label: 'Cart',
+      label: t('cart'),
       path: '#',
       badge: cartItemCount,
       active: false,
@@ -32,7 +34,7 @@ const MobileBottomNav = () => {
     },
     {
       icon: User,
-      label: isAuthenticated ? 'Account' : 'Login',
+      label: isAuthenticated ? t('account') : t('login'),
       path: isAuthenticated ? '/account' : '/login',
       active: location.pathname === '/account' || location.pathname === '/login',
     },

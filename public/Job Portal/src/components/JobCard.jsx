@@ -5,7 +5,7 @@ import './JobCard.css';
 
 export default function JobCard({ job, featured = false }) {
   const { isSaved, toggleSave } = useSavedJobs();
-  const { t } = useLang();
+  const { t, getLocalizedField } = useLang();
   const jobId = job._id || job.id;
   const saved = isSaved(jobId);
 
@@ -36,7 +36,7 @@ export default function JobCard({ job, featured = false }) {
 
       {/* Title */}
       <Link to={`/jobs/${jobId}`} className="job-card__title">
-        {job.title}
+        {getLocalizedField(job, 'title')}
       </Link>
       <p className="job-card__title-en">{job.titleEn}</p>
 

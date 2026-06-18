@@ -8,8 +8,9 @@ export default {
     container: { center: true, padding: "1.5rem", screens: { "2xl": "1400px" } },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        sans: ['Inter', '"Noto Sans Bengali"', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', '"Noto Sans Bengali"', 'Inter', 'sans-serif'],
+        bengali: ['"Noto Sans Bengali"', 'Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -7,6 +7,7 @@ import { CartProvider } from "@/store/cartContext";
 import { QuickViewProvider } from "@/store/quickViewContext";
 import { ThemeProvider } from "@/store/themeContext";
 import { AuthProvider } from "@/store/authContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 import Layout from "@/components/Layout";
@@ -29,6 +30,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <LanguageProvider>
     <ThemeProvider>
       <TooltipProvider>
         <Toaster />
@@ -71,6 +73,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 

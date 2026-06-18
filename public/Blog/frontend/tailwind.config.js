@@ -31,8 +31,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        heading: ['Poppins', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
+        heading: ['Poppins', 'Noto Sans Bengali', 'sans-serif'],
+        bengali: ['Noto Sans Bengali', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

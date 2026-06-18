@@ -57,7 +57,7 @@ const ProductCard = memo(({ product }) => {
   const discount = getDiscountPercentage(comparePrice, displayPrice);
   const productImage = product.image || product.images?.[0] || product.thumbnail || '';
   const productName = getLocalizedField(product, 'name') || product.name;
-  const unit = product.unit || product.unitType || 'Per Piece';
+  const unit = product.unit || product.unitType || t('perPiece');
   const minQty = product.minOrderQuantity || product.minQty;
 
   // Calculate taka off amount
@@ -114,7 +114,7 @@ const ProductCard = memo(({ product }) => {
         {/* Card Body */}
         <div className="flex flex-col flex-1 px-3 pt-2 pb-3 gap-1">
           {/* Delivery text */}
-          <p className="text-[11px] text-gray-400 italic">Delivery 1-2 hours</p>
+          <p className="text-[11px] text-gray-400 italic">{t('delivery12Hours')}</p>
 
           {/* Product Name */}
           <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 min-h-[2.5rem] leading-tight">
@@ -144,12 +144,12 @@ const ProductCard = memo(({ product }) => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Adding...
+                {t('addToCart')}...
               </span>
             ) : product.stock === 0 ? (
               t('outOfStock')
             ) : (
-              <span>+ Add to Bag</span>
+              <span>+ {t('addToBag')}</span>
             )}
           </button>
         </div>

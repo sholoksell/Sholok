@@ -5,8 +5,10 @@ import { adminApi, adminAuthApi, isAdminLoggedIn, removeAdminToken, videoApi } f
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useLanguage, getLocalizedField } from "@/contexts/LanguageContext";
 
 const Admin = () => {
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState<any>(null);
   const [verified, setVerified] = useState(false);
@@ -198,7 +200,7 @@ const Admin = () => {
                 <tbody>
                   {adminVideos.map((v: any) => {
                     const vid = v._id;
-                    const vTitle = v.title;
+                    const vTitle = getLocalizedField(v, "title", language);
                     const vChannel = v.channel?.name || "Unknown";
                     const vViews = v.views?.toLocaleString() || "0";
                     const vThumb = v.thumbnailPath ? videoApi.getThumbnailUrl(v._id) : "";
@@ -319,7 +321,7 @@ const Admin = () => {
           </DialogHeader>
           {controlsVideo && (
             <div className="space-y-4 mt-4">
-              <p className="text-sm font-semibold line-clamp-1">{controlsVideo.title}</p>
+              <p className="text-sm font-semibold line-clamp-1">{getLocalizedField(controlsVideo, "title", language)}</p>
 
               <div className="space-y-3">
                 {[

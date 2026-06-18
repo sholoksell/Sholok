@@ -6,6 +6,11 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Noto Sans Bengali"', '"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        bn: ['"Noto Sans Bengali"', 'sans-serif'],
+        en: ['"Inter"', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -29,6 +29,7 @@ const couponRoutes = require('./routes/coupons');
 const bannerRoutes = require('./routes/banners');
 const deliveryRoutes = require('./routes/delivery');
 const searchRoutes = require('./routes/search');
+const dictionaryRoutes = require('./routes/dictionary');
 const cafeRoutes = require('./routes/cafes');
 const locationRoutes = require('./routes/locations');
 const financeRoutes = require('./routes/finance');
@@ -49,6 +50,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/dictionary', dictionaryRoutes);
 app.use('/api/cafes', cafeRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/finance', financeRoutes);
@@ -76,7 +78,16 @@ app.use((err, req, res, next) => {
 
 // Start Server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+const serverInstance = app.listen(PORT, () => {
   console.log(`🚀 Customer Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV}`);
+});
+
+serverInstance.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ Port ${PORT} is already in use. Kill the existing process or set a different PORT env variable.\n`);
+    process.exit(1);
+  } else {
+    throw err;
+  }
 });

@@ -4,15 +4,15 @@ import Job from "../models/Job.js";
 export const createJob = async (req, res) => {
   try {
     const {
-      title, titleEn, company, companyLogo, companyRef, salary, salaryMin, salaryMax,
-      location, jobType, category, experience, description, skills,
-      requirements, benefits, vacancies, deadline, featured, urgent,
+      title, titleEn, titleBn, company, companyLogo, companyRef, salary, salaryMin, salaryMax,
+      location, jobType, category, experience, description, descriptionEn, descriptionBn, skills,
+      requirements, requirementsEn, requirementsBn, benefits, vacancies, deadline, featured, urgent,
     } = req.body;
 
     const job = await Job.create({
-      title, titleEn, company, companyLogo, companyRef, salary, salaryMin, salaryMax,
-      location, jobType, category, experience, description, skills,
-      requirements, benefits, vacancies, deadline, featured, urgent,
+      title, titleEn, titleBn, company, companyLogo, companyRef, salary, salaryMin, salaryMax,
+      location, jobType, category, experience, description, descriptionEn, descriptionBn, skills,
+      requirements, requirementsEn, requirementsBn, benefits, vacancies, deadline, featured, urgent,
       createdBy: req.user._id,
       status: "pending",
     });
@@ -38,6 +38,7 @@ export const getApprovedJobs = async (req, res) => {
       filter.$or = [
         { title: regex },
         { titleEn: regex },
+        { titleBn: regex },
         { company: regex },
         { skills: regex },
       ];
@@ -159,9 +160,10 @@ export const updateJob = async (req, res) => {
     }
 
     const allowedFields = [
-      "title", "titleEn", "company", "companyLogo", "companyRef", "salary", "salaryMin",
+      "title", "titleEn", "titleBn", "company", "companyLogo", "companyRef", "salary", "salaryMin",
       "salaryMax", "location", "jobType", "category", "experience",
-      "description", "skills", "requirements", "benefits", "vacancies",
+      "description", "descriptionEn", "descriptionBn", "skills",
+      "requirements", "requirementsEn", "requirementsBn", "benefits", "vacancies",
       "deadline", "featured", "urgent",
     ];
 

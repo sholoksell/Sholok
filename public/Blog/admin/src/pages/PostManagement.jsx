@@ -3,6 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { FiSearch, FiEye, FiEdit3, FiTrash2, FiStar, FiFilter } from 'react-icons/fi';
 import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '../context/LanguageContext';
 
 const STATUS_COLORS = {
   published: 'bg-green-50 text-green-700',
@@ -12,6 +13,7 @@ const STATUS_COLORS = {
 };
 
 export default function PostManagement() {
+  const { getLocalizedField } = useLanguage();
   const [posts, setPosts] = useState([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -118,8 +120,8 @@ export default function PostManagement() {
                         {post.featuredImage ? <img src={post.featuredImage} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-base">{post.category?.icon || '📝'}</div>}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 line-clamp-1">{post.title}</p>
-                        <p className="text-xs text-gray-400">{post.category?.name}</p>
+                        <p className="font-semibold text-gray-900 line-clamp-1">{getLocalizedField(post, 'title')}</p>
+                        <p className="text-xs text-gray-400">{post.category ? getLocalizedField(post.category, 'name') : ''}</p>
                       </div>
                       {post.isFeatured && <FiStar className="w-4 h-4 text-yellow-500 fill-current flex-shrink-0" />}
                     </div>

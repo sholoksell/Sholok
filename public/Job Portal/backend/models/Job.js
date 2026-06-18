@@ -13,6 +13,11 @@ const jobSchema = new mongoose.Schema(
       trim: true,
       maxlength: 200,
     },
+    titleBn: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
     company: {
       type: String,
       required: [true, "Company name is required"],
@@ -60,8 +65,16 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: [true, "Job description is required"],
     },
+    descriptionEn: {
+      type: String,
+    },
+    descriptionBn: {
+      type: String,
+    },
     skills: [{ type: String }],
     requirements: [{ type: String }],
+    requirementsEn: [{ type: String }],
+    requirementsBn: [{ type: String }],
     benefits: [{ type: String }],
     vacancies: {
       type: Number,

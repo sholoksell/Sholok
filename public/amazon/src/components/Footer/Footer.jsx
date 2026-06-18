@@ -1,28 +1,32 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { FiChevronUp, FiGlobe } from 'react-icons/fi';
 import { FaFacebook, FaTwitter, FaInstagram, FaYoutube } from 'react-icons/fa';
 
-const footerLinks = [
+const getFooterLinks = (t) => [
   {
-    title: 'Get to Know Us',
+    title: t('getToKnowUs'),
     links: ['About Us', 'Careers', 'Press Releases', 'Sholok Science', 'Investor Relations', 'Our Devices', 'Sustainability'],
   },
   {
-    title: 'Make Money with Us',
+    title: t('makeMoneyWithUs'),
     links: ['Sell on Sholok', 'Sell Under Sholok Accelerator', 'Become an Affiliate', 'Advertise Your Products', 'Self-Publish with Us', 'Host a Sholok Hub'],
   },
   {
-    title: 'Sholok Payment Products',
+    title: t('paymentProducts'),
     links: ['Sholok Business Card', 'Shop with Points', 'Reload Your Balance', 'Sholok Currency Converter', 'Payment Methods', 'Sholok Pay'],
   },
   {
-    title: 'Let Us Help You',
-    links: ['Your Account', 'Your Orders', 'Shipping Rates & Policies', 'Returns & Replacements', 'Manage Your Content', 'ShopZone Assistant', 'Help'],
+    title: t('letUsHelpYou'),
+    links: [t('yourAccount'), t('yourOrders'), 'Shipping Rates & Policies', 'Returns & Replacements', 'Manage Your Content', 'ShopZone Assistant', t('help')],
   },
 ];
 
 const Footer = () => {
+  const { language, setLanguage, t } = useLanguage();
+  const footerLinks = getFooterLinks(t);
+  const toggleLanguage = () => setLanguage(language === 'bn' ? 'en' : 'bn');
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
@@ -32,7 +36,7 @@ const Footer = () => {
         onClick={scrollToTop}
         className="w-full bg-[#37475A] hover:bg-[#485769] text-white text-sm py-3 text-center transition-colors font-medium"
       >
-        Back to top ↑
+        {t('backToTop')}
       </button>
 
       {/* Main footer */}
@@ -69,14 +73,17 @@ const Footer = () => {
           </Link>
 
           {/* Language */}
-          <button className="flex items-center gap-1.5 border border-gray-500 text-white text-xs px-3 py-1.5 rounded hover:border-white transition-colors">
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 border border-gray-500 text-white text-xs px-3 py-1.5 rounded hover:border-white transition-colors"
+          >
             <FiGlobe size={14} />
-            <span>English</span>
+            <span>{language === 'bn' ? t('bangla') : t('english')}</span>
           </button>
 
           {/* Country */}
           <button className="flex items-center gap-1.5 border border-gray-500 text-white text-xs px-3 py-1.5 rounded hover:border-white transition-colors">
-            🇧🇩 <span>Bangladesh</span>
+            🇧🇩 <span>{t('bangladesh')}</span>
           </button>
 
           {/* Social */}

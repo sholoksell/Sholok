@@ -40,7 +40,7 @@ exports.getMyStore = async (req, res) => {
 
 // @PUT /api/v1/stores/me  (seller)
 exports.updateMyStore = async (req, res) => {
-  const allowed = ["name", "description", "logo", "banner", "category", "tags", "contact", "address", "socialLinks", "policies", "layout"];
+  const allowed = ["name", "nameBn", "nameEn", "description", "descriptionBn", "descriptionEn", "logo", "banner", "category", "tags", "contact", "address", "socialLinks", "policies", "layout"];
   const updates = {};
   allowed.forEach((k) => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
 

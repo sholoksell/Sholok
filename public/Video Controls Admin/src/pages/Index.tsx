@@ -7,8 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { videoApi } from "@/lib/api";
+import { useLanguage, getLocalizedField } from "@/contexts/LanguageContext";
 
 const Index = () => {
+  const { language, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const [apiVideos, setApiVideos] = useState<any[]>([]);
   const [apiShorts, setApiShorts] = useState<any[]>([]);
@@ -57,7 +59,7 @@ const Index = () => {
   // Use only API videos (real uploads)
   const displayVideos = apiVideos.map((v: any) => ({
       id: v._id,
-      title: v.title,
+      title: getLocalizedField(v, "title", language),
       thumbnail: v.thumbnailPath ? videoApi.getThumbnailUrl(v._id) : "",
       channel: v.channel?.name || "Unknown",
       channelAvatar: v.channel?.avatar || v.channel?.name?.[0] || "🎬",
@@ -71,7 +73,7 @@ const Index = () => {
   const displayShorts = apiShorts.length > 0
     ? apiShorts.map((v: any) => ({
         id: v._id,
-        title: v.title,
+        title: getLocalizedField(v, "title", language),
         thumbnail: v.thumbnailPath ? videoApi.getThumbnailUrl(v._id) : "",
         streamUrl: videoApi.getStreamUrl(v._id),
         channel: v.channel?.name || "Unknown",
@@ -103,7 +105,7 @@ const Index = () => {
                 </Button>
               </Link>
               <Link to="/shorts">
-                <Button size="lg" variant="secondary" className="rounded-full font-semibold">Browse Shorts</Button>
+                <Button size="lg" variant="secondary" className="rounded-full font-semibold">{t("shorts")}</Button>
               </Link>
             </div>
           </div>

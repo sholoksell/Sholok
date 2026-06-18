@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { FiUsers, FiFileText } from 'react-icons/fi';
 
 export default function BloggerCard({ blogger }) {
   const { user, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [isFollowing, setIsFollowing] = useState(blogger.followers?.some((f) => f === user?._id || f?._id === user?._id));
   const [followerCount, setFollowerCount] = useState(blogger.followers?.length || 0);
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,7 @@ export default function BloggerCard({ blogger }) {
   const avatar = blogger.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blogger.displayName || 'User')}&background=6941ff&color=fff`;
 
   const handleFollow = async () => {
-    if (!isAuthenticated) { toast.error('Sign in to follow bloggers'); return; }
+    if (!isAuthenticated) { toast.error(t('signIn')); return; }
     if (loading) return;
     setLoading(true);
     try {
@@ -50,7 +52,7 @@ export default function BloggerCard({ blogger }) {
               ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red-50 hover:text-red-500'
               : 'bg-gradient-to-r from-primary-600 to-accent-500 text-white hover:opacity-90'
           }`}>
-          {loading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+          {loading ? '...' : isFollowing ? t('unfollow') : t('follow')}
         </button>
       )}
     </div>

@@ -24,8 +24,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        heading: ['Poppins', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans Bengali', 'sans-serif'],
+        heading: ['Poppins', 'Noto Sans Bengali', 'sans-serif'],
+        bengali: ['Noto Sans Bengali', 'sans-serif'],
       },
     },
   },

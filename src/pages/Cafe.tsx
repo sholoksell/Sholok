@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Search, MapPin, Star, Clock, Phone, Wifi,
   ChevronDown, ChevronUp, X, Award, Info,
@@ -16,6 +17,47 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+// ─── BN lookup maps ───────────────────────────────────────────────────────────
+const CITY_BN: Record<string, string> = {
+  Dhaka: 'ঢাকা', Chittagong: 'চট্টগ্রাম', Sylhet: 'সিলেট',
+  Rajshahi: 'রাজশাহী', Khulna: 'খুলনা', Barisal: 'বরিশাল',
+};
+
+const OPT_BN: Record<string, string> = {
+  // establishment
+  'Restaurant': 'রেস্তোরাঁ', 'Coffee & Tea': 'কফি ও চা', 'Cafe': 'ক্যাফে',
+  'Quick Bites': 'দ্রুত খাবার', 'Bakery': 'বেকারি', 'Dessert Shop': 'ডেজার্ট শপ', 'Juice Bar': 'জুস বার',
+  // meal
+  'Breakfast': 'সকালের নাস্তা', 'Brunch': 'ব্রাঞ্চ', 'Lunch': 'দুপুরের খাবার',
+  'Dinner': 'রাতের খাবার', 'Late Night Snacks': 'রাতের নাস্তা', 'All Day': 'সারাদিন',
+  // cuisines
+  'Asian': 'এশিয়ান', 'Bangladeshi': 'বাংলাদেশি', 'Chinese': 'চাইনিজ',
+  'Italian': 'ইতালিয়ান', 'Continental': 'কন্টিনেন্টাল', 'Fast Food': 'ফাস্ট ফুড',
+  'Japanese': 'জাপানিজ', 'Fusion': 'ফিউশন',
+  // dishes
+  'Coffee': 'কফি', 'Tea': 'চা', 'Cake': 'কেক', 'Desserts': 'ডেজার্ট',
+  'Sandwiches': 'স্যান্ডউইচ', 'Burger': 'বার্গার', 'Pasta': 'পাস্তা', 'Pizza': 'পিজা',
+  'Waffle': 'ওয়াফেল', 'Pancake': 'প্যানকেক', 'Smoothie': 'স্মুদি', 'Juice': 'জুস',
+  // price
+  'Cheap Eats': 'সস্তা খাবার', 'Mid-range': 'মধ্যম মূল্য', 'Fine Dining': 'উন্নত ডাইনিং',
+  // awards
+  "Travelers' Choice": 'ভ্রমণকারীদের পছন্দ', 'Best Cafe 2024': 'সেরা ক্যাফে ২০২৪',
+  'Hidden Gem': 'লুকানো রত্ন', 'Top Rated': 'শীর্ষ রেটেড',
+  // features
+  'Free WiFi': 'বিনামূল্যে ওয়াইফাই', 'Outdoor Seating': 'বাইরের আসন',
+  'Indoor Seating': 'ভেতরের আসন', 'Air Conditioning': 'এয়ার কন্ডিশনিং',
+  'Parking': 'পার্কিং', 'Delivery': 'ডেলিভারি', 'Rooftop': 'ছাদ',
+  // dietary
+  'Vegetarian Friendly': 'নিরামিষ বান্ধব', 'Vegan Options': 'ভেগান বিকল্প',
+  'Gluten Free Options': 'গ্লুটেন মুক্ত বিকল্প', 'Halal': 'হালাল', 'No Pork': 'শূকর মাংস নেই',
+};
+
+const DAY_BN: Record<string, string> = {
+  Monday: 'সোমবার', Tuesday: 'মঙ্গলবার', Wednesday: 'বুধবার', Thursday: 'বৃহস্পতিবার',
+  Friday: 'শুক্রবার', Saturday: 'শনিবার', Sunday: 'রোববার',
+  Mon: 'সোম', Tue: 'মঙ্গল', Wed: 'বুধ', Thu: 'বৃহ', Fri: 'শুক্র', Sat: 'শনি', Sun: 'রোব',
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Review {
@@ -109,9 +151,11 @@ const FilterSection = ({
 }: {
   title: string; options: string[]; selected: string[]; onChange: (v: string) => void;
 }) => {
+  const { language, t } = useLanguage();
   const [expanded, setExpanded] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? options : options.slice(0, 5);
+  const localeOpt = (o: string) => language === 'BN' ? (OPT_BN[o] || o) : o;
   return (
     <div className="border-b border-gray-200 dark:border-gray-700 py-3">
       <button
@@ -126,12 +170,12 @@ const FilterSection = ({
           {visible.map(opt => (
             <label key={opt} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-primary">
               <Checkbox checked={selected.includes(opt)} onCheckedChange={() => onChange(opt)} className="w-4 h-4" />
-              {opt}
+              {localeOpt(opt)}
             </label>
           ))}
           {options.length > 5 && (
             <button className="text-xs text-primary font-medium mt-1 hover:underline" onClick={() => setShowAll(p => !p)}>
-              {showAll ? 'Show less' : `Show all (${options.length})`}
+              {showAll ? t('cafeShowLess') : `${language === 'BN' ? 'সব দেখুন' : 'Show all'} (${options.length})`}
             </button>
           )}
         </div>
@@ -142,9 +186,11 @@ const FilterSection = ({
 
 // ─── CafeCard ─────────────────────────────────────────────────────────────────
 const CafeCard = ({ cafe, index, onClick }: { cafe: Cafe; index: number; onClick: () => void }) => {
+  const { language, t } = useLanguage();
   const fallback = 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&auto=format&fit=crop';
   const [imgSrc, setImgSrc] = useState(cafe.coverImage || cafe.images?.[0] || '');
   const [saved, setSaved] = useState(false);
+  const localeOpt = (o: string) => language === 'BN' ? (OPT_BN[o] || o) : o;
   return (
     <div className="flex gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer group">
       <div className="relative flex-shrink-0 w-44 h-36 rounded-lg overflow-hidden bg-gray-100" onClick={onClick}>
@@ -165,7 +211,7 @@ const CafeCard = ({ cafe, index, onClick }: { cafe: Cafe; index: number; onClick
           <Heart className={`w-4 h-4 ${saved ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
         </button>
         {cafe.isFeatured && (
-          <span className="absolute bottom-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">FEATURED</span>
+          <span className="absolute bottom-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{t('cafeFeaturedBadge')}</span>
         )}
       </div>
       <div className="flex-1 min-w-0" onClick={onClick}>
@@ -175,28 +221,29 @@ const CafeCard = ({ cafe, index, onClick }: { cafe: Cafe; index: number; onClick
           </h3>
           {cafe.awards.includes("Travelers' Choice") && (
             <Badge className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0 text-[10px] flex items-center gap-1">
-              <Award className="w-3 h-3" /> Travelers' Choice
+              <Award className="w-3 h-3" /> {t('cafeTravelersChoice')}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2 mb-2">
           <RatingStars rating={cafe.rating} />
           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{cafe.rating}</span>
-          <span className="text-xs text-gray-500">({cafe.reviewCount.toLocaleString()} reviews)</span>
+          <span className="text-xs text-gray-500">({cafe.reviewCount.toLocaleString()} {t('cafeReviewCount')})</span>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap mb-2">
-          {cafe.establishmentType.slice(0, 2).map(t => (
-            <span key={t} className="text-xs text-gray-600 dark:text-gray-400">☕ {t}</span>
+          {cafe.establishmentType.slice(0, 2).map(tp => (
+            <span key={tp} className="text-xs text-gray-600 dark:text-gray-400">☕ {localeOpt(tp)}</span>
           ))}
           <span className="text-gray-300 dark:text-gray-600">·</span>
           <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{cafe.priceSymbol}</span>
           <span className="text-gray-300 dark:text-gray-600">·</span>
           <span className={`text-xs font-medium ${cafe.isOpenNow ? 'text-green-600' : 'text-red-500'}`}>
-            <Clock className="w-3 h-3 inline mr-0.5" />{cafe.isOpenNow ? 'Open now' : 'Closed'}
+            <Clock className="w-3 h-3 inline mr-0.5" />{cafe.isOpenNow ? t('cafeOpenNow') : t('cafeClosed')}
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-2">
-          <MapPin className="w-3 h-3 flex-shrink-0" /><span>{cafe.area}, {cafe.city}</span>
+          <MapPin className="w-3 h-3 flex-shrink-0" />
+          <span>{cafe.area}, {language === 'BN' ? (CITY_BN[cafe.city] || cafe.city) : cafe.city}</span>
         </div>
         {cafe.description && (
           <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 italic">
@@ -210,9 +257,12 @@ const CafeCard = ({ cafe, index, onClick }: { cafe: Cafe; index: number; onClick
 
 // ─── CafeDetailModal ──────────────────────────────────────────────────────────
 const CafeDetailModal = ({ cafe, onClose }: { cafe: Cafe; onClose: () => void }) => {
+  const { language, t } = useLanguage();
   const [activeImg, setActiveImg] = useState(0);
   const fallback = 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop';
   const allImages = [cafe.coverImage, ...(cafe.images || [])].filter(Boolean);
+  const localeOpt = (o: string) => language === 'BN' ? (OPT_BN[o] || o) : o;
+  const localeDay = (d: string) => language === 'BN' ? (DAY_BN[d] || d) : d;
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-3xl p-0 overflow-hidden">
@@ -236,7 +286,7 @@ const CafeDetailModal = ({ cafe, onClose }: { cafe: Cafe; onClose: () => void })
               </div>
             )}
             {cafe.isFeatured && (
-              <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded">FEATURED</span>
+              <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded">{t('cafeFeaturedBadge')}</span>
             )}
           </div>
           <div className="p-6">
@@ -245,65 +295,65 @@ const CafeDetailModal = ({ cafe, onClose }: { cafe: Cafe; onClose: () => void })
                 <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">{cafe.name}</DialogTitle>
                 {cafe.awards.includes("Travelers' Choice") && (
                   <Badge className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 mt-1">
-                    <Award className="w-3 h-3" /> Travelers' Choice
+                    <Award className="w-3 h-3" /> {t('cafeTravelersChoice')}
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-2">
                 <RatingStars rating={cafe.rating} size="md" />
                 <span className="font-semibold text-gray-800 dark:text-gray-100">{cafe.rating}</span>
-                <span className="text-sm text-gray-500">({cafe.reviewCount.toLocaleString()} reviews)</span>
+                <span className="text-sm text-gray-500">({cafe.reviewCount.toLocaleString()} {t('cafeReviewCount')})</span>
                 <span className="text-gray-300">|</span>
                 <span className={`text-sm font-medium ${cafe.isOpenNow ? 'text-green-600' : 'text-red-500'}`}>
-                  <Clock className="w-3.5 h-3.5 inline mr-1" />{cafe.isOpenNow ? 'Open now' : 'Closed'}
+                  <Clock className="w-3.5 h-3.5 inline mr-1" />{cafe.isOpenNow ? t('cafeOpenNow') : t('cafeClosed')}
                 </span>
               </div>
             </DialogHeader>
             <div className="flex flex-wrap gap-1.5 mb-4">
-              {cafe.establishmentType.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
-              {cafe.cuisines.map(c => <Badge key={c} variant="outline">{c}</Badge>)}
-              <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">{cafe.priceRange} · {cafe.priceSymbol}</Badge>
+              {cafe.establishmentType.map(tp => <Badge key={tp} variant="secondary">{localeOpt(tp)}</Badge>)}
+              {cafe.cuisines.map(c => <Badge key={c} variant="outline">{localeOpt(c)}</Badge>)}
+              <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">{localeOpt(cafe.priceRange)} · {cafe.priceSymbol}</Badge>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-5 leading-relaxed">{cafe.description}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
               <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Location</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeLocation')}</h4>
                 <div className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" /><span>{cafe.address}</span>
                 </div>
               </div>
               {cafe.phone && (
                 <div>
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Contact</h4>
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeContact')}</h4>
                   <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <Phone className="w-4 h-4 text-primary" /><span>{cafe.phone}</span>
                   </div>
                 </div>
               )}
               <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Meal Types</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeMealTypes')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {cafe.mealType.map(m => (
-                    <span key={m} className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">{m}</span>
+                    <span key={m} className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">{localeOpt(m)}</span>
                   ))}
                 </div>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Dishes</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeDishes')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {cafe.dishes.map(d => (
-                    <span key={d} className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded">{d}</span>
+                    <span key={d} className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded">{localeOpt(d)}</span>
                   ))}
                 </div>
               </div>
             </div>
             {cafe.features.length > 0 && (
               <div className="mb-5">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Features & Amenities</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeFeaturesAmenities')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {cafe.features.map(f => (
                     <span key={f} className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2 py-1 rounded-full">
-                      {f === 'Free WiFi' && <Wifi className="w-3 h-3" />}{f}
+                      {f === 'Free WiFi' && <Wifi className="w-3 h-3" />}{localeOpt(f)}
                     </span>
                   ))}
                 </div>
@@ -311,23 +361,23 @@ const CafeDetailModal = ({ cafe, onClose }: { cafe: Cafe; onClose: () => void })
             )}
             {cafe.dietaryRestrictions.length > 0 && (
               <div className="mb-5">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Dietary Options</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeDietaryOptions')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {cafe.dietaryRestrictions.map(d => (
-                    <span key={d} className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-2 py-1 rounded-full">{d}</span>
+                    <span key={d} className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-2 py-1 rounded-full">{localeOpt(d)}</span>
                   ))}
                 </div>
               </div>
             )}
             {cafe.openingHours && cafe.openingHours.length > 0 && (
               <div className="mb-5">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Opening Hours</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('cafeOpeningHours')}</h4>
                 <div className="grid grid-cols-2 gap-1">
                   {cafe.openingHours.map(h => (
                     <div key={h.day} className="flex justify-between text-xs px-2 py-1 rounded">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{h.day.slice(0, 3)}</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{localeDay(h.day.slice(0, 3))}</span>
                       <span className="text-gray-500 dark:text-gray-400">
-                        {h.closed ? 'Closed' : `${h.open} – ${h.close}`}
+                        {h.closed ? t('cafeClosed') : `${h.open} – ${h.close}`}
                       </span>
                     </div>
                   ))}
@@ -336,14 +386,14 @@ const CafeDetailModal = ({ cafe, onClose }: { cafe: Cafe; onClose: () => void })
             )}
             {cafe.reviews && cafe.reviews.length > 0 && (
               <div>
-                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">Reviews</h4>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3">{t('cafeReviewsSection')}</h4>
                 <div className="space-y-3">
                   {cafe.reviews.map(r => (
                     <div key={r._id || r.author} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
                         <RatingStars rating={r.rating} />
                         <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{r.author}</span>
-                        <span className="text-xs text-gray-400 ml-auto">{new Date(r.date).toLocaleDateString('en-BD')}</span>
+                        <span className="text-xs text-gray-400 ml-auto">{new Date(r.date).toLocaleDateString(language === 'BN' ? 'bn-BD' : 'en-BD')}</span>
                       </div>
                       {r.title && <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-0.5">{r.title}</p>}
                       <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">"{r.content}"</p>
@@ -369,40 +419,43 @@ interface SidebarProps {
   clearAllFilters: () => void;
 }
 
-const Sidebar = ({ selectedCity, filters, activeFilterCount, toggleFilter, setFilters, clearAllFilters }: SidebarProps) => (
+const Sidebar = ({ selectedCity, filters, activeFilterCount, toggleFilter, setFilters, clearAllFilters }: SidebarProps) => {
+  const { language, t } = useLanguage();
+  const localeCity = (c: string) => language === 'BN' ? (CITY_BN[c] || c) : c;
+  return (
   <aside className="w-full">
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
       <div className="flex items-center gap-1 text-xs text-primary mb-3 font-medium">
         <MapPin className="w-3.5 h-3.5" />
-        <span>Bangladesh</span>
+        <span>{t('cafeBangladesh')}</span>
         <span className="text-gray-400">/</span>
-        <span>{selectedCity} restaurants</span>
+        <span>{localeCity(selectedCity)} {t('cafeRestaurants')}</span>
       </div>
       {activeFilterCount > 0 && (
         <button
           onClick={clearAllFilters}
           className="w-full flex items-center justify-between text-xs bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 mb-3 hover:bg-red-100"
         >
-          <span>Clear all filters ({activeFilterCount})</span>
+          <span>{t('cafeClearFilters')} ({activeFilterCount})</span>
           <X className="w-3.5 h-3.5" />
         </button>
       )}
-      <FilterSection title="Establishment type" options={FILTER_OPTIONS.establishmentType} selected={filters.establishmentType} onChange={v => toggleFilter('establishmentType', v)} />
-      <FilterSection title="Meal type" options={FILTER_OPTIONS.mealType} selected={filters.mealType} onChange={v => toggleFilter('mealType', v)} />
-      <FilterSection title="Cuisines" options={FILTER_OPTIONS.cuisines} selected={filters.cuisines} onChange={v => toggleFilter('cuisines', v)} />
-      <FilterSection title="Dishes" options={FILTER_OPTIONS.dishes} selected={filters.dishes} onChange={v => toggleFilter('dishes', v)} />
+      <FilterSection title={t('cafeFilterEstType')} options={FILTER_OPTIONS.establishmentType} selected={filters.establishmentType} onChange={v => toggleFilter('establishmentType', v)} />
+      <FilterSection title={t('cafeFilterMealType')} options={FILTER_OPTIONS.mealType} selected={filters.mealType} onChange={v => toggleFilter('mealType', v)} />
+      <FilterSection title={t('cafeFilterCuisines')} options={FILTER_OPTIONS.cuisines} selected={filters.cuisines} onChange={v => toggleFilter('cuisines', v)} />
+      <FilterSection title={t('cafeFilterDishes')} options={FILTER_OPTIONS.dishes} selected={filters.dishes} onChange={v => toggleFilter('dishes', v)} />
       <div className="border-b border-gray-200 dark:border-gray-700 py-3">
         <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-1.5">
-          <Award className="w-4 h-4 text-amber-500" /> Awards
+          <Award className="w-4 h-4 text-amber-500" /> {t('cafeFilterAwards')}
         </p>
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-primary">
           <Checkbox checked={filters.awards.includes("Travelers' Choice")} onCheckedChange={() => toggleFilter('awards', "Travelers' Choice")} />
-          <span className="text-green-700 dark:text-green-400 font-medium">Travelers' Choice</span>
+          <span className="text-green-700 dark:text-green-400 font-medium">{t('cafeTravelersChoice')}</span>
         </label>
       </div>
-      <FilterSection title="Price" options={FILTER_OPTIONS.priceRange} selected={filters.priceRange} onChange={v => toggleFilter('priceRange', v)} />
+      <FilterSection title={t('cafeFilterPrice')} options={FILTER_OPTIONS.priceRange} selected={filters.priceRange} onChange={v => toggleFilter('priceRange', v)} />
       <div className="border-b border-gray-200 dark:border-gray-700 py-3">
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">Traveler rating</p>
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('cafeFilterTravelerRating')}</p>
         {[['4', '4+'], ['3', '3+'], ['2', '2+']].map(([val]) => (
           <label key={val} className="flex items-center gap-2 mb-1.5 cursor-pointer">
             <Checkbox
@@ -410,14 +463,14 @@ const Sidebar = ({ selectedCity, filters, activeFilterCount, toggleFilter, setFi
               onCheckedChange={() => setFilters(p => ({ ...p, rating: p.rating === val ? '' : val }))}
             />
             <RatingStars rating={parseInt(val)} />
-            <span className="text-xs text-gray-500">& up</span>
+            <span className="text-xs text-gray-500">{t('cafeFilterAndUp')}</span>
           </label>
         ))}
       </div>
       <div className="border-b border-gray-200 dark:border-gray-700 py-3">
         <label className="flex items-center justify-between cursor-pointer">
           <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-            <Clock className="w-4 h-4" /> Open now
+            <Clock className="w-4 h-4" /> {t('cafeFilterOpenNow')}
           </span>
           <Checkbox
             checked={filters.isOpenNow}
@@ -425,14 +478,16 @@ const Sidebar = ({ selectedCity, filters, activeFilterCount, toggleFilter, setFi
           />
         </label>
       </div>
-      <FilterSection title="Dietary restrictions" options={FILTER_OPTIONS.dietaryRestrictions} selected={filters.dietaryRestrictions} onChange={v => toggleFilter('dietaryRestrictions', v)} />
-      <FilterSection title="Features" options={FILTER_OPTIONS.features} selected={filters.features} onChange={v => toggleFilter('features', v)} />
+      <FilterSection title={t('cafeFilterDietary')} options={FILTER_OPTIONS.dietaryRestrictions} selected={filters.dietaryRestrictions} onChange={v => toggleFilter('dietaryRestrictions', v)} />
+      <FilterSection title={t('cafeFilterFeatures')} options={FILTER_OPTIONS.features} selected={filters.features} onChange={v => toggleFilter('features', v)} />
     </div>
   </aside>
-);
+  );
+};
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const CafePage = () => {
+  const { language, t } = useLanguage();
   const [cafes, setCafes] = useState<Cafe[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -518,9 +573,9 @@ const CafePage = () => {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-            Cafés in {selectedCity}
+            {language === 'BN' ? `${CITY_BN[selectedCity] || selectedCity}-এ ক্যাফেসমূহ` : `Cafés in ${selectedCity}`}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Discover the best cafes in Bangladesh</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">{t('cafeHeroSubtitle')}</p>
 
           {/* City selector */}
           <div className="flex flex-wrap gap-2 mb-5">
@@ -534,7 +589,7 @@ const CafePage = () => {
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary hover:text-primary'
                 }`}
               >
-                {city}
+                {language === 'BN' ? (CITY_BN[city] || city) : city}
               </button>
             ))}
           </div>
@@ -544,14 +599,14 @@ const CafePage = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                placeholder={`Search cafes in ${selectedCity}...`}
+                placeholder={language === 'BN' ? `${CITY_BN[selectedCity] || selectedCity}-এ ক্যাফে খুঁজুন...` : `Search cafes in ${selectedCity}...`}
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && setSearch(searchInput)}
                 className="pl-10"
               />
             </div>
-            <Button onClick={() => setSearch(searchInput)}>Search</Button>
+            <Button onClick={() => setSearch(searchInput)}>{t('cafeSearchBtn')}</Button>
             {search && (
               <Button variant="outline" onClick={() => { setSearch(''); setSearchInput(''); }}>
                 <X className="w-4 h-4" />
@@ -581,8 +636,8 @@ const CafePage = () => {
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {loading ? 'Loading...' : (
-                  <><span className="font-semibold text-gray-900 dark:text-white">{total.toLocaleString()} results</span></>
+                {loading ? t('loading') : (
+                  <><span className="font-semibold text-gray-900 dark:text-white">{total.toLocaleString()} {t('cafeRestaurants')}</span></>
                 )}
               </p>
               {/* Mobile filter button */}
@@ -591,7 +646,7 @@ const CafePage = () => {
                 onClick={() => setShowMobileFilters(true)}
               >
                 <SlidersHorizontal className="w-4 h-4" />
-                Filters
+                {t('cafeMobileFilters')}
                 {activeFilterCount > 0 && (
                   <span className="bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{activeFilterCount}</span>
                 )}
@@ -601,7 +656,7 @@ const CafePage = () => {
                 <div className="flex flex-wrap gap-1.5">
                   {filters.isOpenNow && (
                     <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full">
-                      Open now
+                      {t('cafeFilterOpenNow')}
                       <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters(p => ({ ...p, isOpenNow: false }))} />
                     </span>
                   )}
@@ -610,7 +665,7 @@ const CafePage = () => {
                     .flatMap(([k, v]) =>
                       (v as string[]).map((val: string) => (
                         <span key={`${k}-${val}`} className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full">
-                          {val}
+                          {language === 'BN' ? (OPT_BN[val] || val) : val}
                           <X className="w-3 h-3 cursor-pointer" onClick={() => toggleFilter(k as FilterKey, val)} />
                         </span>
                       ))
@@ -620,16 +675,16 @@ const CafePage = () => {
             </div>
             {/* Sort */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">Sort:</span>
+              <span className="text-gray-500">{t('cafeSortLabel')}</span>
               <select
                 value={sort}
                 onChange={e => setSort(e.target.value)}
                 className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="rating">Relevance</option>
-                <option value="reviewCount">Most Reviewed</option>
-                <option value="name">Name A–Z</option>
-                <option value="newest">Newest</option>
+                <option value="rating">{t('cafeSortRelevance')}</option>
+                <option value="reviewCount">{t('cafeSortMostReviewed')}</option>
+                <option value="name">{t('cafeSortNameAZ')}</option>
+                <option value="newest">{t('cafeSortNewest')}</option>
               </select>
             </div>
           </div>
@@ -662,11 +717,9 @@ const CafePage = () => {
           {!loading && cafes.length === 0 && (
             <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
               <div className="text-6xl mb-4">☕</div>
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">No cafes found</h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                Try changing your filters or searching in a different city.
-              </p>
-              <Button variant="outline" onClick={clearAllFilters}>Clear all filters</Button>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('cafeNoResultsTitle')}</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">{t('cafeNoResultsHint')}</p>
+              <Button variant="outline" onClick={clearAllFilters}>{t('cafeClearFilters')}</Button>
             </div>
           )}
 
@@ -692,7 +745,7 @@ const CafePage = () => {
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileFilters(false)} />
           <div className="relative ml-auto w-80 max-w-full h-full bg-white dark:bg-gray-900 shadow-xl overflow-y-auto p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900 dark:text-white">Filters</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white">{t('cafeMobileFilters')}</h3>
               <button onClick={() => setShowMobileFilters(false)}>
                 <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
@@ -706,7 +759,7 @@ const CafePage = () => {
               clearAllFilters={clearAllFilters}
             />
             <Button className="w-full mt-4" onClick={() => setShowMobileFilters(false)}>
-              Show {total} results
+              {language === 'BN' ? `${total.toLocaleString()} ফলাফল দেখুন` : `Show ${total} results`}
             </Button>
           </div>
         </div>

@@ -13,9 +13,12 @@ export interface ProductVariant {
 export interface Product {
   _id: string;
   name: string;
+  nameBn?: string;
   slug: string;
   description: string;
+  descriptionBn?: string;
   shortDescription: string;
+  shortDescriptionBn?: string;
   categoryId: string;
   regularPrice: number;
   salePrice: number | null;

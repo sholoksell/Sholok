@@ -21,6 +21,7 @@ import {
   ChevronDown, X, Printer, RefreshCw,
 } from 'lucide-react';
 import TakaIcon from '@/components/TakaIcon';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending:          { label: 'Pending',          className: 'bg-warning/20 text-warning' },
@@ -45,6 +46,7 @@ const ALL_STATUSES = ['pending','confirmed','processing','shipped','out_for_deli
 const PAYMENT_STATUSES = ['pending','paid','failed','refunded'];
 
 export default function Orders() {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -250,7 +252,7 @@ export default function Orders() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('orders')}</h1>
           <p className="text-muted-foreground">Manage and track all customer orders</p>
         </div>
         <Button onClick={handleExportCsv} disabled={exportLoading} variant="outline" className="gap-2">
@@ -336,13 +338,13 @@ export default function Orders() {
                     <Checkbox checked={filteredOrders.length > 0 && selected.length === filteredOrders.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
                   <TableHead>Order #</TableHead>
-                  <TableHead>Customer</TableHead>
+                  <TableHead>{t('customer')}</TableHead>
                   <TableHead>Items</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('total')}</TableHead>
+                  <TableHead>{t('status')}</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Tracking</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>{t('date')}</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>

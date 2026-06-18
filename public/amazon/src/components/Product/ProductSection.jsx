@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext';
 import ProductCard from './ProductCard';
 
 const ProductSection = ({
@@ -9,6 +10,7 @@ const ProductSection = ({
   cols = 6,
   badge,
 }) => {
+  const { t } = useLanguage();
   const colClass = {
     2: 'grid-cols-2',
     3: 'grid-cols-2 sm:grid-cols-3',
@@ -31,7 +33,7 @@ const ProductSection = ({
         </div>
         {seeMoreLink && (
           <Link to={seeMoreLink} className="see-more-link shrink-0">
-            See all →
+            {t('seeAll')}
           </Link>
         )}
       </div>

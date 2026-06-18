@@ -10,6 +10,7 @@ import PostManagement from './pages/PostManagement';
 import UserManagement from './pages/UserManagement';
 import CategoryManagement from './pages/CategoryManagement';
 import AnalyticsPage from './pages/AnalyticsPage';
+import { LanguageProvider } from './context/LanguageContext';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -62,22 +63,24 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter basename="/blog/admin">
-        <Toaster position="top-right" />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Dashboard />} />
-            <Route path="posts" element={<PostManagement />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="categories" element={<CategoryManagement />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter basename="/blog/admin">
+          <Toaster position="top-right" />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route index element={<Dashboard />} />
+              <Route path="posts" element={<PostManagement />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="categories" element={<CategoryManagement />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

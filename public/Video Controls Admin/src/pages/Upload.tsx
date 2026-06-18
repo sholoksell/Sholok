@@ -6,11 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef } from "react";
 import { videoApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { CATEGORIES } from "@/data/mockData";
 
 const Upload = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
@@ -20,6 +22,10 @@ const Upload = () => {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [titleBn, setTitleBn] = useState("");
+  const [titleEn, setTitleEn] = useState("");
+  const [descriptionBn, setDescriptionBn] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
   const [category, setCategory] = useState("Other");
   const [tags, setTags] = useState("");
   const [isShort, setIsShort] = useState(false);
@@ -61,6 +67,10 @@ const Upload = () => {
       if (thumbnailFile) formData.append("thumbnail", thumbnailFile);
       formData.append("title", title.trim());
       formData.append("description", description.trim());
+      formData.append("titleBn", titleBn.trim());
+      formData.append("titleEn", titleEn.trim() || title.trim());
+      formData.append("descriptionBn", descriptionBn.trim());
+      formData.append("descriptionEn", descriptionEn.trim() || description.trim());
       formData.append("category", category);
       formData.append("isShort", String(isShort));
       if (tags.trim()) formData.append("tags", JSON.stringify(tags.split(",").map((t) => t.trim()).filter(Boolean)));
@@ -96,7 +106,7 @@ const Upload = () => {
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <CheckCircle className="w-20 h-20 text-green-500 mb-4" />
-          <h2 className="text-2xl font-bold">Video Uploaded!</h2>
+          <h2 className="text-2xl font-bold">{t("video_uploaded")}</h2>
           <p className="text-muted-foreground mt-2">Your video has been uploaded and stored successfully.</p>
           <p className="text-sm text-muted-foreground mt-1">Redirecting to your video...</p>
         </div>
@@ -111,9 +121,9 @@ const Upload = () => {
           <div className="w-10 h-10 rounded-xl gradient-primary grid place-items-center shadow-glow">
             <UploadCloud className="w-5 h-5 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold">Upload a video</h1>
+          <h1 className="text-3xl font-bold">{t("upload_video_title")}</h1>
         </div>
-        <p className="text-muted-foreground mb-8">Share your story with millions. Drop your video below to get started.</p>
+        <p className="text-muted-foreground mb-8">{t("upload_subtitle")}</p>
 
         <div className="grid lg:grid-cols-[1fr_400px] gap-6">
           <div
@@ -133,11 +143,11 @@ const Upload = () => {
             {videoFile ? (
               <div className="space-y-3">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-                <h3 className="text-lg font-bold text-green-400">Video Selected</h3>
+                <h3 className="text-lg font-bold text-green-400">{t("video_selected")}</h3>
                 <p className="text-sm text-muted-foreground">{videoFile.name}</p>
                 <p className="text-xs text-muted-foreground">{(videoFile.size / (1024 * 1024)).toFixed(1)} MB</p>
                 <Button variant="outline" onClick={() => { setVideoFile(null); if (videoInputRef.current) videoInputRef.current.value = ""; }} className="rounded-full">
-                  Change File
+                  {t("change_file")}
                 </Button>
               </div>
             ) : (
@@ -145,10 +155,10 @@ const Upload = () => {
                 <div className="w-20 h-20 rounded-full gradient-primary grid place-items-center mx-auto mb-5 shadow-glow animate-pulse-glow">
                   <UploadCloud className="w-9 h-9 text-primary-foreground" />
                 </div>
-                <h3 className="text-xl font-bold">Drag and drop video files</h3>
+                <h3 className="text-xl font-bold">{t("drag_drop")}</h3>
                 <p className="text-muted-foreground text-sm mt-2 mb-5">MP4, MOV, WebM or AVI • Up to 4GB</p>
                 <Button onClick={() => videoInputRef.current?.click()} className="gradient-primary border-0 rounded-full font-semibold shadow-glow">
-                  Select files
+                  {t("select_files")}
                 </Button>
               </>
             )}
@@ -178,18 +188,34 @@ const Upload = () => {
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="" className="bg-background/50 resize-none" />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-2 block">Category</label>
+              <label className="text-sm font-semibold mb-2 block">{t("title_bn")}</label>
+              <Input value={titleBn} onChange={(e) => setTitleBn(e.target.value)} placeholder="" className="bg-background/50 font-bengali" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold mb-2 block">{t("title_en")}</label>
+              <Input value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="" className="bg-background/50" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold mb-2 block">{t("description_bn")}</label>
+              <Textarea value={descriptionBn} onChange={(e) => setDescriptionBn(e.target.value)} rows={3} placeholder="" className="bg-background/50 resize-none font-bengali" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold mb-2 block">{t("description_en")}</label>
+              <Textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} rows={3} placeholder="" className="bg-background/50 resize-none" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold mb-2 block">{t("category")}</label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-lg bg-background/50 border border-input px-3 py-2 text-sm">
                 {CATEGORIES.filter((c) => c !== "All").map((c) => <option key={c} value={c}>{c}</option>)}
                 <option value="Other">Other</option>
               </select>
             </div>
             <div>
-              <label className="text-sm font-semibold mb-2 block">Tags (comma-separated)</label>
+              <label className="text-sm font-semibold mb-2 block">{t("tags")}</label>
               <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="" className="bg-background/50" />
             </div>
             <div>
-              <label className="text-sm font-semibold mb-2 block">Thumbnail</label>
+              <label className="text-sm font-semibold mb-2 block">{t("thumbnail")}</label>
               <input ref={thumbInputRef} type="file" accept="image/*" onChange={(e) => handleThumbnailSelect(e.target.files)} className="hidden" />
               <button
                 onClick={() => thumbInputRef.current?.click()}
@@ -204,14 +230,14 @@ const Upload = () => {
             </div>
             <div className="flex items-center gap-3">
               <input type="checkbox" id="isShort" checked={isShort} onChange={(e) => setIsShort(e.target.checked)} className="rounded" />
-              <label htmlFor="isShort" className="text-sm font-medium">This is a Short (vertical video)</label>
+              <label htmlFor="isShort" className="text-sm font-medium">{t("is_short")}</label>
             </div>
             <Button
               onClick={handleUpload}
               disabled={uploading || !videoFile}
               className="w-full gradient-primary border-0 rounded-full font-semibold shadow-glow"
             >
-              {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : "Publish Video"}
+              {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t("uploading")}</> : t("publish_video")}
             </Button>
           </div>
         </div>

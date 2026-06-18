@@ -1,8 +1,11 @@
 import Header from "@/components/portal/Header";
 import Footer from "@/components/portal/Footer";
 import { User, Settings, Bell, Heart, History, LogOut } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Profile = () => {
+    const { t } = useLanguage();
+
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <Header />
@@ -25,16 +28,16 @@ const Profile = () => {
                                 </div>
                             </div>
                             <button className="px-4 py-2 border border-border rounded-lg font-medium hover:bg-secondary transition-colors mb-2">
-                                Edit Profile
+                                {t("editProfile")}
                             </button>
                         </div>
 
                         {/* Navigation Tabs */}
                         <div className="flex items-center gap-1 border-b border-border mb-8 overflow-x-auto">
-                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-primary text-primary">Overview</button>
-                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors">Orders</button>
-                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors">Wishlist</button>
-                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors">Settings</button>
+                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-primary text-primary">{t("overview")}</button>
+                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors">{t("orders")}</button>
+                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors">{t("wishlist")}</button>
+                            <button className="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground transition-colors">{t("settings")}</button>
                         </div>
 
                         {/* Stats Grid */}
@@ -43,32 +46,32 @@ const Profile = () => {
                                 <div className="p-3 bg-blue-100 text-blue-600 rounded-lg"><Bell className="w-5 h-5" /></div>
                                 <div>
                                     <span className="block text-2xl font-bold">12</span>
-                                    <span className="text-xs text-muted-foreground">Notifications</span>
+                                    <span className="text-xs text-muted-foreground">{t("notifications")}</span>
                                 </div>
                             </div>
                             <div className="p-4 bg-secondary/30 rounded-xl border border-border flex items-center gap-4">
                                 <div className="p-3 bg-rose-100 text-rose-600 rounded-lg"><Heart className="w-5 h-5" /></div>
                                 <div>
                                     <span className="block text-2xl font-bold">5</span>
-                                    <span className="text-xs text-muted-foreground">Saved Items</span>
+                                    <span className="text-xs text-muted-foreground">{t("savedItems")}</span>
                                 </div>
                             </div>
                             <div className="p-4 bg-secondary/30 rounded-xl border border-border flex items-center gap-4">
                                 <div className="p-3 bg-purple-100 text-purple-600 rounded-lg"><History className="w-5 h-5" /></div>
                                 <div>
                                     <span className="block text-2xl font-bold">28</span>
-                                    <span className="text-xs text-muted-foreground">Recent Views</span>
+                                    <span className="text-xs text-muted-foreground">{t("recentViews")}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Quick Actions List */}
                         <div className="space-y-2">
-                            <h3 className="font-bold mb-4">Account Settings</h3>
+                            <h3 className="font-bold mb-4">{t("accountSettings")}</h3>
                             {[
-                                { icon: Settings, label: "Account Preferences" },
-                                { icon: Bell, label: "Notification Settings" },
-                                { icon: LogOut, label: "Sign Out", color: "text-red-500" }
+                                { icon: Settings, label: t("accountPreferences") },
+                                { icon: Bell, label: t("notificationSettings") },
+                                { icon: LogOut, label: t("signOut"), color: "text-red-500" }
                             ].map((item, i) => (
                                 <button key={i} className="w-full flex items-center justify-between p-4 bg-card hover:bg-secondary rounded-xl transition-colors text-left group border border-transparent hover:border-border">
                                     <div className={`flex items-center gap-3 ${item.color || "text-foreground"}`}>

@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
     const [posts, total] = await Promise.all([
       Post.find(postFilter)
         .populate('author', 'username displayName avatar')
-        .populate('category', 'name slug color')
+        .populate('category', 'name nameBn nameEn slug color')
         .sort(sortObj)
         .skip(skip)
         .limit(parseInt(limit))

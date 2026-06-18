@@ -138,7 +138,17 @@ const productSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Index for search
-productSchema.index({ name: 'text', description: 'text', tags: 'text' });
+// Text index covering both EN and BN fields for full-text search
+productSchema.index({
+  name: 'text', nameBn: 'text',
+  description: 'text', descriptionBn: 'text',
+  brand: 'text', tags: 'text',
+});
+
+// Individual field indexes for regex-based partial matching
+productSchema.index({ name: 1 });
+productSchema.index({ nameBn: 1 });
+productSchema.index({ brand: 1 });
+productSchema.index({ status: 1, isFeatured: -1, soldCount: -1, rating: -1 });
 
 module.exports = mongoose.model('Product', productSchema);

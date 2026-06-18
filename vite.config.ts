@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    watch: {
+      ignored: ["**/dist/**", "**/node_modules/**"],
+    },
     proxy: {
       // Shopping sub-app → customer backend (port 5001)
       '/api': {
@@ -61,23 +64,39 @@ export default defineConfig(({ mode }) => ({
       name: "auto-start-backends",
       apply: "serve",
       configureServer(server) {
+        // dev-start.cjs sets this flag and owns all backends itself — skip here.
+        if (process.env.SKIP_VITE_BACKENDS === '1') return;
+
         const servers: { name: string; process: ChildProcess }[] = [];
 
-        const startServer = (name: string, cwd: string, script: string) => {
-          const isRunning = (port: number): Promise<boolean> =>
-            new Promise((resolve) => {
-              const tester = net.createServer()
-                .once("error", () => resolve(true))
-                .once("listening", () => { tester.close(); resolve(false); })
-                .listen(port);
-            });
+        const isPortFree = (port: number): Promise<boolean> =>
+          new Promise((resolve) => {
+            const tester = net.createServer()
+              .once("error", () => resolve(false))
+              .once("listening", () => { tester.close(); resolve(true); })
+              .listen(port);
+          });
 
+        const waitForPortFree = (port: number, timeoutMs = 6000): Promise<void> =>
+          new Promise((resolve) => {
+            const start = Date.now();
+            const check = () => {
+              isPortFree(port).then((free) => {
+                if (free) return resolve();
+                if (Date.now() - start >= timeoutMs) {
+                  console.warn(`\x1b[33m⚠️  Port ${port} still occupied after ${timeoutMs}ms — starting anyway\x1b[0m`);
+                  return resolve();
+                }
+                setTimeout(check, 300);
+              });
+            };
+            check();
+          });
+
+        const startServer = (name: string, cwd: string, script: string) => {
           const port = name === "Shopping Backend" ? 5001 : name === "Blog Backend" ? 5050 : 5000;
-          isRunning(port).then((running) => {
-            if (running) {
-              console.log(`\x1b[32m✅ ${name} already running on port ${port}\x1b[0m`);
-              return;
-            }
+
+          waitForPortFree(port).then(() => {
             console.log(`\x1b[36m🚀 Starting ${name} on port ${port}...\x1b[0m`);
             const proc = spawn("node", [script], {
               cwd,
@@ -101,6 +120,7 @@ export default defineConfig(({ mode }) => ({
 
         // Start backends after Vite server is ready
         server.httpServer?.once('listening', () => {
+          // Small initial pause to let dev-start.cjs finish its port-kill cycle
           setTimeout(() => {
             startServer(
               "Shopping Backend",
@@ -117,7 +137,7 @@ export default defineConfig(({ mode }) => ({
               path.resolve(__dirname, "public/Blog/backend"),
               path.resolve(__dirname, "public/Blog/backend/server.js")
             );
-          }, 100);
+          }, 500);
         });
 
         // Cleanup on exit
@@ -229,6 +249,20 @@ export default defineConfig(({ mode }) => ({
             if (fs.existsSync(shoppingIndex)) {
               res.setHeader('Content-Type', 'text/html; charset=utf-8');
               res.end(fs.readFileSync(shoppingIndex, 'utf-8'));
+              return;
+            }
+          }
+
+          // TV / VideoPlatform sub-app
+          if (url === '/tv' || url === '/tv/' || url.startsWith('/tv/') ||
+              url === '/VideoPlatform' || url === '/VideoPlatform/' || url.startsWith('/VideoPlatform/')) {
+            const distDir = path.resolve(__dirname, 'public/Video Controls Admin/dist');
+            const basePath = url.startsWith('/VideoPlatform') ? '/VideoPlatform' : '/tv';
+            if (isStaticAsset && serveStatic(basePath, distDir)) return;
+            const tvIndex = path.resolve(distDir, 'index.html');
+            if (fs.existsSync(tvIndex)) {
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              res.end(fs.readFileSync(tvIndex, 'utf-8'));
               return;
             }
           }

@@ -523,8 +523,23 @@ export function LanguageProvider({ children }) {
 
   const toggleLang = () => setLang(prev => prev === 'bn' ? 'en' : 'bn');
 
+  /** Resolve a localized string from a nested { en, bn } object or plain string */
+  const translateField = (field, overrideLang = lang) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    return field[overrideLang] || field.bn || field.en || '';
+  };
+
+  const getLocalizedField = (obj, fieldName) => {
+    if (!obj) return '';
+    const raw = obj[fieldName];
+    if (raw && typeof raw === 'object' && ('en' in raw || 'bn' in raw)) return translateField(raw);
+    const suffix = lang === 'bn' ? 'Bn' : 'En';
+    return obj[`${fieldName}${suffix}`] || obj[fieldName] || '';
+  };
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, toggleLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, toggleLang, t, translateField, getLocalizedField }}>
       {children}
     </LanguageContext.Provider>
   );

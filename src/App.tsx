@@ -40,9 +40,9 @@ const SmartStoreRedirect = () => {
   return null;
 };
 
-// TV redirect component - redirects to Video Platform sub-app at /tv/
+// VideoPlatform redirect component - redirects to Video Platform sub-app at /VideoPlatform/
 const TVRedirect = () => {
-  window.location.replace('/tv/');
+  window.location.replace('/VideoPlatform/');
   return null;
 };
 
@@ -114,6 +114,8 @@ const App = () => (
                 <Route path="/series" element={<Series />} />
                 <Route path="/tv" element={<TVRedirect />} />
                 <Route path="/tv/*" element={<TVRedirect />} />
+                <Route path="/VideoPlatform" element={<TVRedirect />} />
+                <Route path="/VideoPlatform/*" element={<TVRedirect />} />
                 <Route path="/music" element={<Music />} />
                 <Route path="/dictionary" element={<Dictionary />} />
                 <Route path="/finance" element={<Finance />} />

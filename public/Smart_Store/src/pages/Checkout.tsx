@@ -6,6 +6,7 @@ import { useCart } from "@/store/cartContext";
 import { useAuth } from "@/store/authContext";
 import { ordersApi, couponsApi, paymentsApi } from "@/lib/api";
 import { toast } from "sonner";
+import { useLanguage, getLocalizedField } from "@/contexts/LanguageContext";
 
 const steps = [
   { id: 1, title: "Address", icon: Truck },
@@ -16,6 +17,7 @@ const steps = [
 export default function CheckoutPage() {
   const { items, total } = useCart();
   const { user } = useAuth();
+  const { language, t } = useLanguage();
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
 
@@ -97,11 +99,11 @@ export default function CheckoutPage() {
   return (
     <div className="container py-8 lg:py-12 max-w-6xl">
       <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
-        <ArrowLeft className="w-3.5 h-3.5" /> Back to shopping
+        <ArrowLeft className="w-3.5 h-3.5" /> {t("continueShopping")}
       </Link>
 
-      <h1 className="font-display text-3xl lg:text-4xl font-bold mb-2">Checkout</h1>
-      <p className="text-sm text-muted-foreground mb-10">Complete your order in 3 quick steps.</p>
+      <h1 className="font-display text-3xl lg:text-4xl font-bold mb-2">{t("checkout")}</h1>
+      <p className="text-sm text-muted-foreground mb-10">{language === "bn" ? "৩টি সহজ ধাপে আপনার অর্ডার সম্পন্ন করুন।" : "Complete your order in 3 quick steps."}</p>
 
       {/* Stepper */}
       <div className="flex items-center justify-between mb-10 max-w-xl">
@@ -145,20 +147,20 @@ export default function CheckoutPage() {
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="addr" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="font-display text-xl font-bold mb-5">Shipping address</h2>
+                <h2 className="font-display text-xl font-bold mb-5">{t("shippingAddress")}</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Full name" value={address.fullName} onChange={(e) => setAddress({ ...address, fullName: e.target.value })} />
-                  <Field label="Phone"     value={address.phone}    onChange={(e) => setAddress({ ...address, phone:    e.target.value })} />
-                  <Field label="Address"   className="sm:col-span-2" value={address.street} onChange={(e) => setAddress({ ...address, street: e.target.value })} />
-                  <Field label="City"      value={address.city}     onChange={(e) => setAddress({ ...address, city:     e.target.value })} />
-                  <Field label="ZIP"       value={address.zip}      onChange={(e) => setAddress({ ...address, zip:      e.target.value })} />
-                  <Field label="Country"   className="sm:col-span-2" value={address.country} onChange={(e) => setAddress({ ...address, country: e.target.value })} />
+                  <Field label={t("fullName")} value={address.fullName} onChange={(e) => setAddress({ ...address, fullName: e.target.value })} />
+                  <Field label={t("phone")}     value={address.phone}    onChange={(e) => setAddress({ ...address, phone:    e.target.value })} />
+                  <Field label={t("address")}   className="sm:col-span-2" value={address.street} onChange={(e) => setAddress({ ...address, street: e.target.value })} />
+                  <Field label={t("city")}      value={address.city}     onChange={(e) => setAddress({ ...address, city:     e.target.value })} />
+                  <Field label={t("postalCode")} value={address.zip}      onChange={(e) => setAddress({ ...address, zip:      e.target.value })} />
+                  <Field label={language === "bn" ? "দেশ" : "Country"}   className="sm:col-span-2" value={address.country} onChange={(e) => setAddress({ ...address, country: e.target.value })} />
                 </div>
               </motion.div>
             )}
             {step === 2 && (
               <motion.div key="pay" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="font-display text-xl font-bold mb-5">Payment method</h2>
+                <h2 className="font-display text-xl font-bold mb-5">{t("paymentMethod")}</h2>
                 <div className="space-y-3 mb-6">
                   {[
                     { id: "cod",        label: "Cash on Delivery" },
@@ -203,17 +205,17 @@ export default function CheckoutPage() {
             )}
             {step === 3 && (
               <motion.div key="rev" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="font-display text-xl font-bold mb-5">Review your order</h2>
+                <h2 className="font-display text-xl font-bold mb-5">{language === "bn" ? "আপনার অর্ডার পর্যালোচনা করুন" : "Review your order"}</h2>
                 <div className="space-y-3">
                   {items.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Your cart is empty. Add a few favorites first!</p>
+                    <p className="text-sm text-muted-foreground">{language === "bn" ? "আপনার কার্ট খালি। প্রথমে কিছু পছন্দের পণ্য যোগ করুন!" : "Your cart is empty. Add a few favorites first!"}</p>
                   ) : items.map((it) => (
                     <div key={it.id} className="flex gap-3 p-3 rounded-2xl bg-secondary/40">
-                      <img src={it.image} alt={it.name} className="w-16 h-16 rounded-xl object-cover" />
+                      <img src={it.image} alt={getLocalizedField(it, "name", language)} className="w-16 h-16 rounded-xl object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">{it.brand}</p>
-                        <p className="font-medium text-sm line-clamp-1">{it.name}</p>
-                        <p className="text-xs text-muted-foreground">Qty {it.quantity}</p>
+                        <p className="font-medium text-sm line-clamp-1">{getLocalizedField(it, "name", language)}</p>
+                        <p className="text-xs text-muted-foreground">{t("quantity")} {it.quantity}</p>
                       </div>
                       <p className="font-semibold text-sm tabular-nums">৳{(it.price * it.quantity).toLocaleString()}</p>
                     </div>
@@ -221,7 +223,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="mt-6 p-4 rounded-2xl bg-gradient-soft flex items-center gap-3">
                   <Sparkles className="w-4 h-4 gradient-text" />
-                  <p className="text-xs">Estimated delivery in <strong>2-3 days</strong> based on your address.</p>
+                  <p className="text-xs">{language === "bn" ? <>আপনার ঠিকানার উপর ভিত্তি করে আনুমানিক ডেলিভারি <strong>২-৩ দিন</strong>।</> : <>Estimated delivery in <strong>2-3 days</strong> based on your address.</>}</p>
                 </div>
               </motion.div>
             )}
@@ -233,7 +235,7 @@ export default function CheckoutPage() {
               disabled={step === 1}
               className="h-11 px-5 rounded-2xl border border-border text-sm font-semibold hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
-              <ArrowLeft className="w-4 h-4" /> Back
+              <ArrowLeft className="w-4 h-4" /> {language === "bn" ? "পেছনে" : "Back"}
             </button>
             {step < 3 ? (
               <motion.button
@@ -241,7 +243,7 @@ export default function CheckoutPage() {
                 onClick={() => setStep((s) => s + 1)}
                 className="h-11 px-6 rounded-2xl bg-foreground text-background text-sm font-semibold flex items-center gap-1.5"
               >
-                Continue <ArrowRight className="w-4 h-4" />
+                {language === "bn" ? "চালিয়ে যান" : "Continue"} <ArrowRight className="w-4 h-4" />
               </motion.button>
             ) : (
               <motion.button
@@ -250,7 +252,7 @@ export default function CheckoutPage() {
                 disabled={placing}
                 className="h-11 px-6 rounded-2xl bg-gradient-primary text-white text-sm font-semibold flex items-center gap-1.5 shadow-elegant disabled:opacity-60"
               >
-                {placing ? "Placing…" : "Place order"} <Check className="w-4 h-4" />
+                {placing ? (language === "bn" ? "অর্ডার হচ্ছে…" : "Placing…") : t("placeOrder")} <Check className="w-4 h-4" />
               </motion.button>
             )}
           </div>
@@ -258,23 +260,23 @@ export default function CheckoutPage() {
 
         {/* Summary */}
         <aside className="bg-card rounded-3xl shadow-soft border border-border/60 p-6 h-fit sticky top-24">
-          <h3 className="font-display text-lg font-bold mb-4">Summary</h3>
+          <h3 className="font-display text-lg font-bold mb-4">{language === "bn" ? "সারাংশ" : "Summary"}</h3>
           <div className="space-y-2 text-sm">
-            <Row l="Items" v={`${items.length}`} />
-            <Row l="Subtotal" v={`৳${total.toLocaleString()}`} />
-            <Row l="Shipping" v={shipping === 0 ? <span className="text-accent-mint font-semibold">Free</span> : `৳${shipping.toLocaleString()}`} />
-            <Row l="Tax (7%)" v={`৳${Math.round(tax).toLocaleString()}`} />
-            {discount > 0 && <Row l="Coupon" v={<span className="text-accent-mint">−৳{discount.toLocaleString()}</span>} />}
+            <Row l={language === "bn" ? "আইটেম" : "Items"} v={`${items.length}`} />
+            <Row l={t("subtotal")} v={`৳${total.toLocaleString()}`} />
+            <Row l={t("shipping")} v={shipping === 0 ? <span className="text-accent-mint font-semibold">{t("free")}</span> : `৳${shipping.toLocaleString()}`} />
+            <Row l={language === "bn" ? "ভ্যাট (৭%)" : "Tax (7%)"} v={`৳${Math.round(tax).toLocaleString()}`} />
+            {discount > 0 && <Row l={language === "bn" ? "কুপন" : "Coupon"} v={<span className="text-accent-mint">−৳{discount.toLocaleString()}</span>} />}
           </div>
           <div className="mt-4 pt-4 border-t border-border flex items-baseline justify-between">
-            <span className="font-semibold">Total</span>
+            <span className="font-semibold">{t("total")}</span>
             <motion.span key={grand} initial={{ scale: 1.1 }} animate={{ scale: 1 }} className="font-display text-2xl font-bold tabular-nums">
               ৳{Math.round(grand).toLocaleString()}
             </motion.span>
           </div>
           <div className="mt-4 p-3 rounded-2xl bg-gradient-soft text-xs text-foreground/80 flex gap-2">
             <ShieldCheck className="w-4 h-4 shrink-0 text-accent-mint mt-0.5" />
-            <span>256-bit encryption · 30-day money-back guarantee</span>
+            <span>{language === "bn" ? "২৫৬-বিট এনক্রিপশন · ৩০-দিনের মানি-ব্যাক গ্যারান্টি" : "256-bit encryption · 30-day money-back guarantee"}</span>
           </div>
         </aside>
       </div>

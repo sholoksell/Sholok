@@ -4,11 +4,11 @@ import { jobsAPI, dashboardAPI } from "../services/api";
 import "./Dashboard.css";
 
 const emptyJob = {
-  title: "", titleEn: "", company: "", companyLogo: "🏢",
+  title: "", titleEn: "", titleBn: "", company: "", companyLogo: "🏢",
   salary: "", salaryMin: "", salaryMax: "",
   location: "", jobType: "পূর্ণকালীন", category: "প্রযুক্তি",
-  experience: "", description: "", skills: "",
-  requirements: "", benefits: "", vacancies: 1,
+  experience: "", description: "", descriptionEn: "", descriptionBn: "", skills: "",
+  requirements: "", requirementsEn: "", requirementsBn: "", benefits: "", vacancies: 1,
   deadline: "", featured: false, urgent: false,
 };
 
@@ -63,6 +63,8 @@ export default function VendorDashboard() {
       ...job,
       skills: Array.isArray(job.skills) ? job.skills.join(", ") : job.skills || "",
       requirements: Array.isArray(job.requirements) ? job.requirements.join(", ") : job.requirements || "",
+      requirementsEn: Array.isArray(job.requirementsEn) ? job.requirementsEn.join(", ") : job.requirementsEn || "",
+      requirementsBn: Array.isArray(job.requirementsBn) ? job.requirementsBn.join(", ") : job.requirementsBn || "",
       benefits: Array.isArray(job.benefits) ? job.benefits.join(", ") : job.benefits || "",
     });
     setShowForm(true);
@@ -81,6 +83,10 @@ export default function VendorDashboard() {
         ? form.skills.split(",").map((s) => s.trim()).filter(Boolean) : form.skills,
       requirements: typeof form.requirements === "string"
         ? form.requirements.split(",").map((s) => s.trim()).filter(Boolean) : form.requirements,
+      requirementsEn: typeof form.requirementsEn === "string"
+        ? form.requirementsEn.split(",").map((s) => s.trim()).filter(Boolean) : form.requirementsEn,
+      requirementsBn: typeof form.requirementsBn === "string"
+        ? form.requirementsBn.split(",").map((s) => s.trim()).filter(Boolean) : form.requirementsBn,
       benefits: typeof form.benefits === "string"
         ? form.benefits.split(",").map((s) => s.trim()).filter(Boolean) : form.benefits,
     };
@@ -181,6 +187,17 @@ export default function VendorDashboard() {
 
           <div className="form-row">
             <div className="form-group">
+              <label>চাকরির শিরোনাম (বাংলা)</label>
+              <input value={form.titleBn} onChange={(e) => handleChange("titleBn", e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Job Title (English)</label>
+              <input value={form.titleEn} onChange={(e) => handleChange("titleEn", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label>কোম্পানি লোগো (emoji)</label>
               <input value={form.companyLogo} onChange={(e) => handleChange("companyLogo", e.target.value)} />
             </div>
@@ -259,6 +276,20 @@ export default function VendorDashboard() {
 
           <div className="form-row form-row--full">
             <div className="form-group">
+              <label>চাকরির বিবরণ (বাংলা)</label>
+              <textarea rows="5" value={form.descriptionBn} onChange={(e) => handleChange("descriptionBn", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-row form-row--full">
+            <div className="form-group">
+              <label>Job Description (English)</label>
+              <textarea rows="5" value={form.descriptionEn} onChange={(e) => handleChange("descriptionEn", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-row form-row--full">
+            <div className="form-group">
               <label>দক্ষতা</label>
               <input placeholder="" value={form.skills} onChange={(e) => handleChange("skills", e.target.value)} />
             </div>
@@ -268,6 +299,20 @@ export default function VendorDashboard() {
             <div className="form-group">
               <label>শিক্ষাগত যোগ্যতা ও অভিজ্ঞতা</label>
               <input placeholder="" value={form.requirements} onChange={(e) => handleChange("requirements", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-row form-row--full">
+            <div className="form-group">
+              <label>শিক্ষাগত যোগ্যতা ও অভিজ্ঞতা (বাংলা, কমা দিয়ে আলাদা)</label>
+              <input placeholder="" value={form.requirementsBn} onChange={(e) => handleChange("requirementsBn", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-row form-row--full">
+            <div className="form-group">
+              <label>Requirements (English, comma separated)</label>
+              <input placeholder="" value={form.requirementsEn} onChange={(e) => handleChange("requirementsEn", e.target.value)} />
             </div>
           </div>
 

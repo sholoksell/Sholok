@@ -3,9 +3,11 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import api from '../utils/api';
 import BlogCard from '../components/BlogCard';
+import { useLanguage } from '../context/LanguageContext';
 import { FiSearch, FiFilter, FiUser, FiGrid } from 'react-icons/fi';
 
 export default function Search() {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const type = searchParams.get('type') || 'posts';
@@ -74,11 +76,11 @@ export default function Search() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search posts, tags, writers..."
+            placeholder={t('searchPostsWriters')}
             className="w-full pl-14 pr-16 py-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-base shadow-sm"
           />
           <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 btn-primary py-2 px-4 text-sm">
-            Search
+            {t('searchBtn')}
           </button>
         </form>
 
@@ -86,10 +88,10 @@ export default function Search() {
         <div className="flex flex-wrap items-center gap-3 mb-8">
           {/* Type toggle */}
           <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl gap-1">
-            {[{ val: 'posts', icon: FiGrid, label: 'Posts' }, { val: 'users', icon: FiUser, label: 'Bloggers' }].map((t) => (
+            {[{ val: 'posts', icon: FiGrid, label: t('postsTab') }, { val: 'users', icon: FiUser, label: t('bloggersTab') }].map((tab) => (
               <button key={t.val} onClick={() => setParam('type', t.val)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${type === t.val ? 'bg-white dark:bg-gray-900 shadow text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-                <t.icon className="w-4 h-4" /> {t.label}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${type === tab.val ? 'bg-white dark:bg-gray-900 shadow text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
+                <tab.icon className="w-4 h-4" /> {tab.label}
               </button>
             ))}
           </div>
@@ -99,22 +101,22 @@ export default function Search() {
               {/* Sort */}
               <select value={sort} onChange={(e) => setParam('sort', e.target.value)}
                 className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary-500">
-                <option value="relevance">Most Relevant</option>
-                <option value="latest">Latest</option>
-                <option value="popular">Most Popular</option>
+                <option value="relevance">{t('mostRelevant')}</option>
+                <option value="latest">{t('latestSort')}</option>
+                <option value="popular">{t('mostPopular')}</option>
               </select>
 
               {/* Category filter */}
               <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary-500">
-                <option value="">All Categories</option>
+                <option value="">{t('allCategories')}</option>
                 {categories.map((c) => <option key={c._id} value={c._id}>{c.icon} {c.name}</option>)}
               </select>
             </>
           )}
 
           {q && total > 0 && (
-            <span className="text-sm text-gray-500">{total.toLocaleString()} {type === 'users' ? 'bloggers' : 'posts'} found{q ? ` for "${q}"` : ''}</span>
+            <span className="text-sm text-gray-500">{total.toLocaleString()} {type === 'users' ? t('bloggersTab') : t('postsTab')} {t('foundFor')}{q ? ` "${q}"` : ''}</span>
           )}
         </div>
 
@@ -134,8 +136,8 @@ export default function Search() {
         ) : results.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{q ? `No results for "${q}"` : 'Search for something'}</h3>
-            <p className="text-gray-400">Try different keywords or browse categories</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{q ? `${t('noResultsFor')} "${q}"` : t('searchSomething')}</h3>
+            <p className="text-gray-400">{t('tryDifferentKeywords')}</p>
           </div>
         ) : type === 'users' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -163,7 +165,7 @@ export default function Search() {
           <div className="text-center mt-10">
             <button onClick={() => { const next = page + 1; setPage(next); search(next); }}
               className="btn-outline inline-flex items-center gap-2">
-              Load More
+              {t('loadMore')}
             </button>
           </div>
         )}

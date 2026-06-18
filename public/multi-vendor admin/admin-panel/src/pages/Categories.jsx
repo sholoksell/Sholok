@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 const COLORS = ["from-violet-500 to-fuchsia-500","from-pink-500 to-rose-500","from-amber-500 to-orange-500","from-rose-400 to-pink-400","from-indigo-500 to-purple-500","from-emerald-500 to-teal-500","from-cyan-500 to-blue-500","from-sky-500 to-cyan-500"];
 
-const blank = { name: "", icon: "Tag", color: COLORS[0], description: "", order: 0, isActive: true, isFeatured: false };
+const blank = { name: "", nameBn: "", nameEn: "", icon: "Tag", color: COLORS[0], description: "", descriptionBn: "", descriptionEn: "", order: 0, isActive: true, isFeatured: false };
 
 export default function Categories() {
   const [cats,    setCats]    = useState([]);
@@ -25,7 +25,7 @@ export default function Categories() {
   useEffect(() => { fetch(); }, []);
 
   const openAdd  = () => { setForm(blank); setEditId(null); setModal(true); };
-  const openEdit = (c) => { setForm({ name: c.name, icon: c.icon, color: c.color, description: c.description, order: c.order, isActive: c.isActive, isFeatured: c.isFeatured }); setEditId(c._id); setModal(true); };
+  const openEdit = (c) => { setForm({ name: c.name, nameBn: c.nameBn || "", nameEn: c.nameEn || "", icon: c.icon, color: c.color, description: c.description, descriptionBn: c.descriptionBn || "", descriptionEn: c.descriptionEn || "", order: c.order, isActive: c.isActive, isFeatured: c.isFeatured }); setEditId(c._id); setModal(true); };
 
   const save = async () => {
     if (!form.name) return toast.error("Name is required");
@@ -79,6 +79,8 @@ export default function Categories() {
             </div>
             <div className="space-y-3">
               <div><label className="text-xs text-slate-400 mb-1 block">Name *</label><input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="input" placeholder="e.g. Electronics" /></div>
+              <div><label className="text-xs text-slate-400 mb-1 block">Name (Bangla)</label><input value={form.nameBn} onChange={(e) => setForm({...form, nameBn: e.target.value})} className="input" placeholder="যেমন: ইলেকট্রনিক্স" /></div>
+              <div><label className="text-xs text-slate-400 mb-1 block">Name (English)</label><input value={form.nameEn} onChange={(e) => setForm({...form, nameEn: e.target.value})} className="input" placeholder="e.g. Electronics" /></div>
               <div><label className="text-xs text-slate-400 mb-1 block">Icon (Lucide name)</label><input value={form.icon} onChange={(e) => setForm({...form, icon: e.target.value})} className="input" placeholder="e.g. Cpu, Shirt" /></div>
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">Color Gradient</label>
@@ -90,6 +92,8 @@ export default function Categories() {
                 </div>
               </div>
               <div><label className="text-xs text-slate-400 mb-1 block">Description</label><textarea value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} className="input resize-none" rows={2} /></div>
+              <div><label className="text-xs text-slate-400 mb-1 block">Description (Bangla)</label><textarea value={form.descriptionBn} onChange={(e) => setForm({...form, descriptionBn: e.target.value})} className="input resize-none" rows={2} /></div>
+              <div><label className="text-xs text-slate-400 mb-1 block">Description (English)</label><textarea value={form.descriptionEn} onChange={(e) => setForm({...form, descriptionEn: e.target.value})} className="input resize-none" rows={2} /></div>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                   <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({...form, isActive: e.target.checked})} className="w-4 h-4 accent-primary-500" />Active

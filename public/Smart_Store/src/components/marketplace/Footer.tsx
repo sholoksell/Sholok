@@ -1,6 +1,8 @@
-
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="container pb-12 pt-20">
       <div className="rounded-4xl bg-gradient-soft p-8 lg:p-12 grid lg:grid-cols-4 gap-8">
@@ -12,11 +14,11 @@ export default function Footer() {
             <span className="font-display font-bold text-xl">Sholok <span className="gradient-text">Smart Store</span></span>
           </div>
           <p className="text-sm text-foreground/70 max-w-sm leading-relaxed mb-4">
-            The modern marketplace for thoughtful shoppers and the stores they love.
+            {t("footerTagline")}
           </p>
           <div className="flex gap-2">
-            <input placeholder="Get drops in your inbox" className="flex-1 h-11 px-4 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <button className="h-11 px-5 rounded-2xl bg-foreground text-background font-semibold text-sm">Subscribe</button>
+            <input placeholder={t("newsletterPlaceholder")} className="flex-1 h-11 px-4 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+            <button className="h-11 px-5 rounded-2xl bg-foreground text-background font-semibold text-sm">{t("subscribe")}</button>
           </div>
         </div>
 

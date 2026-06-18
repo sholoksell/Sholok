@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import Index from "./pages/Index.tsx";
 import Watch from "./pages/Watch.tsx";
 import Shorts from "./pages/Shorts.tsx";
@@ -23,11 +24,12 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <LanguageProvider>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename="/tv">
+        <BrowserRouter basename="/VideoPlatform">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/watch/:id" element={<Watch />} />
@@ -48,6 +50,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 

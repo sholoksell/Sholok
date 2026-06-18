@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import toast from 'react-hot-toast';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight } from 'react-icons/fi';
 
 export default function Login() {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +17,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) { toast.error('Please fill in all fields'); return; }
+            if (!email || !password) { toast.error(t('passwordLabel') + ' / ' + t('emailAddress')); return; }
     setLoading(true);
     try {
       await login(email, password);
@@ -43,12 +45,12 @@ export default function Login() {
           </div>
           <div className="relative text-center text-white">
             <div className="text-7xl mb-6">✍️</div>
-            <h2 className="text-4xl font-heading font-bold mb-4">Welcome Back</h2>
+            <h2 className="text-4xl font-heading font-bold mb-4">{t('welcomeBack')}</h2>
             <p className="text-primary-100 text-lg max-w-sm leading-relaxed">
-              Continue your journey. Write, share, and connect with thousands of bloggers.
+              {t('loginPanelText')}
             </p>
             <div className="mt-8 flex justify-center gap-6 text-center">
-              {[['10K+', 'Bloggers'], ['50K+', 'Posts'], ['100K+', 'Readers']].map(([n, l]) => (
+              {[['10K+', t('bloggers')], ['50K+', t('posts')], ['100K+', t('readers')]].map(([n, l]) => (
                 <div key={l}>
                   <p className="text-2xl font-bold">{n}</p>
                   <p className="text-primary-200 text-sm">{l}</p>
@@ -66,13 +68,13 @@ export default function Login() {
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center text-white font-bold text-sm">SB</div>
                 <span className="font-heading font-bold text-xl gradient-text">Sholok Blog</span>
               </Link>
-              <h1 className="text-2xl font-heading font-bold text-gray-900 dark:text-white">Sign in to your account</h1>
-              <p className="text-gray-400 mt-1">Don't have an account? <Link to="/register" className="text-primary-600 hover:underline font-medium">Sign up free</Link></p>
+              <h1 className="text-2xl font-heading font-bold text-gray-900 dark:text-white">{t('signInToAccount')}</h1>
+              <p className="text-gray-400 mt-1">{t('noAccount')} <Link to="/register" className="text-primary-600 hover:underline font-medium">{t('signUpFree')}</Link></p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('emailAddress')}</label>
                 <div className="relative">
                   <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -88,7 +90,7 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('passwordLabel')}</label>
                 <div className="relative">
                   <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -110,16 +112,17 @@ export default function Login() {
               <button type="submit" disabled={loading}
                 className="w-full btn-primary flex items-center justify-center gap-2 text-base py-3.5 disabled:opacity-50">
                 {loading ? (
-                  <span className="flex items-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</span>
+                  <span className="flex items-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('signingIn')}</span>
                 ) : (
-                  <span className="flex items-center gap-2">Sign In <FiArrowRight className="w-4 h-4" /></span>
+                  <span className="flex items-center gap-2">{t('signInBtn')} <FiArrowRight className="w-4 h-4" /></span>
                 )}
               </button>
             </form>
 
             <p className="text-center text-sm text-gray-400 mt-6">
-              By signing in, you agree to our{' '}
-              <Link to="/" className="text-primary-600 hover:underline">Terms of Service</Link>
+              {t('agreeTerms')}{' '}
+              <Link to="/" className="text-primary-600 hover:underline">{t('termsOfService')}</Link>
+              {t('agreeTermsEnd') ? ' ' + t('agreeTermsEnd') : ''}
             </p>
           </div>
         </div>

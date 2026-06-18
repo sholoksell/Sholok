@@ -1,22 +1,24 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Heart, User, Menu, Sparkles, Sun, Moon, X, Radio, LayoutDashboard, ShieldCheck, Users2, LogOut, Palette } from "lucide-react";
+import { Search, ShoppingBag, Heart, User, Menu, Sparkles, Sun, Moon, X, Radio, LayoutDashboard, ShieldCheck, Users2, LogOut, Palette, Languages } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "@/store/cartContext";
 import { useTheme } from "@/store/themeContext";
 import { useAuth } from "@/store/authContext";
-
-const navItems = [
-  { to: "/search",    label: "Shop" },
-  { to: "/store/s2",  label: "Stores" },
-  { to: "/group-buy", label: "Group buy", icon: Users2 },
-  { to: "/live",      label: "Live",      icon: Radio },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Header() {
   const { count, open, wishlist } = useCart();
   const { theme, toggle } = useTheme();
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+
+  const navItems = [
+    { to: "/search",    label: t("shop") },
+    { to: "/store/s2",  label: t("stores") },
+    { to: "/group-buy", label: t("groupBuy"), icon: Users2 },
+    { to: "/live",      label: t("live"),     icon: Radio },
+  ];
   const [scrolled,    setScrolled]    = useState(false);
   const [searchFocus, setSearchFocus] = useState(false);
   const [mobileOpen,  setMobileOpen]  = useState(false);
@@ -87,12 +89,20 @@ export default function Header() {
                 className="w-full h-11 pl-11 pr-28 bg-transparent rounded-2xl text-sm placeholder:text-muted-foreground focus:outline-none"
               />
               <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-primary text-white text-[10px] font-semibold hover:scale-105 transition-transform">
-                <Sparkles className="w-3 h-3" /> Go
+                <Sparkles className="w-3 h-3" /> {t("go")}
               </button>
             </motion.div>
           </form>
 
           <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={() => setLanguage(language === "bn" ? "en" : "bn")}
+              className="h-10 px-3 rounded-xl hover:bg-secondary flex items-center gap-1.5 transition-colors text-sm font-semibold"
+              aria-label="Toggle language"
+            >
+              <Languages className="w-4 h-4" />
+              {language === "bn" ? "বাং" : "EN"}
+            </button>
             <button
               onClick={toggle}
               className="w-10 h-10 rounded-xl hover:bg-secondary flex items-center justify-center transition-colors"
@@ -135,21 +145,21 @@ export default function Header() {
                         <p className="text-sm font-semibold truncate">{user.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
-                      <Link to="/account" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><User className="w-3.5 h-3.5" /> My account</Link>
+                      <Link to="/account" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><User className="w-3.5 h-3.5" /> {t("myAccount")}</Link>
                       {(user.role === "seller" || user.role === "admin") && (
                         <>
-                          <Link to="/seller" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><LayoutDashboard className="w-3.5 h-3.5" /> Seller console</Link>
-                          <Link to="/seller/customize" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><Palette className="w-3.5 h-3.5" /> Customize store</Link>
+                          <Link to="/seller" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><LayoutDashboard className="w-3.5 h-3.5" /> {t("sellerConsole")}</Link>
+                          <Link to="/seller/customize" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><Palette className="w-3.5 h-3.5" /> {t("customizeStore")}</Link>
                         </>
                       )}
                       {user.role === "admin" && (
-                        <Link to="/admin" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><ShieldCheck className="w-3.5 h-3.5" /> Admin</Link>
+                        <Link to="/admin" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary"><ShieldCheck className="w-3.5 h-3.5" /> {t("admin")}</Link>
                       )}
                       <button
                         onClick={async () => { setUserOpen(false); await logout(); navigate("/"); }}
                         className="w-full flex items-center gap-2 px-3 h-9 rounded-xl text-sm hover:bg-secondary text-destructive"
                       >
-                        <LogOut className="w-3.5 h-3.5" /> Sign out
+                        <LogOut className="w-3.5 h-3.5" /> {t("signOut")}
                       </button>
                     </motion.div>
                   )}
@@ -157,7 +167,7 @@ export default function Header() {
               </div>
             ) : (
               <Link to="/login" className="hidden sm:flex h-10 px-4 rounded-xl hover:bg-secondary items-center justify-center transition-colors text-sm font-semibold">
-                Sign in
+                {t("signIn")}
               </Link>
             )}
 
@@ -202,13 +212,13 @@ export default function Header() {
               className="fixed right-0 top-0 z-50 h-full w-72 bg-background shadow-elegant flex flex-col lg:hidden"
             >
               <div className="flex items-center justify-between p-5 border-b border-border">
-                <span className="font-display font-bold text-lg">Menu</span>
+                <span className="font-display font-bold text-lg">{t("menu")}</span>
                 <button onClick={() => setMobileOpen(false)} className="w-9 h-9 rounded-xl hover:bg-secondary flex items-center justify-center">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="p-4 flex flex-col gap-1">
-                {[...navItems, { to: "/seller", label: "Seller", icon: LayoutDashboard }, { to: "/admin", label: "Admin", icon: ShieldCheck }].map((n) => (
+                {[...navItems, { to: "/seller", label: t("seller"), icon: LayoutDashboard }, { to: "/admin", label: t("admin"), icon: ShieldCheck }].map((n) => (
                   <NavLink
                     key={n.to}
                     to={n.to}

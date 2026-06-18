@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import PrimeBadge from '../components/common/PrimeBadge';
 import { FiTrash2, FiMinus, FiPlus, FiShoppingCart, FiTag } from 'react-icons/fi';
 import { BsBoxSeam } from 'react-icons/bs';
@@ -9,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const CartItem = ({ item, onRemove, onUpdate }) => {
   const [imgError, setImgError] = useState(false);
+  const { t, getLocalizedField } = useLanguage();
+  const title = getLocalizedField(item, 'title');
   const fallback = `https://placehold.co/120x120/EAEDED/565959?text=${encodeURIComponent(item.brand || 'Item')}`;
 
   return (
@@ -24,7 +27,7 @@ const CartItem = ({ item, onRemove, onUpdate }) => {
       <Link to={`/product/${item.id}`} className="shrink-0">
         <img
           src={!item.image || imgError ? fallback : item.image}
-          alt={item.title}
+          alt={title}
           onError={() => setImgError(true)}
           className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded border border-amazon-border p-1 bg-[#F7F8F8]"
         />
@@ -36,18 +39,18 @@ const CartItem = ({ item, onRemove, onUpdate }) => {
           to={`/product/${item.id}`}
           className="text-amazon-dark text-sm font-medium line-clamp-2 hover:text-amazon-orange transition-colors leading-snug"
         >
-          {item.title}
+          {title}
         </Link>
         <p className="text-amazon-text-gray text-xs mt-0.5">{item.brand}</p>
 
         <p className="text-amazon-green text-xs mt-1">
-          {item.inStock ? 'In Stock' : 'Out of Stock'}
+          {item.inStock ? t('inStock') : t('outOfStock')}
         </p>
 
         {item.isPrime && (
           <div className="flex items-center gap-1.5 mt-1">
             <PrimeBadge />
-            <span className="text-xs text-amazon-dark">FREE delivery</span>
+            <span className="text-xs text-amazon-dark">{t('freeDelivery')}</span>
           </div>
         )}
 

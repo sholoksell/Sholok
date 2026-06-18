@@ -41,8 +41,15 @@ export function LanguageProvider({ children }) {
     [lang]
   );
 
+  /** Resolve a localized string from a nested { en, bn } object or plain string */
+  const translateField = useCallback((field, overrideLang = lang) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    return field[overrideLang] || field.bn || field.en || '';
+  }, [lang]);
+
   return (
-    <LanguageContext.Provider value={{ lang, t, toggleLanguage, setLanguage }}>
+    <LanguageContext.Provider value={{ lang, t, toggleLanguage, setLanguage, translateField }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -135,6 +135,20 @@ server.listen(PORT, () => {
   console.log(`⚙️  Admin: ${process.env.ADMIN_URL}\n`);
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ Port ${PORT} is already in use. Trying port ${Number(PORT) + 1}...\n`);
+    server.listen(Number(PORT) + 1, () => {
+      console.log(`\n🚀 Sholok Blog Server running on port ${Number(PORT) + 1}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🌐 Frontend: ${process.env.FRONTEND_URL}`);
+      console.log(`⚙️  Admin: ${process.env.ADMIN_URL}\n`);
+    });
+  } else {
+    throw err;
+  }
+});
+
 // Graceful shutdown — lets nodemon properly free the port before restart
 const shutdown = (signal) => {
   console.log(`\n${signal} received. Closing server...`);

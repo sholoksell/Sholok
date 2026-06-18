@@ -4,6 +4,10 @@ const videoSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 200 },
     description: { type: String, default: "", maxlength: 5000 },
+    titleBn: { type: String, default: "", trim: true, maxlength: 200 },
+    titleEn: { type: String, default: "", trim: true, maxlength: 200 },
+    descriptionBn: { type: String, default: "", maxlength: 5000 },
+    descriptionEn: { type: String, default: "", maxlength: 5000 },
     // Local file storage paths
     videoPath: { type: String, required: true },
     thumbnailPath: { type: String, default: "" },

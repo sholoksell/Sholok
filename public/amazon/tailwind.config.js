@@ -27,6 +27,7 @@ export default {
       },
       fontFamily: {
         sans: ['Arial', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        bengali: ['"Noto Sans Bengali"', 'Arial', 'sans-serif'],
       },
       boxShadow: {
         amazon: '0 2px 5px rgba(15,17,17,.15)',

@@ -10,10 +10,14 @@ import {
   getFeaturedProducts,
 } from '../data/products';
 import { categories } from '../data/categories';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Link } from 'react-router-dom';
 
 // ── Small deal card used in Today's Deals section ─────────────
-const DealCard = ({ product }) => (
+const DealCard = ({ product }) => {
+  const { t, getLocalizedField } = useLanguage();
+  const title = getLocalizedField(product, 'title');
+  return (
   <Link
     to={`/product/${product.id}`}
     className="group bg-white border border-transparent hover:border-amazon-border hover:shadow-amazon transition-all rounded p-2 flex flex-col items-center text-center"
@@ -21,26 +25,29 @@ const DealCard = ({ product }) => (
     <div className="w-full aspect-square bg-[#F7F8F8] rounded mb-2 overflow-hidden flex items-center justify-center">
       <img
         src={product.image}
-        alt={product.title}
+        alt={title}
         className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
         loading="lazy"
         onError={(e) => { e.target.src = `https://placehold.co/300x300/EAEDED/565959?text=${encodeURIComponent(product.brand)}`; }}
       />
     </div>
-    <p className="text-amazon-red font-bold text-sm">Up to {product.discount}% off</p>
-    <p className="text-amazon-dark text-xs line-clamp-2 mt-0.5">{product.title.slice(0, 50)}</p>
+    <p className="text-amazon-red font-bold text-sm">{t('upTo')} {product.discount}{t('off')}</p>
+    <p className="text-amazon-dark text-xs line-clamp-2 mt-0.5">{title.slice(0, 50)}</p>
     <div className="mt-1 flex items-center gap-1">
-      <span className="text-amazon-orange text-xs font-bold">Prime</span>
+      <span className="text-amazon-orange text-xs font-bold">{t('prime')}</span>
       <span className="text-amazon-text-gray text-xs">&</span>
-      <span className="text-amazon-dark text-xs">FREE delivery</span>
+      <span className="text-amazon-dark text-xs">{t('freeDelivery')}</span>
     </div>
   </Link>
-);
+  );
+};
 
 // ── Category browse tiles ─────────────────────────────────────
-const CategoryGrid = () => (
+const CategoryGrid = () => {
+  const { t } = useLanguage();
+  return (
   <section className="bg-white rounded shadow-amazon p-4">
-    <h2 className="text-xl font-bold text-amazon-dark mb-4">Shop by Category</h2>
+    <h2 className="text-xl font-bold text-amazon-dark mb-4">{t('shopByCategory')}</h2>
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
       {categories.map((cat) => (
         <Link
@@ -54,19 +61,22 @@ const CategoryGrid = () => (
       ))}
     </div>
   </section>
-);
+  );
+};
 
 // ── Mini deals banner ─────────────────────────────────────────
-const DealsBanner = ({ products: deals }) => (
+const DealsBanner = ({ products: deals }) => {
+  const { t } = useLanguage();
+  return (
   <section className="bg-white rounded shadow-amazon p-4">
     <div className="flex items-center justify-between mb-3">
       <h2 className="text-xl font-bold text-amazon-dark">
-        Today's Deals
+        {t('todaysDeals')}
         <span className="ml-2 text-xs font-normal text-amazon-text-gray">
-          — Limited time offers
+          {t('limitedTimeOffers')}
         </span>
       </h2>
-      <Link to="/search?tag=deals" className="see-more-link">See all deals →</Link>
+      <Link to="/search?tag=deals" className="see-more-link">{t('seeAllDeals')}</Link>
     </div>
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
       {deals.slice(0, 6).map((p) => (
@@ -74,7 +84,8 @@ const DealsBanner = ({ products: deals }) => (
       ))}
     </div>
   </section>
-);
+  );
+};
 
 // ── Promo Cards (Amazon-style 4-up) ──────────────────────────
 const travelItems = [
@@ -101,49 +112,50 @@ const travelItems = [
 ];
 
 const PromoCards = ({ fashion, homeKitchen, beauty }) => {
+  const { t } = useLanguage();
   const fallback = (text) => `https://placehold.co/300x300/EAEDED/565959?text=${encodeURIComponent(text)}`;
 
   const cards = [
     {
-      title: 'Most-loved travel essentials',
+      title: t('travelEssentials'),
       type: 'travel',
-      shopLabel: 'Discover more',
+      shopLabel: t('discoverMore'),
       shopLink: '/search?q=travel',
     },
     {
-      title: 'Shop Fashion for less',
+      title: t('shopFashionForLess'),
       type: 'grid',
       items: [
-        { label: 'Tops & Tees',  product: fashion[0] },
-        { label: 'Bottoms',      product: fashion[1] },
-        { label: 'Dresses',      product: fashion[2] },
-        { label: 'Footwear',     product: fashion[3] },
+        { label: t('tops'),     product: fashion[0] },
+        { label: t('bottoms'),  product: fashion[1] },
+        { label: t('dresses'),  product: fashion[2] },
+        { label: t('footwear'), product: fashion[3] },
       ],
-      shopLabel: 'See all fashion',
+      shopLabel: t('seeAllFashion'),
       shopLink: '/search?category=Fashion',
     },
     {
-      title: 'Home & Kitchen Deals',
+      title: t('homeKitchenDeals'),
       type: 'grid',
       items: [
-        { label: 'Kitchen',   product: homeKitchen[0] },
-        { label: 'Dining',    product: homeKitchen[1] },
-        { label: 'Décor',     product: homeKitchen[2] },
-        { label: 'Bedding',   product: homeKitchen[3] },
+        { label: t('kitchen'), product: homeKitchen[0] },
+        { label: t('dining'),  product: homeKitchen[1] },
+        { label: t('decor'),   product: homeKitchen[2] },
+        { label: t('bedding'), product: homeKitchen[3] },
       ],
-      shopLabel: 'Shop Home & Kitchen',
+      shopLabel: t('shopHomeKitchen'),
       shopLink: '/search?category=Home+%26+Kitchen',
     },
     {
-      title: 'Beauty & Wellness',
+      title: t('beautyWellness'),
       type: 'grid',
       items: [
-        { label: 'Skincare',  product: beauty[0] },
-        { label: 'Haircare',  product: beauty[1] },
-        { label: 'Makeup',    product: beauty[2] },
-        { label: 'Wellness',  product: beauty[3] },
+        { label: t('skincare'), product: beauty[0] },
+        { label: t('haircare'), product: beauty[1] },
+        { label: t('makeup'),   product: beauty[2] },
+        { label: t('wellness'), product: beauty[3] },
       ],
-      shopLabel: 'Shop Beauty',
+      shopLabel: t('shopBeauty'),
       shopLink: '/search?category=Beauty',
     },
   ];
@@ -212,6 +224,7 @@ const PromoCards = ({ fashion, homeKitchen, beauty }) => {
 
 // ── Main HomePage ─────────────────────────────────────────────
 const HomePage = () => {
+  const { t } = useLanguage();
   const bestSellers    = useMemo(() => getBestSellers(12), []);
   const todaysDeals    = useMemo(() => getTodaysDeals(12), []);
   const electronics    = useMemo(() => getProductsByCategory('Electronics').slice(0, 12), []);
@@ -239,11 +252,11 @@ const HomePage = () => {
 
         {/* Best Sellers */}
         <ProductSection
-          title="Best Sellers"
+          title={t('bestSellers')}
           products={bestSellers}
           seeMoreLink="/search?tag=bestsellers"
           cols={6}
-          badge="🔥 Hot"
+          badge={t('hot')}
         />
 
         {/* Promo Cards */}
@@ -255,14 +268,14 @@ const HomePage = () => {
 
         {/* Electronics */}
         <ProductSlider
-          title="Electronics — Top Picks"
+          title={t('electronicsTopPicks')}
           products={electronics}
           seeMoreLink="/search?category=Electronics"
         />
 
         {/* Gaming */}
         <ProductSection
-          title="Gaming Universe"
+          title={t('gamingUniverse')}
           products={gaming}
           seeMoreLink="/search?category=Gaming"
           cols={6}
@@ -270,14 +283,14 @@ const HomePage = () => {
 
         {/* Fashion */}
         <ProductSlider
-          title="Fashion Favourites"
+          title={t('fashionFavourites')}
           products={fashion}
           seeMoreLink="/search?category=Fashion"
         />
 
         {/* Home & Kitchen */}
         <ProductSection
-          title="Home & Kitchen Essentials"
+          title={t('homeKitchenEssentials')}
           products={homeKitchen}
           seeMoreLink="/search?category=Home"
           cols={5}
@@ -285,7 +298,7 @@ const HomePage = () => {
 
         {/* Beauty */}
         <ProductSection
-          title="Beauty & Personal Care"
+          title={t('beautyPersonalCare')}
           products={beauty}
           seeMoreLink="/search?category=Beauty"
           cols={5}
@@ -293,21 +306,21 @@ const HomePage = () => {
 
         {/* Sports */}
         <ProductSlider
-          title="Sports & Outdoors"
+          title={t('sportsOutdoors')}
           products={sports}
           seeMoreLink="/search?category=Sports"
         />
 
         {/* Featured / Recommended */}
         <ProductSlider
-          title="Recommended For You"
+          title={t('recommendedForYou')}
           products={featured}
           seeMoreLink="/search"
         />
 
         {/* Recently viewed / browsing history */}
         <ProductSection
-          title="Inspired by Your Browsing"
+          title={t('inspiredByBrowsing')}
           products={recentlyViewed}
           seeMoreLink="/search"
           cols={6}

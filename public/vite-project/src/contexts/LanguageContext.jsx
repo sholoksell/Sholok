@@ -112,6 +112,19 @@ export const translations = {
         // Empty States
         emptyCart: "Your cart is empty",
         startShopping: "Start Shopping",
+
+        // Footer
+        companyTagline: "Your trusted online grocery shopping destination. Fresh products delivered to your doorstep.",
+        quickLinks: "Quick Links",
+        faq: "FAQ",
+        deliveryAreas: "Delivery Areas",
+        returnPolicy: "Return Policy",
+        shippingInfo: "Shipping Info",
+        addressLine: "123 Shopping Street, Dhaka 1000, Bangladesh",
+
+        // Mobile Bottom Nav
+        home: "Home",
+        categories: "Categories",
     },
     bn: {
         // Header & Navigation
@@ -222,13 +235,26 @@ export const translations = {
         // Empty States
         emptyCart: "আপনার কার্ট খালি",
         startShopping: "কেনাকাটা শুরু করুন",
+
+        // Footer
+        companyTagline: "আপনার বিশ্বস্ত অনলাইন মুদি কেনাকাটার গন্তব্য। তাজা পণ্য আপনার দোরগোড়ায় পৌঁছে দেওয়া হয়।",
+        quickLinks: "দ্রুত লিঙ্ক",
+        faq: "সাধারণ জিজ্ঞাসা",
+        deliveryAreas: "ডেলিভারি এলাকা",
+        returnPolicy: "রিটার্ন নীতি",
+        shippingInfo: "শিপিং তথ্য",
+        addressLine: "১২৩ শপিং স্ট্রিট, ঢাকা ১০০০, বাংলাদেশ",
+
+        // Mobile Bottom Nav
+        home: "হোম",
+        categories: "ক্যাটাগরি",
     }
 };
 
 export const LanguageProvider = ({ children }) => {
     const [language, setLanguage] = useState(() => {
-        // Load language from localStorage or default to 'en'
-        return localStorage.getItem('preferredLanguage') || 'en';
+        // Load language from localStorage or default to 'bn'
+        return localStorage.getItem('preferredLanguage') || 'bn';
     });
 
     useEffect(() => {

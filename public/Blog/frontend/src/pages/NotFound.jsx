@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FiHome, FiSearch, FiArrowLeft } from 'react-icons/fi';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function NotFound() {
+  const { t } = useLanguage();
   return (
     <>
       <Helmet><title>404 - Page Not Found - Sholok Blog</title></Helmet>
@@ -18,18 +20,18 @@ export default function NotFound() {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900 dark:text-white mb-3">
-            Oops! Page not found
+            {t('notFound')}
           </h1>
           <p className="text-gray-400 mb-8 leading-relaxed">
-            The page you're looking for doesn't exist or has been moved. Don't worry, you can find plenty of great content on our blog!
+            {t('notFoundDescription')}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/" className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
-              <FiHome className="w-4 h-4" /> Back to Home
+              <FiHome className="w-4 h-4" /> {t('backHome')}
             </Link>
             <Link to="/search" className="btn-outline flex items-center gap-2 w-full sm:w-auto justify-center">
-              <FiSearch className="w-4 h-4" /> Search Posts
+              <FiSearch className="w-4 h-4" /> {t('searchPosts')}
             </Link>
           </div>
 

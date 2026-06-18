@@ -11,95 +11,98 @@ import {
   Cloud, Building, Star, BadgeDollarSign, Briefcase
 } from "lucide-react";
 import TakaIcon from "@/components/TakaIcon";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface SidebarSection {
   title: string;
+  titleKey: string;
   icon: React.ElementType;
   path?: string;
-  children?: { title: string; path: string; icon: React.ElementType }[];
+  children?: { title: string; titleKey: string; path: string; icon: React.ElementType }[];
 }
 
 const sidebarSections: SidebarSection[] = [
-  { title: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { title: "Dashboard", titleKey: "dashboardNav", icon: LayoutDashboard, path: "/" },
   {
-    title: "Users & Vendors", icon: Users,
+    title: "Users & Vendors", titleKey: "usersAndVendors", icon: Users,
     children: [
-      { title: "All Users", path: "/users", icon: Users },
-      { title: "Vendor Applications", path: "/vendors/applications", icon: UserCheck },
-      { title: "KYC Verification", path: "/vendors/kyc", icon: Shield },
-      { title: "Vendor Performance", path: "/vendors/performance", icon: TrendingUp },
+      { title: "All Users", titleKey: "allUsers", path: "/users", icon: Users },
+      { title: "Vendor Applications", titleKey: "vendorApplications", path: "/vendors/applications", icon: UserCheck },
+      { title: "KYC Verification", titleKey: "kycVerification", path: "/vendors/kyc", icon: Shield },
+      { title: "Vendor Performance", titleKey: "vendorPerformance", path: "/vendors/performance", icon: TrendingUp },
     ],
   },
   {
-    title: "Products", icon: Package,
+    title: "Products", titleKey: "products", icon: Package,
     children: [
-      { title: "All Products", path: "/products", icon: Package },
-      { title: "Categories", path: "/products/categories", icon: Boxes },
-      { title: "Approvals", path: "/products/approvals", icon: FileText },
-      { title: "Inventory", path: "/products/inventory", icon: Database },
+      { title: "All Products", titleKey: "allProducts", path: "/products", icon: Package },
+      { title: "Categories", titleKey: "categories", path: "/products/categories", icon: Boxes },
+      { title: "Approvals", titleKey: "approvals", path: "/products/approvals", icon: FileText },
+      { title: "Inventory", titleKey: "inventory", path: "/products/inventory", icon: Database },
     ],
   },
   {
-    title: "Orders & Shipping", icon: ShoppingCart,
+    title: "Orders & Shipping", titleKey: "ordersAndShipping", icon: ShoppingCart,
     children: [
-      { title: "All Orders", path: "/orders", icon: ShoppingCart },
-      { title: "Shipping", path: "/orders/shipping", icon: Truck },
-      { title: "Returns & Refunds", path: "/orders/returns", icon: Package },
+      { title: "All Orders", titleKey: "allOrders", path: "/orders", icon: ShoppingCart },
+      { title: "Shipping", titleKey: "shipping", path: "/orders/shipping", icon: Truck },
+      { title: "Returns & Refunds", titleKey: "returnsRefunds", path: "/orders/returns", icon: Package },
     ],
   },
   {
-    title: "Payments", icon: CreditCard,
+    title: "Payments", titleKey: "payments", icon: CreditCard,
     children: [
-      { title: "Transactions", path: "/payments/transactions", icon: CreditCard },
-      { title: "Commission", path: "/payments/commission", icon: TakaIcon },
-      { title: "Payouts", path: "/payments/payouts", icon: Wallet },
-      { title: "Settlement", path: "/payments/settlement", icon: TakaIcon },
+      { title: "Transactions", titleKey: "transactions", path: "/payments/transactions", icon: CreditCard },
+      { title: "Commission", titleKey: "commission", path: "/payments/commission", icon: TakaIcon },
+      { title: "Payouts", titleKey: "payouts", path: "/payments/payouts", icon: Wallet },
+      { title: "Settlement", titleKey: "settlement", path: "/payments/settlement", icon: TakaIcon },
     ],
   },
-  { title: "Analytics", icon: BarChart3, path: "/analytics" },
+  { title: "Analytics", titleKey: "analytics", icon: BarChart3, path: "/analytics" },
   {
-    title: "Marketing", icon: Megaphone,
+    title: "Marketing", titleKey: "marketing", icon: Megaphone,
     children: [
-      { title: "Campaigns", path: "/marketing/campaigns", icon: Megaphone },
-      { title: "Coupons", path: "/marketing/coupons", icon: Star },
-      { title: "Banners", path: "/marketing/banners", icon: FileText },
+      { title: "Campaigns", titleKey: "campaigns", path: "/marketing/campaigns", icon: Megaphone },
+      { title: "Coupons", titleKey: "coupons", path: "/marketing/coupons", icon: Star },
+      { title: "Banners", titleKey: "banners", path: "/marketing/banners", icon: FileText },
     ],
   },
   {
-    title: "Portal Services", icon: Globe,
+    title: "Portal Services", titleKey: "portalServices", icon: Globe,
     children: [
-      { title: "Module Control", path: "/portal/modules", icon: Settings },
-      { title: "News", path: "/portal/news", icon: Newspaper },
-      { title: "Blog / Cafe", path: "/portal/blog", icon: MessageSquare },
-      { title: "Shopping", path: "/portal/shopping", icon: ShoppingBag },
-      { title: "Maps", path: "/portal/maps", icon: Map },
-      { title: "Q&A", path: "/portal/qa", icon: HelpCircle },
-      { title: "eBooks / Webtoon", path: "/portal/ebooks", icon: BookOpen },
-      { title: "Video / TV", path: "/portal/video", icon: Tv },
-      { title: "Music", path: "/portal/music", icon: Music },
-      { title: "Translator", path: "/portal/translator", icon: Languages },
-      { title: "Finance", path: "/portal/finance", icon: TakaIcon },
-      { title: "Weather", path: "/portal/weather", icon: Cloud },
-      { title: "Real Estate", path: "/portal/realestate", icon: Building },
-      { title: "Job Portal", path: "/portal/jobs", icon: Briefcase },
+      { title: "Module Control", titleKey: "settings", path: "/portal/modules", icon: Settings },
+      { title: "News", titleKey: "news", path: "/portal/news", icon: Newspaper },
+      { title: "Blog / Cafe", titleKey: "blogCafe", path: "/portal/blog", icon: MessageSquare },
+      { title: "Shopping", titleKey: "shopping", path: "/portal/shopping", icon: ShoppingBag },
+      { title: "Maps", titleKey: "maps", path: "/portal/maps", icon: Map },
+      { title: "Q&A", titleKey: "qa", path: "/portal/qa", icon: HelpCircle },
+      { title: "eBooks / Webtoon", titleKey: "ebooksWebtoon", path: "/portal/ebooks", icon: BookOpen },
+      { title: "Video / TV", titleKey: "videoTv", path: "/portal/video", icon: Tv },
+      { title: "Music", titleKey: "music", path: "/portal/music", icon: Music },
+      { title: "Translator", titleKey: "translator", path: "/portal/translator", icon: Languages },
+      { title: "Finance", titleKey: "finance", path: "/portal/finance", icon: TakaIcon },
+      { title: "Weather", titleKey: "weather", path: "/portal/weather", icon: Cloud },
+      { title: "Real Estate", titleKey: "realEstate", path: "/portal/realestate", icon: Building },
+      { title: "Job Portal", titleKey: "jobPortal", path: "/portal/jobs", icon: Briefcase },
     ],
   },
-  { title: "AI & Insights", icon: Brain, path: "/ai" },
+  { title: "AI & Insights", titleKey: "aiInsights", icon: Brain, path: "/ai" },
   {
-    title: "Security", icon: Lock,
+    title: "Security", titleKey: "security", icon: Lock,
     children: [
-      { title: "Activity Logs", path: "/security/logs", icon: Activity },
-      { title: "Platform Rules", path: "/security/rules", icon: Shield },
-      { title: "Fraud Detection", path: "/security/fraud", icon: Lock },
+      { title: "Activity Logs", titleKey: "activityLogs", path: "/security/logs", icon: Activity },
+      { title: "Platform Rules", titleKey: "platformRules", path: "/security/rules", icon: Shield },
+      { title: "Fraud Detection", titleKey: "fraudDetection", path: "/security/fraud", icon: Lock },
     ],
   },
-  { title: "Settings", icon: Settings, path: "/settings" },
+  { title: "Settings", titleKey: "settings", icon: Settings, path: "/settings" },
 ];
 
 export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(["Dashboard"]);
   const location = useLocation();
+  const { t } = useLanguage();
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev =>
@@ -160,7 +163,7 @@ export default function AdminSidebar() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-3">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-sidebar-accent text-muted-foreground text-xs">
             <Search className="w-3.5 h-3.5" />
-            <span>Search...</span>
+            <span>{t("search")}</span>
           </div>
         </motion.div>
       )}
@@ -176,7 +179,7 @@ export default function AdminSidebar() {
                   className={`sidebar-item ${isActive(section.path) ? "active" : ""}`}
                 >
                   <section.icon className="w-4 h-4 shrink-0" />
-                  {!collapsed && <span>{section.title}</span>}
+                  {!collapsed && <span>{t(section.titleKey)}</span>}
                 </motion.div>
               </NavLink>
             ) : (
@@ -189,7 +192,7 @@ export default function AdminSidebar() {
                   <section.icon className="w-4 h-4 shrink-0" />
                   {!collapsed && (
                     <>
-                      <span className="flex-1 text-left">{section.title}</span>
+                      <span className="flex-1 text-left">{t(section.titleKey)}</span>
                       <motion.div
                         animate={{ rotate: expandedSections.includes(section.title) ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
@@ -215,7 +218,7 @@ export default function AdminSidebar() {
                             className={`sidebar-item text-xs py-2 ${isActive(child.path) ? "active" : ""}`}
                           >
                             <child.icon className="w-3.5 h-3.5 shrink-0" />
-                            <span>{child.title}</span>
+                            <span>{t(child.titleKey)}</span>
                           </motion.div>
                         </NavLink>
                       ))}

@@ -5,6 +5,7 @@ import { useCart } from "@/store/cartContext";
 import { useQuickView } from "@/store/quickViewContext";
 import type { Product } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { useLanguage, getLocalizedField } from "@/contexts/LanguageContext";
 
 type Props = {
   product: Product;
@@ -14,8 +15,10 @@ type Props = {
 export default function ProductCard({ product, index = 0 }: Props) {
   const { add, wishlist, toggleWishlist } = useCart();
   const { open: openQuickView } = useQuickView();
+  const { language, t } = useLanguage();
   const liked = wishlist.has(product.id);
   const discount = product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
+  const productName = getLocalizedField(product, "name", language);
 
   return (
     <motion.div
@@ -30,7 +33,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
         <div className="relative aspect-square overflow-hidden bg-muted">
           <motion.img
             src={product.image}
-            alt={product.name}
+            alt={productName}
             loading="lazy"
             className="w-full h-full object-cover"
             whileHover={{ scale: 1.08 }}
@@ -64,7 +67,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); openQuickView(product); }}
               className="flex-1 h-10 glass rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-background transition-colors"
             >
-              <Eye className="w-3.5 h-3.5" /> Quick view
+              <Eye className="w-3.5 h-3.5" /> {t("quickView")}
             </button>
             <motion.button
               whileTap={{ scale: 0.92 }}
@@ -79,7 +82,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
 
         <div className="p-4 space-y-1.5">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{product.brand}</p>
-          <h3 className="text-sm font-semibold leading-snug line-clamp-2 min-h-[2.5rem]">{product.name}</h3>
+          <h3 className="text-sm font-semibold leading-snug line-clamp-2 min-h-[2.5rem]">{productName}</h3>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="w-3 h-3 fill-accent-amber text-accent-amber" />
             <span className="font-medium text-foreground">{product.rating}</span>

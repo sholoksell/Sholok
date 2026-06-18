@@ -39,8 +39,10 @@ import 'react-quill/dist/quill.snow.css';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
+  nameBn: z.string().optional(),
   slug: z.string().min(1, 'Slug is required').max(200),
   description: z.string().max(2000).optional(),
+  descriptionBn: z.string().max(2000).optional(),
   categoryId: z.string().min(1, 'Category is required'),
   brand: z.string().max(100).optional(),
   regularPrice: z.number().min(0),
@@ -257,8 +259,10 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
+      nameBn: '',
       slug: '',
       description: '',
+      descriptionBn: '',
       categoryId: '',
       brand: '',
       regularPrice: 0,
@@ -286,8 +290,10 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
     if (product) {
       form.reset({
         name: product.name,
+        nameBn: product.nameBn || '',
         slug: product.slug,
         description: product.description || '',
+        descriptionBn: product.descriptionBn || '',
         categoryId: product.categoryId || '',
         brand: product.brand || '',
         regularPrice: product.regularPrice,
@@ -318,8 +324,10 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
     } else {
       form.reset({
         name: '',
+        nameBn: '',
         slug: '',
         description: '',
+        descriptionBn: '',
         categoryId: '',
         brand: '',
         regularPrice: 0,
@@ -418,8 +426,10 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
     try {
       const productData = {
         name: data.name,
+        nameBn: data.nameBn || '',
         slug: data.slug,
         description: data.description || '',
+        descriptionBn: data.descriptionBn || '',
         categoryId: data.categoryId,
         brand: data.brand || '',
         regularPrice: data.regularPrice,
@@ -524,10 +534,28 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
 
                 <FormField
                   control={form.control}
+                  name="nameBn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>পণ্যের নাম (বাংলা)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="বাংলায় পণ্যের নাম লিখুন"
+                          className="bg-secondary border-border font-bengali"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Description (English)</FormLabel>
                       <FormControl>
                         <div className="bg-secondary/50 rounded-md border border-border">
                           <ReactQuill
@@ -539,6 +567,25 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                             className="text-foreground min-h-[150px]"
                           />
                         </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="descriptionBn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>বিবরণ (বাংলা)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="বাংলায় বিবরণ লিখুন"
+                          rows={4}
+                          className="bg-secondary border-border font-bengali"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

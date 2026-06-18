@@ -3,9 +3,15 @@ const mongoose = require('mongoose');
 const postSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 200 },
+    titleBn: { type: String, trim: true, maxlength: 200, default: '' },
+    titleEn: { type: String, trim: true, maxlength: 200, default: '' },
     slug: { type: String, unique: true, lowercase: true },
     content: { type: String, required: true },
+    contentBn: { type: String, default: '' },
+    contentEn: { type: String, default: '' },
     excerpt: { type: String, maxlength: 500 },
+    excerptBn: { type: String, maxlength: 500, default: '' },
+    excerptEn: { type: String, maxlength: 500, default: '' },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'SholokBlogUser',

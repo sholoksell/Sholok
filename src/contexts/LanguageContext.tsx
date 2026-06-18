@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { translations, Language } from '@/lib/translations';
 
 interface LanguageContextType {
@@ -10,13 +10,32 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-    const [language, setLanguage] = useState<Language>('EN');
+const LANG_STORAGE_KEY = 'sholok-language';
 
-    const t = (key: string) => {
+export const LanguageProvider = ({ children }: { children: ReactNode }) => {
+    const [language, setLanguageState] = useState<Language>(() => {
+        try {
+            const saved = localStorage.getItem(LANG_STORAGE_KEY);
+            if (saved === 'EN' || saved === 'BN') return saved;
+        } catch {
+            // localStorage unavailable
+        }
+        return 'BN'; // Default: Bangla
+    });
+
+    const setLanguage = useCallback((lang: Language) => {
+        setLanguageState(lang);
+        try {
+            localStorage.setItem(LANG_STORAGE_KEY, lang);
+        } catch {
+            // localStorage unavailable
+        }
+    }, []);
+
+    const t = useCallback((key: string): string => {
         // @ts-ignore
         return translations[language][key] || key;
-    };
+    }, [language]);
 
     return (
         <LanguageContext.Provider value={{ language, setLanguage, t }}>

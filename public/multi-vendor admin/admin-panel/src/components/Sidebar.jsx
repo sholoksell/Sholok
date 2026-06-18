@@ -3,19 +3,21 @@ import {
   LayoutDashboard, Users, Store, Package, ShoppingCart,
   Tag, BarChart3, Settings, ChevronLeft, ShoppingBag,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 const links = [
-  { to: "/",           icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/users",      icon: Users,           label: "Users" },
-  { to: "/stores",     icon: Store,           label: "Smart Stores" },
-  { to: "/products",   icon: Package,         label: "Products" },
-  { to: "/orders",     icon: ShoppingCart,    label: "Orders" },
-  { to: "/categories", icon: Tag,             label: "Categories" },
-  { to: "/analytics",  icon: BarChart3,       label: "Analytics" },
-  { to: "/settings",   icon: Settings,        label: "Settings" },
+  { to: "/",           icon: LayoutDashboard, labelKey: "dashboard" },
+  { to: "/users",      icon: Users,           labelKey: "users" },
+  { to: "/stores",     icon: Store,           labelKey: "smartStores" },
+  { to: "/products",   icon: Package,         labelKey: "products" },
+  { to: "/orders",     icon: ShoppingCart,    labelKey: "orders" },
+  { to: "/categories", icon: Tag,             labelKey: "categories" },
+  { to: "/analytics",  icon: BarChart3,       labelKey: "analytics" },
+  { to: "/settings",   icon: Settings,        labelKey: "settings" },
 ];
 
 export default function Sidebar({ open, setOpen }) {
+  const { t } = useLanguage();
   return (
     <aside className={`fixed top-0 left-0 h-screen bg-[#16162a] border-r border-[#2a2a4a] flex flex-col transition-all duration-300 z-40 ${open ? "w-64" : "w-16"}`}>
       {/* Logo */}

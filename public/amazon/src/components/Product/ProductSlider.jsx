@@ -2,17 +2,20 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay } from 'swiper/modules';
+import { useLanguage } from '../../contexts/LanguageContext';
 import ProductCard from './ProductCard';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
-const ProductSlider = ({ title, products = [], seeMoreLink }) => (
+const ProductSlider = ({ title, products = [], seeMoreLink }) => {
+  const { t } = useLanguage();
+  return (
   <section className="bg-white rounded shadow-amazon p-4">
     <div className="flex items-center justify-between mb-3">
       <h2 className="text-xl font-bold text-amazon-dark">{title}</h2>
       {seeMoreLink && (
         <Link to={seeMoreLink} className="see-more-link shrink-0">
-          See all →
+          {t('seeAll')}
         </Link>
       )}
     </div>
@@ -41,6 +44,7 @@ const ProductSlider = ({ title, products = [], seeMoreLink }) => (
       </Swiper>
     </div>
   </section>
-);
+  );
+};
 
 export default ProductSlider;

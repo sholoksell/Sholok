@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Register = () => {
     const [name, setName] = useState("");
@@ -11,6 +12,7 @@ const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -19,7 +21,7 @@ const Register = () => {
         // Mock register delay
         setTimeout(() => {
             setLoading(false);
-            toast.success("Account created successfully!");
+            toast.success(t("accountCreatedSuccess"));
             navigate("/");
         }, 1500);
     };
@@ -33,9 +35,9 @@ const Register = () => {
                     <div className="w-20 h-20 bg-primary rounded-2xl mx-auto flex items-center justify-center text-primary-foreground font-bold text-4xl shadow-xl transform -rotate-3 hover:-rotate-6 transition-transform">
                         S
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Join Our Community</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("joinOurCommunity")}</h1>
                     <p className="text-muted-foreground text-lg">
-                        Create an account to unlock all features, save your preferences, and get personalized recommendations.
+                        {t("createAccountDescription")}
                     </p>
                 </div>
 
@@ -48,14 +50,14 @@ const Register = () => {
             <div className="flex items-center justify-center p-8 bg-background">
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center md:text-left">
-                        <h2 className="text-2xl font-bold">Create Account</h2>
-                        <p className="text-muted-foreground mt-2">Enter your details to sign up</p>
+                        <h2 className="text-2xl font-bold">{t("createAccount")}</h2>
+                        <p className="text-muted-foreground mt-2">{t("enterDetailsToSignUp")}</p>
                     </div>
 
                     <form onSubmit={handleRegister} className="space-y-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="name">
-                                Full Name
+                                {t("fullName")}
                             </label>
                             <div className="relative">
                                 <input
@@ -73,7 +75,7 @@ const Register = () => {
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="email">
-                                Email
+                                {t("email")}
                             </label>
                             <div className="relative">
                                 <input
@@ -91,7 +93,7 @@ const Register = () => {
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
-                                Password
+                                {t("password")}
                             </label>
                             <div className="relative">
                                 <input
@@ -122,14 +124,14 @@ const Register = () => {
                             disabled={loading}
                             className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-full"
                         >
-                            {loading ? "Creating Account..." : "Create Account"}
+                            {loading ? t("creatingAccount") : t("createAccount")}
                         </button>
                     </form>
 
                     <p className="text-center text-sm text-muted-foreground">
-                        Already have an account?{" "}
+                        {t("alreadyHaveAccount")}{" "}
                         <Link to="/login" className="font-semibold text-primary hover:underline">
-                            Sign in
+                            {t("signIn")}
                         </Link>
                     </p>
                 </div>

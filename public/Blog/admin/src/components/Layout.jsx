@@ -1,25 +1,27 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { FiHome, FiFileText, FiUsers, FiTag, FiBarChart2, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
+import { useLanguage } from '../context/LanguageContext';
+import { FiHome, FiFileText, FiUsers, FiTag, FiBarChart2, FiLogOut, FiMenu, FiX, FiGlobe } from 'react-icons/fi';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-const nav = [
-  { to: '/', icon: FiHome, label: 'Dashboard', end: true },
-  { to: '/posts', icon: FiFileText, label: 'Posts' },
-  { to: '/users', icon: FiUsers, label: 'Users' },
-  { to: '/categories', icon: FiTag, label: 'Categories' },
-  { to: '/analytics', icon: FiBarChart2, label: 'Analytics' },
-];
-
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { t, language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const nav = [
+    { to: '/', icon: FiHome, label: t('dashboard'), end: true },
+    { to: '/posts', icon: FiFileText, label: t('posts') },
+    { to: '/users', icon: FiUsers, label: t('users') },
+    { to: '/categories', icon: FiTag, label: t('categories') },
+    { to: '/analytics', icon: FiBarChart2, label: t('analytics') },
+  ];
+
   const handleLogout = () => {
     logout();
-    toast.success('Logged out');
+    toast.success(t('loggedOut'));
     navigate('/login');
   };
 
@@ -31,7 +33,7 @@ export default function Layout() {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center text-white font-bold text-xs">SB</div>
           <div>
             <p className="font-heading font-bold text-primary-600 text-sm">Sholok Blog</p>
-            <p className="text-xs text-gray-400">Admin Panel</p>
+            <p className="text-xs text-gray-400">{t('adminPanel')}</p>
           </div>
         </div>
       </div>
@@ -61,7 +63,11 @@ export default function Layout() {
             <p className="text-sm font-semibold text-gray-900 truncate">{user?.displayName}</p>
             <p className="text-xs text-gray-400 truncate">{user?.email}</p>
           </div>
-          <button onClick={handleLogout} title="Logout"
+          <button onClick={toggleLanguage} title="Language"
+            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-gray-100 transition flex items-center gap-1 text-xs font-semibold">
+            <FiGlobe className="w-4 h-4" /> {language === 'bn' ? 'বাং' : 'EN'}
+          </button>
+          <button onClick={handleLogout} title={t('logout')}
             className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
             <FiLogOut className="w-4 h-4" />
           </button>

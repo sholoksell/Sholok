@@ -4,6 +4,7 @@ import {
   UserCheck, Clock, CheckCircle, XCircle, Eye, Store,
   MapPin, Phone, Mail, FileText, Star, AlertTriangle, Filter, Search
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const applications: { id: string; name: string; owner: string; email: string; phone: string; category: string; location: string; applied: string; status: string; docs: boolean; score: number }[] = [];
 
@@ -18,6 +19,7 @@ const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transiti
 const itemVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
 export default function VendorApplicationsPage() {
+  const { t } = useLanguage();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -34,8 +36,8 @@ export default function VendorApplicationsPage() {
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold gradient-text-neon">Vendor Applications</h1>
-          <p className="text-sm text-muted-foreground mt-1">Review and manage vendor onboarding requests</p>
+          <h1 className="text-2xl font-bold gradient-text-neon">{t("vendorApplicationsTitle")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("reviewVendorOnboarding")}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="glass-card px-3 py-1.5 text-xs font-mono text-neon-orange flex items-center gap-1.5">
@@ -47,10 +49,10 @@ export default function VendorApplicationsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Total", value: "128", color: "text-foreground" },
-          { label: "Pending", value: "34", color: "text-neon-orange" },
-          { label: "Approved", value: "82", color: "text-neon-green" },
-          { label: "Rejected", value: "12", color: "text-destructive" },
+          { label: t("total"), value: "128", color: "text-foreground" },
+          { label: t("pending"), value: "34", color: "text-neon-orange" },
+          { label: t("approved"), value: "82", color: "text-neon-green" },
+          { label: t("rejected"), value: "12", color: "text-destructive" },
         ].map(s => (
           <motion.div key={s.label} variants={itemVariants} className="glass-card p-4">
             <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -63,7 +65,7 @@ export default function VendorApplicationsPage() {
       <motion.div variants={itemVariants} className="glass-card p-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search vendors..." className="w-full pl-9 pr-4 py-2 rounded-lg bg-muted border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("searchVendors")} className="w-full pl-9 pr-4 py-2 rounded-lg bg-muted border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {tabs.map(t => (
@@ -197,10 +199,10 @@ export default function VendorApplicationsPage() {
               {(selectedApp.status === "Pending" || selectedApp.status === "Under Review") && (
                 <div className="flex gap-2 pt-2">
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5" style={{ background: "var(--gradient-neon)", color: "hsl(var(--primary-foreground))" }}>
-                    <CheckCircle className="w-3.5 h-3.5" />Approve
+                    <CheckCircle className="w-3.5 h-3.5" />{t("approve")}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 py-2 rounded-lg text-xs font-semibold bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors flex items-center justify-center gap-1.5">
-                    <XCircle className="w-3.5 h-3.5" />Reject
+                    <XCircle className="w-3.5 h-3.5" />{t("reject")}
                   </motion.button>
                 </div>
               )}
@@ -208,7 +210,7 @@ export default function VendorApplicationsPage() {
           ) : (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               <UserCheck className="w-10 h-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">Select a vendor application</p>
+              <p className="text-sm text-muted-foreground">{t("selectVendorApplication")}</p>
               <p className="text-xs text-muted-foreground/60 mt-1">to view details and take action</p>
             </div>
           )}

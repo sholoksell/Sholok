@@ -1,1 +1,0 @@
-import{b as a}from"./index-B8cO-TrQ.js";const t={create:async t=>(await a.post("/customer-auth/orders",t)).data,getAll:async t=>(await a.get("/customer-auth/orders",{params:t})).data,getById:async t=>(await a.get(`/customer-auth/orders/${t}`)).data,cancel:async t=>(await a.put(`/customer-auth/orders/${t}/cancel`)).data};export{t as o};

@@ -5,12 +5,20 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  nameBn: {
+    type: String,
+    default: '',
+  },
   slug: {
     type: String,
     required: true,
     unique: true,
   },
   description: {
+    type: String,
+    default: '',
+  },
+  descriptionBn: {
     type: String,
     default: '',
   },
@@ -69,3 +77,4 @@ const categorySchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.models.Category || mongoose.model('Category', categorySchema);
+

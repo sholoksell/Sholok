@@ -3,10 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import api from '../utils/api';
 import BlogCard from '../components/BlogCard';
+import { useLanguage } from '../context/LanguageContext';
 import { FiChevronRight } from 'react-icons/fi';
 
 export default function CategoryPage() {
   const { slug } = useParams();
+  const { t } = useLanguage();
   const [category, setCategory] = useState(null);
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
@@ -78,8 +80,8 @@ export default function CategoryPage() {
     return (
       <div className="text-center py-20">
         <p className="text-5xl mb-3">🔍</p>
-        <p className="text-gray-500">Category not found</p>
-        <Link to="/" className="btn-primary mt-4 inline-block">Go Home</Link>
+        <p className="text-gray-500">{t('categoryNotFound')}</p>
+        <Link to="/" className="btn-primary mt-4 inline-block">{t('goHome')}</Link>
       </div>
     );
   }
@@ -99,7 +101,7 @@ export default function CategoryPage() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
           <nav className="flex items-center gap-2 text-xs text-gray-400 mb-4">
-            <Link to="/" className="hover:text-primary-600 transition">Home</Link>
+            <Link to="/" className="hover:text-primary-600 transition">{t('home')}</Link>
             <FiChevronRight className="w-3 h-3" />
             <span className="text-gray-600 dark:text-gray-300">{category.name}</span>
           </nav>
@@ -111,7 +113,7 @@ export default function CategoryPage() {
             <div>
               <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900 dark:text-white">{category.name}</h1>
               {category.description && <p className="text-gray-500 mt-1">{category.description}</p>}
-              <p className="text-sm text-gray-400 mt-1">{total.toLocaleString()} posts</p>
+              <p className="text-sm text-gray-400 mt-1">{total.toLocaleString()} {t('postsCount')}</p>
             </div>
           </div>
         </div>
@@ -124,7 +126,7 @@ export default function CategoryPage() {
             <button onClick={() => setActiveSubcat('')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition ${!activeSubcat ? 'text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
               style={!activeSubcat ? { background: category.color } : {}}>
-              All
+              {t('allFilter')}
             </button>
             {category.subcategories.map((sub) => (
               <button key={sub.slug} onClick={() => setActiveSubcat(sub.name)}
@@ -144,8 +146,8 @@ export default function CategoryPage() {
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-5xl mb-3">{category.icon}</p>
-            <p className="text-gray-400">No posts in this category yet</p>
-            <Link to="/write" className="btn-primary mt-4 inline-block">Be the first to write!</Link>
+            <p className="text-gray-400">{t('noCategoryPosts')}</p>
+            <Link to="/write" className="btn-primary mt-4 inline-block">{t('beFirstToWrite')}</Link>
           </div>
         ) : (
           <>
@@ -155,7 +157,7 @@ export default function CategoryPage() {
             {page < pages && (
               <div className="text-center mt-10">
                 <button onClick={loadMore} disabled={loadingMore} className="btn-outline disabled:opacity-50">
-                  {loadingMore ? 'Loading...' : 'Load More'}
+                  {loadingMore ? t('loading') : t('loadMore')}
                 </button>
               </div>
             )}

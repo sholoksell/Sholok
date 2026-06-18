@@ -1,28 +1,31 @@
 import { Link } from 'react-router-dom';
 import { FiGithub, FiTwitter, FiInstagram } from 'react-icons/fi';
-
-const footerLinks = {
-  Platform: [
-    { label: 'Home', to: '/' },
-    { label: 'Trending', to: '/search?sort=trending' },
-    { label: 'Short Clips', to: '/clips' },
-    { label: 'Write a Post', to: '/write' },
-  ],
-  Categories: [
-    { label: 'Entertainment', to: '/category/entertainment' },
-    { label: 'Lifestyle', to: '/category/lifestyle' },
-    { label: 'Hobbies & Travel', to: '/category/hobbies-travel' },
-    { label: 'Knowledge', to: '/category/knowledge' },
-  ],
-  Account: [
-    { label: 'Sign In', to: '/login' },
-    { label: 'Register', to: '/register' },
-    { label: 'Dashboard', to: '/dashboard' },
-    { label: 'Timeline', to: '/timeline' },
-  ],
-};
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Footer() {
+  const { t } = useLanguage();
+
+  const footerLinks = {
+    [t('platform')]: [
+      { label: t('home'), to: '/' },
+      { label: t('trending'), to: '/search?sort=trending' },
+      { label: t('shortClips'), to: '/clips' },
+      { label: t('writePost'), to: '/write' },
+    ],
+    [t('categories')]: [
+      { label: t('entertainment'), to: '/category/entertainment' },
+      { label: t('lifestyle'), to: '/category/lifestyle' },
+      { label: t('hobbiesTravel'), to: '/category/hobbies-travel' },
+      { label: t('knowledge'), to: '/category/knowledge' },
+    ],
+    [t('account')]: [
+      { label: t('signIn'), to: '/login' },
+      { label: t('register'), to: '/register' },
+      { label: t('dashboard'), to: '/dashboard' },
+      { label: t('timeline'), to: '/timeline' },
+    ],
+  };
+
   return (
     <footer className="bg-gray-950 text-gray-300 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -36,7 +39,7 @@ export default function Footer() {
               <span className="font-heading font-bold text-xl text-white">Sholok Blog</span>
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-6 max-w-xs">
-              Discover amazing stories, share your thoughts, and connect with bloggers from around the world. Your story matters.
+              {t('brandTagline')}
             </p>
             <div className="flex gap-3">
               {[FiTwitter, FiInstagram, FiGithub].map((Icon, i) => (

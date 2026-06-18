@@ -42,6 +42,7 @@ import { toast } from 'sonner';
 import ProductFormDialog from '@/components/products/ProductFormDialog';
 import StockUpdateDialog from '@/components/products/StockUpdateDialog';
 import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog';
+import { useLanguage, getLocalizedField } from '@/contexts/LanguageContext';
 
 const statusConfig: Record<Product['status'], { label: string; className: string }> = {
   published: { label: 'Published', className: 'bg-success/20 text-success' },
@@ -53,6 +54,7 @@ const statusConfig: Record<Product['status'], { label: string; className: string
 export default function Products() {
   const { products, deleteProduct, bulkDelete, bulkUpdateStatus, fetchProducts } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
+  const { language, t } = useLanguage();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Product['status']>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -198,7 +200,7 @@ export default function Products() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Products</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('products')}</h1>
           <p className="text-muted-foreground">Manage your product catalog</p>
         </div>
         <Button
@@ -209,7 +211,7 @@ export default function Products() {
           className="gradient-primary text-primary-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Product
+          {t('addProduct')}
         </Button>
       </div>
 
@@ -478,12 +480,12 @@ export default function Products() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t('products')}</TableHead>
+                <TableHead>{t('sku')}</TableHead>
+                <TableHead>{t('category')}</TableHead>
+                <TableHead>{t('price')}</TableHead>
+                <TableHead>{t('stock')}</TableHead>
+                <TableHead>{t('status')}</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -503,7 +505,7 @@ export default function Products() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground">{product.name}</p>
+                          <p className="font-medium text-foreground">{getLocalizedField(product, 'name', language)}</p>
                           {product.featured && <Star className="w-4 h-4 text-warning fill-warning" />}
                           {product.isNew && <Badge className="bg-primary/20 text-primary border-0 text-xs">New</Badge>}
                         </div>

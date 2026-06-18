@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom';
 import { FiEye, FiHeart, FiMessageCircle, FiClock } from 'react-icons/fi';
 import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function BlogCard({ post, size = 'normal' }) {
+  const { t, getLocalizedField } = useLanguage();
   if (!post) return null;
+
+  const title = getLocalizedField(post, 'title');
+  const excerpt = getLocalizedField(post, 'excerpt');
+  const categoryName = post.category ? getLocalizedField(post.category, 'name') : '';
 
   const avatar = post.author?.avatar
     ? post.author.avatar
@@ -24,17 +30,17 @@ export default function BlogCard({ post, size = 'normal' }) {
             <Link to={`/category/${post.category.slug}`}
               className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold text-white"
               style={{ background: post.category.color || '#6941ff' }}>
-              {post.category.name}
+              {categoryName}
             </Link>
           )}
           {post.isFeatured && (
-            <span className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold bg-accent-500 text-white">⭐ Featured</span>
+            <span className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold bg-accent-500 text-white">{t('featuredBadge')}</span>
           )}
         </div>
         <div className="p-6">
           <Link to={`/blog/${post.slug}`} className="block">
-            <h2 className="text-xl font-bold font-heading text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-primary-600 transition">{post.title}</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mb-4">{post.excerpt}</p>
+            <h2 className="text-xl font-bold font-heading text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-primary-600 transition">{title}</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mb-4">{excerpt}</p>
           </Link>
           <div className="flex items-center justify-between">
             <Link to={`/profile/${post.author?.username}`} className="flex items-center gap-2">
@@ -64,7 +70,7 @@ export default function BlogCard({ post, size = 'normal' }) {
         {post.category && (
           <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
             style={{ background: post.category.color || '#6941ff' }}>
-            {post.category.name}
+            {categoryName}
           </span>
         )}
       </Link>
@@ -72,9 +78,9 @@ export default function BlogCard({ post, size = 'normal' }) {
       <div className="p-4 flex flex-col flex-1">
         <Link to={`/blog/${post.slug}`} className="block flex-1">
           <h3 className="font-bold font-heading text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-primary-600 transition text-sm leading-snug">
-            {post.title}
+            {title}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{post.excerpt}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{excerpt}</p>
         </Link>
 
         {post.tags && post.tags.length > 0 && (

@@ -1,8 +1,9 @@
-import { Search, Menu, Mic, Bell, Upload, LogOut, User, Check, CheckCheck, Trash2, Heart, MessageSquare, UserPlus, Video } from "lucide-react";
+import { Search, Menu, Mic, Bell, Upload, LogOut, User, Check, CheckCheck, Trash2, Heart, MessageSquare, UserPlus, Video, Languages } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { AuthModal } from "@/components/AuthModal";
 import { useState, useEffect, useCallback } from "react";
 import { notificationApi } from "@/lib/api";
@@ -22,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const Header = () => {
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [authOpen, setAuthOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
@@ -132,7 +134,7 @@ export const Header = () => {
             <div className="relative w-9 h-9 rounded-xl gradient-primary grid place-items-center shadow-glow group-hover:animate-pulse-glow">
               <span className="text-lg font-black italic text-primary-foreground leading-none" style={{ fontFamily: "'Segoe UI','Arial Black',sans-serif" }}>S</span>
             </div>
-            <span className="text-xl font-bold gradient-text hidden sm:block tracking-tight">Sholok Watching</span>
+            <span className="text-xl font-bold gradient-text hidden sm:block tracking-tight">{t("appName")}</span>
           </Link>
         </div>
 
@@ -143,7 +145,7 @@ export const Header = () => {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search videos, channels, creators..."
+                placeholder={t("search_placeholder")}
                 className="pl-11 h-11 rounded-l-full rounded-r-none border-r-0 bg-secondary/50 focus-visible:ring-primary/40"
               />
             </div>
@@ -157,6 +159,16 @@ export const Header = () => {
         </form>
 
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLanguage(language === "bn" ? "en" : "bn")}
+            className="rounded-full text-xs font-semibold gap-1.5 px-3"
+            aria-label="Toggle language"
+          >
+            <Languages className="w-4 h-4" />
+            <span className="hidden sm:inline">{language === "bn" ? "বাং" : "EN"}</span>
+          </Button>
           {user && (user.role === "creator" || user.role === "admin") && (
             <Link to="/upload">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -177,16 +189,16 @@ export const Header = () => {
             </PopoverTrigger>
             <PopoverContent align="end" className="w-[380px] p-0">
               <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h3 className="font-semibold text-sm">Notifications</h3>
+                <h3 className="font-semibold text-sm">{t("notifications")}</h3>
                 <div className="flex gap-1">
                   {unreadCount > 0 && (
                     <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleMarkAllRead}>
-                      <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
+                      <CheckCheck className="w-3.5 h-3.5 mr-1" /> {t("mark_all_read")}
                     </Button>
                   )}
                   {notifications.length > 0 && (
                     <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={handleClearAll}>
-                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Clear
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> {t("clear")}
                     </Button>
                   )}
                 </div>
@@ -194,14 +206,14 @@ export const Header = () => {
               <ScrollArea className="max-h-[400px]">
                 {!user ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">
-                    Sign in to see your notifications
+                    {t("sign_in_notifications")}
                   </div>
                 ) : notifLoading ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">Loading...</div>
+                  <div className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</div>
                 ) : notifications.length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">
                     <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    No notifications yet
+                    {t("no_notifications")}
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -263,22 +275,22 @@ export const Header = () => {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile"><User className="w-4 h-4 mr-2" /> Profile</Link>
+                  <Link to="/profile"><User className="w-4 h-4 mr-2" /> {t("profile")}</Link>
                 </DropdownMenuItem>
                 {user.role === "admin" && (
                   <DropdownMenuItem asChild>
-                    <Link to="/admin">Admin Dashboard</Link>
+                    <Link to="/admin">{t("admin_dashboard")}</Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
-                  <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                  <LogOut className="w-4 h-4 mr-2" /> {t("sign_out")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button onClick={() => setAuthOpen(true)} className="gradient-primary border-0 rounded-full font-semibold shadow-glow text-sm">
-              Sign In
+              {t("sign_in")}
             </Button>
           )}
         </div>

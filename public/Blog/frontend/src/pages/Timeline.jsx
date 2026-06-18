@@ -5,10 +5,12 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import api from '../utils/api';
 import BlogCard from '../components/BlogCard';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { FiUsers } from 'react-icons/fi';
 
 export default function Timeline() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -46,11 +48,11 @@ export default function Timeline() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold font-heading text-gray-900 dark:text-white">My Timeline</h1>
-            <p className="text-gray-400 text-sm mt-1">Posts from bloggers you follow</p>
+            <h1 className="text-2xl font-bold font-heading text-gray-900 dark:text-white">{t('myTimeline')}</h1>
+            <p className="text-gray-400 text-sm mt-1">{t('timelineSubtitle')}</p>
           </div>
           <span className="flex items-center gap-1.5 text-sm text-gray-400">
-            <FiUsers className="w-4 h-4" /> Following {followingCount}
+            <FiUsers className="w-4 h-4" /> {t('followingCount')} {followingCount}
           </span>
         </div>
 
@@ -70,10 +72,10 @@ export default function Timeline() {
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-7xl mb-4">👥</div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Your timeline is empty</h3>
-            <p className="text-gray-400 mb-6">Follow bloggers to see their latest posts here</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{t('timelineEmpty')}</h3>
+            <p className="text-gray-400 mb-6">{t('timelineEmptyDesc')}</p>
             <Link to="/search?type=users" className="btn-primary inline-flex items-center gap-2">
-              <FiUsers className="w-4 h-4" /> Discover Bloggers
+              <FiUsers className="w-4 h-4" /> {t('discoverBloggers')}
             </Link>
           </div>
         ) : (
@@ -86,7 +88,7 @@ export default function Timeline() {
                 <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
               </div>
             }
-            endMessage={<p className="text-center text-gray-400 py-6 text-sm">You've seen all posts from your timeline ✓</p>}>
+            endMessage={<p className="text-center text-gray-400 py-6 text-sm">{t('timelineEnd')}</p>}>
             <div className="space-y-6">
               {posts.map((post) => <BlogCard key={post._id} post={post} size="large" />)}
             </div>

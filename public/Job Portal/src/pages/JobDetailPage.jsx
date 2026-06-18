@@ -8,7 +8,7 @@ import './JobDetailPage.css';
 export default function JobDetailPage() {
   const { id } = useParams();
   const { isSaved, toggleSave } = useSavedJobs();
-  const { t } = useLang();
+  const { t, lang, getLocalizedField } = useLang();
   const [job, setJob] = useState(null);
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,10 @@ export default function JobDetailPage() {
   const jobId = job._id || job.id;
   const saved = isSaved(jobId);
 
-  const descLines = job.description.split('\n').map((line, i) => {
+  const localizedDescription = getLocalizedField(job, 'description');
+  const localizedRequirements = (job.requirements && (job[`requirements${lang === 'bn' ? 'Bn' : 'En'}`]?.length ? job[`requirements${lang === 'bn' ? 'Bn' : 'En'}`] : job.requirements)) || [];
+
+  const descLines = localizedDescription.split('\n').map((line, i) => {
     if (line.startsWith('**') && line.endsWith('**')) {
       return <h4 key={i} className="job-detail__desc-heading">{line.replaceAll('**', '')}</h4>;
     }
@@ -68,7 +71,7 @@ export default function JobDetailPage() {
           <span>›</span>
           <Link to="/jobs">{t('detail_jobs')}</Link>
           <span>›</span>
-          <span>{job.title}</span>
+          <span>{getLocalizedField(job, 'title')}</span>
         </div>
 
         <div className="job-detail__layout">
@@ -84,7 +87,7 @@ export default function JobDetailPage() {
                   <Link to={`/company/${job.companyRef || job._id}`} className="job-detail__company-link">
                     {job.company}
                   </Link>
-                  <h1 className="job-detail__title">{job.title}</h1>
+                  <h1 className="job-detail__title">{getLocalizedField(job, 'title')}</h1>
                   <p className="job-detail__title-en">{job.titleEn}</p>
                 </div>
               </div>
@@ -164,7 +167,7 @@ export default function JobDetailPage() {
             <div className="job-detail__card fade-in-up">
               <h2 className="job-detail__card-title">{t('detail_requirements')}</h2>
               <ul className="job-detail__req-list">
-                {job.requirements.map((r, i) => (
+                {localizedRequirements.map((r, i) => (
                   <li key={i}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5">
                       <polyline points="20 6 9 17 4 12"/>

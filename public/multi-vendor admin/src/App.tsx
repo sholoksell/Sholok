@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLayout from "./components/AdminLayout";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 // Core pages
 import LoginPage from "./pages/LoginPage";
@@ -71,17 +72,20 @@ const App = () => {
   if (!isAuthenticated) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <LoginPage onLogin={() => setIsAuthenticated(true)} />
-        </TooltipProvider>
+        <LanguageProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <LoginPage onLogin={() => setIsAuthenticated(true)} />
+          </TooltipProvider>
+        </LanguageProvider>
       </QueryClientProvider>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -146,6 +150,7 @@ const App = () => {
           </AdminLayout>
         </BrowserRouter>
       </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 };

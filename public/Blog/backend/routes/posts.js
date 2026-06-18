@@ -45,7 +45,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const [posts, total] = await Promise.all([
       Post.find(filter)
         .populate('author', 'username displayName avatar')
-        .populate('category', 'name slug color icon')
+        .populate('category', 'name nameBn nameEn slug color icon')
         .sort(sortObj)
         .skip(skip)
         .limit(parseInt(limit))
@@ -69,7 +69,7 @@ router.get('/trending', async (req, res) => {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const posts = await Post.find({ status: 'published', isDeleted: false, publishedAt: { $gte: since } })
       .populate('author', 'username displayName avatar')
-      .populate('category', 'name slug color')
+      .populate('category', 'name nameBn nameEn slug color')
       .sort({ views: -1, likes: -1 })
       .limit(10)
       .lean();
@@ -84,7 +84,7 @@ router.get('/featured', async (req, res) => {
   try {
     const posts = await Post.find({ status: 'published', isDeleted: false, isFeatured: true })
       .populate('author', 'username displayName avatar')
-      .populate('category', 'name slug color')
+      .populate('category', 'name nameBn nameEn slug color')
       .sort({ publishedAt: -1 })
       .limit(5)
       .lean();
@@ -103,7 +103,7 @@ router.get('/short-clips', async (req, res) => {
       'videos.isShortClip': true,
     })
       .populate('author', 'username displayName avatar')
-      .populate('category', 'name slug')
+      .populate('category', 'name nameBn nameEn slug')
       .sort({ createdAt: -1 })
       .limit(20)
       .lean();
@@ -122,7 +122,7 @@ router.get('/my-posts', protect, async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [posts, total] = await Promise.all([
-      Post.find(filter).populate('category', 'name slug color').sort({ updatedAt: -1 }).skip(skip).limit(parseInt(limit)).lean(),
+      Post.find(filter).populate('category', 'name nameBn nameEn slug color').sort({ updatedAt: -1 }).skip(skip).limit(parseInt(limit)).lean(),
       Post.countDocuments(filter),
     ]);
 
@@ -137,7 +137,7 @@ router.get('/:slug', optionalAuth, async (req, res) => {
   try {
     const post = await Post.findOne({ slug: req.params.slug, isDeleted: false })
       .populate('author', 'username displayName avatar bio followers')
-      .populate('category', 'name slug color icon');
+      .populate('category', 'name nameBn nameEn slug color icon');
 
     if (!post) return res.status(404).json({ success: false, message: 'Post not found' });
     if (post.status !== 'published' && (!req.user || req.user._id.toString() !== post.author._id.toString())) {
@@ -183,7 +183,7 @@ router.get('/:slug', optionalAuth, async (req, res) => {
 // POST /api/posts - Create post
 router.post('/', protect, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'videos', maxCount: 5 }, { name: 'featuredImage', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, content, category, tags, status, scheduledAt, seoTitle, seoDescription, location, subcategory } = req.body;
+    const { title, titleBn, titleEn, content, contentBn, contentEn, excerptBn, excerptEn, category, tags, status, scheduledAt, seoTitle, seoDescription, location, subcategory } = req.body;
 
     const slug = await createSlug(title);
     const featuredImage = req.files?.featuredImage ? `/uploads/images/${req.files.featuredImage[0].filename}` : '';
@@ -191,7 +191,7 @@ router.post('/', protect, upload.fields([{ name: 'images', maxCount: 10 }, { nam
     const videos = req.files?.videos ? req.files.videos.map((f) => ({ url: `/uploads/videos/${f.filename}`, isShortClip: false })) : [];
 
     const post = await Post.create({
-      title, content, slug, author: req.user._id, category, subcategory,
+      title, titleBn, titleEn, content, contentBn, contentEn, excerptBn, excerptEn, slug, author: req.user._id, category, subcategory,
       tags: tags ? JSON.parse(tags) : [],
       status: status || 'draft',
       scheduledAt: scheduledAt || null,
@@ -230,11 +230,17 @@ router.put('/:id', protect, upload.fields([{ name: 'images', maxCount: 10 }, { n
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const { title, content, category, tags, status, scheduledAt, seoTitle, seoDescription, location, subcategory } = req.body;
+    const { title, titleBn, titleEn, content, contentBn, contentEn, excerptBn, excerptEn, category, tags, status, scheduledAt, seoTitle, seoDescription, location, subcategory } = req.body;
 
     if (title && title !== post.title) post.slug = await createSlug(title);
     if (title) post.title = title;
+    if (titleBn !== undefined) post.titleBn = titleBn;
+    if (titleEn !== undefined) post.titleEn = titleEn;
     if (content) post.content = content;
+    if (contentBn !== undefined) post.contentBn = contentBn;
+    if (contentEn !== undefined) post.contentEn = contentEn;
+    if (excerptBn !== undefined) post.excerptBn = excerptBn;
+    if (excerptEn !== undefined) post.excerptEn = excerptEn;
     if (category) post.category = category;
     if (subcategory) post.subcategory = subcategory;
     if (tags) post.tags = JSON.parse(tags);

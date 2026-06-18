@@ -47,20 +47,49 @@ function killPorts(ports) {
   } catch (e) { /* netstat unavailable */ }
 }
 
+/** Wait until all given ports are confirmed free (max 5s per port). */
+function waitForPortsFree(ports) {
+  const { execSync: run } = require('child_process');
+  const deadline = Date.now() + 5000;
+  let remaining = [...ports];
+  while (remaining.length > 0 && Date.now() < deadline) {
+    try {
+      const out = run('netstat -ano', { encoding: 'utf8' });
+      remaining = remaining.filter((p) => {
+        return out.split('\n').some((line) => {
+          if (!line.includes('LISTENING')) return false;
+          const local = (line.trim().split(/\s+/)[1] || '');
+          return parseInt(local.split(':').pop(), 10) === p;
+        });
+      });
+    } catch (e) { break; }
+    if (remaining.length > 0) {
+      execSync('ping -n 2 127.0.0.1 > nul 2>&1 || sleep 0.5', { stdio: 'ignore', shell: true });
+    }
+  }
+  if (remaining.length === 0) {
+    console.log('\x1b[90mAll ports confirmed free.\x1b[0m');
+  } else {
+    console.log(`\x1b[33mPorts still in use after wait: ${remaining.join(', ')} — proceeding anyway.\x1b[0m`);
+  }
+}
+
 const COLORS = ['36', '32', '33', '35', '34', '95', '92', '93', '94', '96', '91'];
 
 const services = [
-  { name: 'home-web',    cwd: ROOT,                                       cmd: 'node node_modules/vite/bin/vite.js --force' },
-  { name: 'home-api',    cwd: path.join(PUB, 'server'),                   cmd: 'node index.js' },
-  { name: 'shopping',    cwd: path.join(PUB, 'vite-project'),             cmd: 'npm run dev' },
-  { name: 'jobportal',   cwd: path.join(PUB, 'Job Portal'),              cmd: 'npm run dev' },
-  { name: 'video',       cwd: path.join(PUB, 'Video Controls Admin'),     cmd: 'npm run dev' },
-  { name: 'blog',        cwd: path.join(PUB, 'Blog'),                     cmd: 'npm run dev' },
-  { name: 'mvendor-web', cwd: path.join(PUB, 'multi-vendor admin'),       cmd: 'npm run dev' },
-  { name: 'mvendor-api', cwd: path.join(PUB, 'multi-vendor admin', 'server'), cmd: 'node server.js' },
-  { name: 'smartstore',  cwd: path.join(PUB, 'Smart_Store'),              cmd: 'npm run dev' },
-  { name: 'amazon',      cwd: path.join(PUB, 'amazon'),                   cmd: 'npm run dev' },
-  { name: 'news',        cwd: path.join(PUB, 'News'),                     cmd: 'npm run dev' },
+  { name: 'home-web',    cwd: ROOT,                                            cmd: 'node node_modules/vite/bin/vite.js --force' },
+  { name: 'home-api',    cwd: path.join(PUB, 'server'),                        cmd: 'node index.js' },
+  { name: 'admin-api',   cwd: path.join(PUB, 'ecommerce_admin', 'server'),     cmd: 'node index.js' },
+  { name: 'blog-api',    cwd: path.join(PUB, 'Blog', 'backend'),               cmd: 'node server.js' },
+  { name: 'shopping',    cwd: path.join(PUB, 'vite-project'),                  cmd: 'npm run dev' },
+  { name: 'jobportal',   cwd: path.join(PUB, 'Job Portal'),                   cmd: 'npm run dev' },
+  { name: 'video',       cwd: path.join(PUB, 'Video Controls Admin'),          cmd: 'npm run dev' },
+  { name: 'blog',        cwd: path.join(PUB, 'Blog'),                          cmd: 'npm run dev' },
+  { name: 'mvendor-web', cwd: path.join(PUB, 'multi-vendor admin'),            cmd: 'npm run dev' },
+  { name: 'mvendor-api', cwd: path.join(PUB, 'multi-vendor admin', 'server'),  cmd: 'node server.js' },
+  { name: 'smartstore',  cwd: path.join(PUB, 'Smart_Store'),                   cmd: 'npm run dev' },
+  { name: 'amazon',      cwd: path.join(PUB, 'amazon'),                        cmd: 'npm run dev' },
+  { name: 'news',        cwd: path.join(PUB, 'News'),                          cmd: 'npm run dev' },
 ];
 
 const pad = Math.max(...services.map((s) => s.name.length));
@@ -70,6 +99,8 @@ const pad = Math.max(...services.map((s) => s.name.length));
 // every backend would try to bind the same port. Strip it.
 const childEnv = { ...process.env };
 delete childEnv.PORT;
+// Tell the Vite plugin not to auto-start backends — dev-start.cjs owns them.
+childEnv.SKIP_VITE_BACKENDS = '1';
 
 function start(service, color) {
   const label = `\x1b[${color}m[${service.name.padEnd(pad)}]\x1b[0m`;
@@ -102,6 +133,7 @@ function start(service, color) {
 
 console.log('\x1b[1m\nFreeing ports...\x1b[0m');
 killPorts(PORTS);
+waitForPortsFree([5000, 5001, 5002, 5003, 5005, 5050]);
 
 console.log('\x1b[1mStarting all websites (frontend + backend)...\n\x1b[0m');
 const children = [];

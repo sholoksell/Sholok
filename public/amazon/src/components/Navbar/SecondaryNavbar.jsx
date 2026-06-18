@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { navCategories } from '../../data/categories';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { FiMenu, FiChevronRight } from 'react-icons/fi';
 import MegaMenu from './MegaMenu';
 
 const SecondaryNavbar = () => {
   const [megaOpen, setMegaOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className="bg-amazon-secondary relative z-40">
@@ -18,7 +20,7 @@ const SecondaryNavbar = () => {
           onClick={() => setMegaOpen((p) => !p)}
         >
           <FiMenu size={18} />
-          <span>All</span>
+          <span>{t('menuAll')}</span>
         </button>
 
         {/* Category links */}

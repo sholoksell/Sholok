@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ReactionBar from '../components/ReactionBar';
 import CommentSection from '../components/CommentSection';
 import BlogCard from '../components/BlogCard';
@@ -13,6 +14,7 @@ import { FiEye, FiClock, FiShare2, FiBookmark, FiUsers, FiArrowLeft, FiCalendar 
 export default function BlogDetail() {
   const { slug } = useParams();
   const { user, isAuthenticated } = useAuth();
+  const { getLocalizedField, t } = useLanguage();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [related, setRelated] = useState([]);
@@ -59,7 +61,7 @@ export default function BlogDetail() {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      await navigator.share({ title: post.title, url });
+      await navigator.share({ title: getLocalizedField(post, 'title'), url });
     } else {
       navigator.clipboard.writeText(url);
       toast.success('Link copied to clipboard!');
@@ -97,12 +99,16 @@ export default function BlogDetail() {
   if (!post) return null;
 
   const avatar = post.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author?.displayName || 'User')}&background=6941ff&color=fff`;
+  const postTitle = getLocalizedField(post, 'title');
+  const postContent = getLocalizedField(post, 'content');
+  const postExcerpt = getLocalizedField(post, 'excerpt');
+  const categoryName = post.category ? getLocalizedField(post.category, 'name') : '';
 
   return (
     <>
       <Helmet>
-        <title>{post.seoTitle || post.title} - Sholok Blog</title>
-        <meta name="description" content={post.seoDescription || post.excerpt} />
+        <title>{post.seoTitle || postTitle} - Sholok Blog</title>
+        <meta name="description" content={post.seoDescription || postExcerpt} />
         {post.featuredImage && <meta property="og:image" content={post.featuredImage} />}
       </Helmet>
 
@@ -118,7 +124,7 @@ export default function BlogDetail() {
             {/* Featured Image */}
             {post.featuredImage && (
               <div className="rounded-2xl overflow-hidden mb-8 shadow-lg">
-                <img src={post.featuredImage} alt={post.title} className="w-full max-h-96 object-cover" />
+                <img src={post.featuredImage} alt={postTitle} className="w-full max-h-96 object-cover" />
               </div>
             )}
 
@@ -128,7 +134,7 @@ export default function BlogDetail() {
                 <Link to={`/category/${post.category.slug}`}
                   className="px-3 py-1 rounded-full text-xs font-semibold text-white"
                   style={{ background: post.category.color || '#6941ff' }}>
-                  {post.category.name}
+                  {categoryName}
                 </Link>
               )}
               {post.subcategory && (
@@ -140,7 +146,7 @@ export default function BlogDetail() {
 
             {/* Title */}
             <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
-              {post.title}
+              {postTitle}
             </h1>
 
             {/* Meta */}
@@ -180,7 +186,7 @@ export default function BlogDetail() {
             </div>
 
             {/* Content */}
-            <div className="blog-content" dangerouslySetInnerHTML={{ __html: post.content }} />
+            <div className="blog-content" dangerouslySetInnerHTML={{ __html: postContent }} />
 
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (
@@ -246,7 +252,7 @@ export default function BlogDetail() {
                       ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-500'
                       : 'bg-gradient-to-r from-primary-600 to-accent-500 text-white'
                   }`}>
-                  {isFollowing ? 'Unfollow' : 'Follow Blogger'}
+                  {isFollowing ? t('unfollow') : t('followBlogger')}
                 </button>
               )}
             </div>
@@ -254,7 +260,7 @@ export default function BlogDetail() {
             {/* Related posts */}
             {related.length > 0 && (
               <div className="card p-5">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Related Posts</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4">{t('relatedPosts')}</h3>
                 <div className="space-y-4">
                   {related.map((p) => (
                     <Link key={p._id} to={`/blog/${p.slug}`} className="flex gap-3 group">

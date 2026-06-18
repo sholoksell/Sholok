@@ -21,8 +21,8 @@ const adminTrailingSlashRedirect = () => ({
 })
 
 // https://vite.dev/config/
-export default defineConfig({
-  base: '/',
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/shopping/' : '/',
   plugins: [
     adminTrailingSlashRedirect(),
     react(),
@@ -100,4 +100,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'framer-motion', 'zustand'],
   },
-})
+}))

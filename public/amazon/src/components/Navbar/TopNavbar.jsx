@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useSearch } from '../../context/SearchContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { categories } from '../../data/categories';
 import {
   FiSearch, FiChevronDown, FiShoppingCart, FiGlobe, FiMic,
@@ -20,11 +21,6 @@ const Logo = () => (
   </Link>
 );
 
-const accountLinks = [
-  'Your Account', 'Your Orders', 'Your Wish List',
-  'Prime Membership', 'Your Recommendations', 'Subscribe & Save',
-];
-
 const TopNavbar = () => {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
@@ -33,8 +29,16 @@ const TopNavbar = () => {
 
   const { totalItems } = useCart();
   const { setSearchTerm } = useSearch();
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const accountRef = useRef(null);
+
+  const accountLinks = [
+    t('yourAccount'), t('yourOrders'), t('yourWishList'),
+    t('primeMembership'), t('yourRecommendations'), t('subscribeSave'),
+  ];
+
+  const toggleLanguage = () => setLanguage(language === 'bn' ? 'en' : 'bn');
 
   useEffect(() => {
     const close = (e) => {
@@ -65,10 +69,10 @@ const TopNavbar = () => {
 
         {/* Location – desktop */}
         <div className="nav-hover-border px-2 py-1 hidden lg:flex flex-col justify-end shrink-0 cursor-pointer">
-          <span className="text-[#CCC] text-[11px] leading-none">Deliver to</span>
+          <span className="text-[#CCC] text-[11px] leading-none">{t('deliverTo')}</span>
           <div className="flex items-center gap-0.5 mt-0.5">
             <span className="text-sm leading-none">🇧🇩</span>
-            <span className="text-white text-[13px] font-bold leading-none">Bangladesh</span>
+            <span className="text-white text-[13px] font-bold leading-none">{t('bangladesh')}</span>
           </div>
         </div>
 
@@ -81,7 +85,7 @@ const TopNavbar = () => {
               onChange={(e) => setCategory(e.target.value)}
               className="h-full bg-[#F3F3F3] border-r border-[#CDCDCD] text-amazon-dark text-xs px-2 appearance-none cursor-pointer hover:bg-[#E8E8E8] focus:outline-none pl-2 pr-6 rounded-l"
             >
-              <option value="All">All</option>
+              <option value="All">{t('all')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
@@ -94,14 +98,14 @@ const TopNavbar = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, brands and categories"
+            placeholder={t('searchPlaceholder')}
             className="flex-1 px-3 text-sm text-amazon-dark bg-white focus:outline-none placeholder-gray-400 min-w-0"
           />
 
           {/* Voice search icon */}
           <button
             type="button"
-            aria-label="Voice search"
+            aria-label={t('voiceSearch')}
             className="hidden md:flex items-center bg-white border-l border-[#CDCDCD] px-2 text-gray-500 hover:text-amazon-dark transition-colors"
           >
             <FiMic size={15} />
@@ -111,18 +115,23 @@ const TopNavbar = () => {
           <button
             type="submit"
             className="bg-amazon-orange hover:bg-[#e88b00] px-4 flex items-center justify-center rounded-r transition-colors shrink-0"
-            aria-label="Search"
+            aria-label={t('search')}
           >
             <FiSearch size={18} className="text-amazon-dark" />
           </button>
         </form>
 
         {/* Language – desktop */}
-        <div className="nav-hover-border px-1.5 py-1 hidden xl:flex items-center gap-0.5 shrink-0 cursor-pointer">
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="nav-hover-border px-1.5 py-1 hidden xl:flex items-center gap-0.5 shrink-0 cursor-pointer"
+          aria-label={t('language')}
+        >
           <FiGlobe className="text-white text-sm" />
-          <span className="text-white text-[13px] font-bold">EN</span>
+          <span className="text-white text-[13px] font-bold">{language === 'bn' ? 'বাং' : 'EN'}</span>
           <FiChevronDown className="text-white text-xs" />
-        </div>
+        </button>
 
         {/* Account – desktop */}
         <div
@@ -131,9 +140,9 @@ const TopNavbar = () => {
           onMouseEnter={() => setShowAccount(true)}
           onMouseLeave={() => setShowAccount(false)}
         >
-          <span className="text-[#CCC] text-[11px] leading-none">Hello, sign in</span>
+          <span className="text-[#CCC] text-[11px] leading-none">{t('helloSignIn')}</span>
           <div className="flex items-center gap-0.5 mt-0.5">
-            <span className="text-white text-[13px] font-bold leading-none whitespace-nowrap">Account & Lists</span>
+            <span className="text-white text-[13px] font-bold leading-none whitespace-nowrap">{t('accountLists')}</span>
             <FiChevronDown className="text-white text-xs" />
           </div>
 
@@ -148,13 +157,13 @@ const TopNavbar = () => {
               >
                 <div className="flex justify-center mb-3">
                   <Link to="/login" className="amazon-btn px-10 text-center text-sm">
-                    Sign in
+                    {t('signIn')}
                   </Link>
                 </div>
                 <p className="text-center text-xs text-amazon-dark mb-3">
-                  New customer?{' '}
+                  {t('newCustomer')}{' '}
                   <Link to="/login" className="text-amazon-blue hover:underline">
-                    Start here.
+                    {t('startHere')}
                   </Link>
                 </p>
                 <hr className="border-amazon-border mb-3" />
@@ -179,8 +188,8 @@ const TopNavbar = () => {
           to="/"
           className="nav-hover-border px-2 py-1 hidden md:flex flex-col shrink-0"
         >
-          <span className="text-[#CCC] text-[11px] leading-none">Returns</span>
-          <span className="text-white text-[13px] font-bold leading-none whitespace-nowrap">& Orders</span>
+          <span className="text-[#CCC] text-[11px] leading-none">{t('returns')}</span>
+          <span className="text-white text-[13px] font-bold leading-none whitespace-nowrap">{t('andOrders')}</span>
         </Link>
 
         {/* Cart */}
@@ -196,7 +205,7 @@ const TopNavbar = () => {
               </span>
             )}
           </div>
-          <span className="text-white text-[13px] font-bold hidden md:block">Cart</span>
+          <span className="text-white text-[13px] font-bold hidden md:block">{t('cart')}</span>
         </Link>
       </div>
 
@@ -207,7 +216,7 @@ const TopNavbar = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products..."
+            placeholder={t('searchPlaceholderShort')}
             className="flex-1 px-3 text-sm text-amazon-dark bg-white focus:outline-none"
           />
           <button

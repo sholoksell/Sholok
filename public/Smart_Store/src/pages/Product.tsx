@@ -11,6 +11,7 @@ import { productsApi } from "@/lib/api";
 import { normalizeProduct } from "@/lib/normalize";
 import type { Product } from "@/data/mockData";
 import { toast } from "sonner";
+import { useLanguage, getLocalizedField } from "@/contexts/LanguageContext";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,7 +40,10 @@ export default function ProductPage() {
   const aiPicks = useMemo(() => products.filter((p) => p.id !== product.id).slice(0, 4), [product]);
 
   const { add, wishlist, toggleWishlist } = useCart();
+  const { language, t } = useLanguage();
   const liked = wishlist.has(product.id);
+  const productName = getLocalizedField(product, "name", language);
+  const productDescription = getLocalizedField(product, "description", language);
 
   const gallery = product.gallery ?? [product.image];
   const [imgIdx, setImgIdx] = useState(0);
@@ -54,17 +58,17 @@ export default function ProductPage() {
 
   const handleAdd = () => {
     for (let i = 0; i < qty; i++) add(product);
-    toast.success(`${qty} × ${product.name} added`, { description: Object.values(variantSel).join(" · ") });
+    toast.success(`${qty} × ${productName} added`, { description: Object.values(variantSel).join(" · ") });
   };
 
   return (
     <div className="container pt-4 pb-24">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link to="/" className="hover:text-foreground inline-flex items-center gap-1"><ArrowLeft className="w-3.5 h-3.5" /> Home</Link>
+        <Link to="/" className="hover:text-foreground inline-flex items-center gap-1"><ArrowLeft className="w-3.5 h-3.5" /> {t("home")}</Link>
         <span>/</span>
         <Link to="/search" className="hover:text-foreground">{product.category}</Link>
         <span>/</span>
-        <span className="text-foreground font-medium truncate">{product.name}</span>
+        <span className="text-foreground font-medium truncate">{productName}</span>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
@@ -75,7 +79,7 @@ export default function ProductPage() {
               <motion.img
                 key={imgIdx}
                 src={gallery[imgIdx]}
-                alt={product.name}
+                alt={productName}
                 initial={{ opacity: 0, scale: 1.04 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
@@ -107,7 +111,7 @@ export default function ProductPage() {
           <Link to={`/store/${store?.id}`} className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground font-semibold mb-3">
             {product.brand}
           </Link>
-          <h1 className="font-display text-3xl lg:text-4xl font-bold leading-tight mb-3">{product.name}</h1>
+          <h1 className="font-display text-3xl lg:text-4xl font-bold leading-tight mb-3">{productName}</h1>
           <div className="flex flex-wrap items-center gap-3 text-sm mb-5">
             <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-accent-amber text-accent-amber" /> <strong>{product.rating}</strong> <span className="text-muted-foreground">({product.reviews.toLocaleString()} reviews)</span></span>
             {product.stock !== undefined && product.stock < 25 && (
@@ -125,7 +129,7 @@ export default function ProductPage() {
             )}
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed mb-6">{product.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-6">{productDescription}</p>
 
           {/* Variants */}
           {product.variants?.map((v) => (
@@ -155,7 +159,7 @@ export default function ProductPage() {
 
           {/* Quantity */}
           <div className="mb-6">
-            <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-2">Quantity</p>
+            <p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-2">{t("quantity")}</p>
             <div className="inline-flex items-center bg-secondary rounded-2xl p-1">
               <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-9 h-9 rounded-xl hover:bg-card flex items-center justify-center"><Minus className="w-3.5 h-3.5" /></button>
               <motion.span key={qty} initial={{ scale: 1.2 }} animate={{ scale: 1 }} className="w-10 text-center text-sm font-semibold tabular-nums">{qty}</motion.span>
@@ -170,7 +174,7 @@ export default function ProductPage() {
               onClick={handleAdd}
               className="flex-1 h-13 py-4 rounded-2xl bg-gradient-primary text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-elegant"
             >
-              <ShoppingBag className="w-4 h-4" /> Add to cart · ৳{(product.price * qty).toLocaleString()}
+              <ShoppingBag className="w-4 h-4" /> {t("addToCart")} · ৳{(product.price * qty).toLocaleString()}
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.92 }}

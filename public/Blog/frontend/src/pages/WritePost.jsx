@@ -27,7 +27,11 @@ export default function WritePost() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
+  const [titleBn, setTitleBn] = useState('');
+  const [titleEn, setTitleEn] = useState('');
   const [content, setContent] = useState('');
+  const [contentBn, setContentBn] = useState('');
+  const [contentEn, setContentEn] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
   const [tagInput, setTagInput] = useState('');
@@ -77,7 +81,11 @@ export default function WritePost() {
       const res = await api.get(`/posts/${postId}`);
       const p = res.data.post;
       setTitle(p.title);
+      setTitleBn(p.titleBn || '');
+      setTitleEn(p.titleEn || '');
       setContent(p.content);
+      setContentBn(p.contentBn || '');
+      setContentEn(p.contentEn || '');
       setCategory(p.category?._id || '');
       setSubcategory(p.subcategory || '');
       setTags(p.tags || []);
@@ -118,7 +126,11 @@ export default function WritePost() {
     try {
       const formData = new FormData();
       formData.append('title', title.trim());
+      formData.append('titleBn', titleBn.trim());
+      formData.append('titleEn', titleEn.trim());
       formData.append('content', content);
+      formData.append('contentBn', contentBn);
+      formData.append('contentEn', contentEn);
       formData.append('category', category);
       formData.append('subcategory', subcategory);
       formData.append('tags', JSON.stringify(tags));
@@ -206,6 +218,17 @@ export default function WritePost() {
                   maxLength={200}
                 />
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Title (Bangla)</label>
+                    <input type="text" value={titleBn} onChange={(e) => setTitleBn(e.target.value)} placeholder="শিরোনাম লিখুন..." className="input text-sm" maxLength={200} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Title (English)</label>
+                    <input type="text" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="Enter title in English..." className="input text-sm" maxLength={200} />
+                  </div>
+                </div>
+
                 {/* Featured image */}
                 <div className="relative">
                   {featuredImagePreview ? (
@@ -233,6 +256,16 @@ export default function WritePost() {
                   placeholder="Write your story here..."
                   className="bg-white dark:bg-gray-900"
                 />
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase">Content (Bangla)</label>
+                  <ReactQuill theme="snow" value={contentBn} onChange={setContentBn} modules={QUILL_MODULES} placeholder="বাংলায় লিখুন..." className="bg-white dark:bg-gray-900" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase">Content (English)</label>
+                  <ReactQuill theme="snow" value={contentEn} onChange={setContentEn} modules={QUILL_MODULES} placeholder="Write in English..." className="bg-white dark:bg-gray-900" />
+                </div>
 
                 {/* Media uploads */}
                 <div className="grid grid-cols-2 gap-3">

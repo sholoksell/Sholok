@@ -1,20 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * CategoryCard Component
  * Displays a single category with icon, name, and item count
  * Used in Shop By Category page
  */
-const CategoryCard = ({ 
-  category, 
+const CategoryCard = ({
+  category,
   showSubcategories = false,
   size = 'default',
   className = ''
 }) => {
-  const { name, icon, slug, description, subcategories = [] } = category;
-  
+  const { t, getLocalizedField } = useLanguage();
+  const { icon, slug, subcategories = [] } = category;
+  const name = getLocalizedField(category, 'name') || category.name;
+
   const sizeClasses = {
     small: 'p-3',
     default: 'p-4 md:p-6',
@@ -49,14 +52,14 @@ const CategoryCard = ({
           {/* Subcategory Count */}
           {subcategoryCount > 0 && (
             <p className="text-xs md:text-sm text-gray-500">
-              {subcategoryCount} {subcategoryCount === 1 ? 'item' : 'items'}
+              {subcategoryCount} {t('items')}
             </p>
           )}
         </div>
 
         {/* View All Link */}
         <div className="flex items-center gap-1 text-[#E31E24] text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <span>View All</span>
+          <span>{t('viewAll')}</span>
           <ChevronRight className="w-4 h-4" />
         </div>
 
@@ -65,7 +68,7 @@ const CategoryCard = ({
           <div className="w-full pt-3 border-t border-gray-100 mt-3">
             <div className="text-xs text-gray-600 space-y-1">
               {subcategories.slice(0, 3).map((sub, idx) => (
-                <div key={idx} className="truncate">• {sub.name}</div>
+                <div key={idx} className="truncate">• {getLocalizedField(sub, 'name') || sub.name}</div>
               ))}
               {subcategories.length > 3 && (
                 <div className="text-[#E31E24] font-medium">

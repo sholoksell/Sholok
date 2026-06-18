@@ -1,141 +1,230 @@
 // Central catalogue of everything inside this portal. The site search filters
 // these entries so that searching returns the website's own pages/services.
+// Fully bilingual: each entry carries both English and Bengali fields.
+
+export type SearchCategory = 'Apps' | 'Shopping' | 'Media' | 'Info' | 'Tools' | 'Finance';
 
 export interface SearchEntry {
-  title: string;
+  title: string;       // English title
+  titleBn: string;     // Bengali title
   path: string;
-  description: string;
-  category: 'Apps' | 'Shopping' | 'Media' | 'Info' | 'Tools' | 'Finance';
-  keywords: string[];
-  external?: boolean; // true => full page navigation (sub-app), not a React route
+  description: string;     // English description
+  descriptionBn: string;   // Bengali description
+  category: SearchCategory;
+  keywords: string[];  // mixed EN + BN keywords
+  external?: boolean;
+}
+
+/** Maps category key → Bengali label */
+export const CATEGORY_BN: Record<string, string> = {
+  All: 'সব',
+  Apps: 'অ্যাপস',
+  Shopping: 'কেনাকাটা',
+  Media: 'মিডিয়া',
+  Info: 'তথ্য',
+  Tools: 'টুলস',
+  Finance: 'অর্থনীতি',
+};
+
+/** Returns true if the string contains at least one Bengali Unicode character */
+export function isBengaliScript(text: string): boolean {
+  return /[\u0980-\u09FF]/.test(text);
 }
 
 export const SEARCH_INDEX: SearchEntry[] = [
   {
-    title: 'Mail', path: '/mail', category: 'Apps',
+    title: 'Mail', titleBn: 'মেইল',
+    path: '/mail', category: 'Apps',
     description: 'Send, receive and organise your emails in one inbox.',
-    keywords: ['email', 'inbox', 'message', 'compose', 'মেইল', 'ইমেইল', 'বার্তা'],
+    descriptionBn: 'ইমেইল পাঠান, গ্রহণ করুন এবং একটি ইনবক্সে সাজিয়ে রাখুন।',
+    keywords: ['email', 'inbox', 'message', 'compose', 'mail', 'মেইল', 'ইমেইল', 'বার্তা', 'ইনবক্স', 'কম্পোজ'],
   },
   {
-    title: 'Cafe', path: '/cafe', category: 'Info',
+    title: 'Cafe', titleBn: 'ক্যাফে',
+    path: '/cafe', category: 'Info',
     description: 'Discover cafés, coffee shops and restaurants near you.',
-    keywords: ['coffee', 'restaurant', 'food', 'dining', 'cafe', 'ক্যাফে', 'কফি', 'রেস্তোরাঁ', 'খাবার'],
+    descriptionBn: 'কাছের ক্যাফে, কফি শপ এবং রেস্তোরাঁ খুঁজুন।',
+    keywords: ['coffee', 'restaurant', 'food', 'dining', 'cafe', 'ক্যাফে', 'কফি', 'রেস্তোরাঁ', 'খাবার', 'ডাইনিং'],
   },
   {
-    title: 'Blog', path: '/blog', category: 'Media',
+    title: 'Blog', titleBn: 'ব্লগ',
+    path: '/blog', category: 'Media',
     description: 'Read and write articles, stories and blog posts.',
-    keywords: ['article', 'post', 'writing', 'story', 'ব্লগ', 'নিবন্ধ', 'লেখা'],
+    descriptionBn: 'নিবন্ধ, গল্প এবং ব্লগ পোস্ট পড়ুন ও লিখুন।',
+    keywords: ['article', 'post', 'writing', 'story', 'blog', 'ব্লগ', 'নিবন্ধ', 'লেখা', 'গল্প', 'পোস্ট'],
   },
   {
-    title: 'Shopping', path: '/shopping/', category: 'Shopping', external: true,
+    title: 'Shopping', titleBn: 'কেনাকাটা',
+    path: '/shopping/', category: 'Shopping', external: true,
     description: 'Browse and buy products from the online store.',
-    keywords: ['buy', 'store', 'product', 'ecommerce', 'shop', 'cart', 'কেনাকাটা', 'দোকান', 'পণ্য', 'শপিং'],
+    descriptionBn: 'অনলাইন স্টোর থেকে পণ্য ব্রাউজ করুন এবং কিনুন।',
+    keywords: ['buy', 'store', 'product', 'ecommerce', 'shop', 'cart', 'কেনাকাটা', 'দোকান', 'পণ্য', 'শপিং', 'কার্ট', 'কিনুন'],
   },
   {
-    title: 'News', path: '/news', category: 'Info',
+    title: 'News', titleBn: 'খবর',
+    path: '/news', category: 'Info',
     description: 'Latest headlines, breaking news and current affairs.',
-    keywords: ['headline', 'breaking', 'current affairs', 'newspaper', 'খবর', 'সংবাদ', 'শিরোনাম'],
+    descriptionBn: 'সর্বশেষ শিরোনাম, ব্রেকিং নিউজ এবং সাম্প্রতিক ঘটনাবলী।',
+    keywords: ['headline', 'breaking', 'current affairs', 'newspaper', 'news', 'খবর', 'সংবাদ', 'শিরোনাম', 'ব্রেকিং', 'পত্রিকা'],
   },
   {
-    title: 'Maps', path: '/maps', category: 'Tools',
+    title: 'Maps', titleBn: 'ম্যাপস',
+    path: '/maps', category: 'Tools',
     description: 'Find locations, get directions and explore places.',
-    keywords: ['location', 'direction', 'navigation', 'place', 'route', 'ম্যাপ', 'মানচিত্র', 'অবস্থান', 'দিকনির্দেশ'],
+    descriptionBn: 'অবস্থান খুঁজুন, দিকনির্দেশ পান এবং জায়গা অন্বেষণ করুন।',
+    keywords: ['location', 'direction', 'navigation', 'place', 'route', 'map', 'ম্যাপ', 'মানচিত্র', 'অবস্থান', 'দিকনির্দেশ', 'রাস্তা'],
   },
   {
-    title: 'Webtoon', path: '/webtoon', category: 'Media',
+    title: 'Webtoon', titleBn: 'ওয়েবটুন',
+    path: '/webtoon', category: 'Media',
     description: 'Read comics, manga and manhwa series.',
-    keywords: ['comic', 'manga', 'manhwa', 'cartoon', 'ওয়েবটুন', 'কমিক্স', 'কার্টুন'],
+    descriptionBn: 'কমিক্স, মাঙ্গা এবং মানহোয়া পড়ুন।',
+    keywords: ['comic', 'manga', 'manhwa', 'cartoon', 'webtoon', 'ওয়েবটুন', 'কমিক্স', 'কার্টুন', 'মাঙ্গা'],
   },
   {
-    title: 'Smart Store', path: '/smartstore', category: 'Shopping',
+    title: 'Smart Store', titleBn: 'স্মার্ট স্টোর',
+    path: '/smartstore', category: 'Shopping',
     description: 'A marketplace of stores and independent vendors.',
-    keywords: ['marketplace', 'vendor', 'store', 'product', 'স্মার্ট স্টোর', 'বাজার', 'বিক্রেতা'],
+    descriptionBn: 'দোকান ও স্বতন্ত্র বিক্রেতাদের মার্কেটপ্লেস।',
+    keywords: ['marketplace', 'vendor', 'store', 'product', 'স্মার্ট স্টোর', 'বাজার', 'বিক্রেতা', 'মার্কেট'],
   },
   {
-    title: 'Pay', path: '/pay', category: 'Finance',
+    title: 'Pay', titleBn: 'পেমেন্ট',
+    path: '/pay', category: 'Finance',
     description: 'Make payments, send money and manage your wallet.',
-    keywords: ['payment', 'wallet', 'money', 'transaction', 'send', 'পেমেন্ট', 'টাকা', 'ওয়ালেট', 'লেনদেন'],
+    descriptionBn: 'পেমেন্ট করুন, টাকা পাঠান এবং ওয়ালেট পরিচালনা করুন।',
+    keywords: ['payment', 'wallet', 'money', 'transaction', 'send', 'pay', 'পেমেন্ট', 'টাকা', 'ওয়ালেট', 'লেনদেন', 'পাঠান'],
   },
   {
-    title: 'Music', path: '/music', category: 'Media',
+    title: 'Music', titleBn: 'মিউজিক',
+    path: '/music', category: 'Media',
     description: 'Listen to songs, albums and playlists.',
-    keywords: ['song', 'audio', 'playlist', 'album', 'sound', 'মিউজিক', 'গান', 'সংগীত'],
+    descriptionBn: 'গান, অ্যালবাম এবং প্লেলিস্ট শুনুন।',
+    keywords: ['song', 'audio', 'playlist', 'album', 'sound', 'music', 'মিউজিক', 'গান', 'সংগীত', 'অ্যালবাম'],
   },
   {
-    title: 'Video Platform', path: '/tv', category: 'Media',
+    title: 'Video Platform', titleBn: 'ভিডিও প্ল্যাটফর্ম',
+    path: '/tv', category: 'Media',
     description: 'Watch and upload videos, shorts and live streams.',
-    keywords: ['video', 'watch', 'stream', 'tv', 'youtube', 'shorts', 'live', 'ভিডিও', 'টিভি', 'লাইভ'],
+    descriptionBn: 'ভিডিও, শর্টস এবং লাইভ স্ট্রিম দেখুন ও আপলোড করুন।',
+    keywords: ['video', 'watch', 'stream', 'tv', 'youtube', 'shorts', 'live', 'ভিডিও', 'টিভি', 'লাইভ', 'দেখুন', 'শর্টস'],
   },
   {
-    title: 'Series', path: '/series', category: 'Media',
+    title: 'Series', titleBn: 'সিরিজ',
+    path: '/series', category: 'Media',
     description: 'Read books, novels and ongoing series.',
-    keywords: ['book', 'novel', 'reading', 'series', 'সিরিজ', 'বই', 'উপন্যাস'],
+    descriptionBn: 'বই, উপন্যাস এবং চলমান সিরিজ পড়ুন।',
+    keywords: ['book', 'novel', 'reading', 'series', 'সিরিজ', 'বই', 'উপন্যাস', 'পড়া'],
   },
   {
-    title: 'Translate', path: '/translate', category: 'Tools',
+    title: 'Translate', titleBn: 'অনুবাদ',
+    path: '/translate', category: 'Tools',
     description: 'Translate text between many languages.',
-    keywords: ['translation', 'language', 'convert', 'অনুবাদ', 'ভাষা'],
+    descriptionBn: 'বিভিন্ন ভাষার মধ্যে টেক্সট অনুবাদ করুন।',
+    keywords: ['translation', 'language', 'convert', 'translate', 'অনুবাদ', 'ভাষা', 'ট্রান্সলেট', 'রূপান্তর'],
   },
   {
-    title: 'Dictionary', path: '/dictionary', category: 'Tools',
+    title: 'Dictionary', titleBn: 'অভিধান',
+    path: '/dictionary', category: 'Tools',
     description: 'Look up word meanings, pronunciation and translations.',
-    keywords: ['word', 'meaning', 'definition', 'pronunciation', 'language', 'ডিকশনারি', 'অভিধান', 'শব্দ', 'অর্থ'],
+    descriptionBn: 'শব্দের অর্থ, উচ্চারণ এবং অনুবাদ খুঁজুন।',
+    keywords: ['word', 'meaning', 'definition', 'pronunciation', 'dictionary', 'ডিকশনারি', 'অভিধান', 'শব্দ', 'অর্থ', 'উচ্চারণ'],
   },
   {
-    title: 'Finance', path: '/finance', category: 'Finance',
+    title: 'Finance', titleBn: 'অর্থনীতি',
+    path: '/finance', category: 'Finance',
     description: 'Track stocks, markets and your investments.',
-    keywords: ['stock', 'market', 'investment', 'money', 'trading', 'ফাইন্যান্স', 'শেয়ার', 'বাজার', 'বিনিয়োগ'],
+    descriptionBn: 'শেয়ার, বাজার এবং আপনার বিনিয়োগ ট্র্যাক করুন।',
+    keywords: ['stock', 'market', 'investment', 'money', 'trading', 'finance', 'ফাইন্যান্স', 'শেয়ার', 'বাজার', 'বিনিয়োগ', 'অর্থ'],
   },
   {
-    title: 'Sports', path: '/sports', category: 'Info',
+    title: 'Sports', titleBn: 'খেলাধুলা',
+    path: '/sports', category: 'Info',
     description: 'Live scores, fixtures and sports news.',
-    keywords: ['game', 'score', 'match', 'football', 'cricket', 'খেলা', 'স্কোর', 'ক্রিকেট', 'ফুটবল'],
+    descriptionBn: 'লাইভ স্কোর, ফিক্সচার এবং খেলাধুলার খবর।',
+    keywords: ['game', 'score', 'match', 'football', 'cricket', 'sports', 'খেলা', 'স্কোর', 'ক্রিকেট', 'ফুটবল', 'খেলাধুলা', 'ম্যাচ'],
   },
   {
-    title: 'Weather', path: '/weather', category: 'Info',
+    title: 'Weather', titleBn: 'আবহাওয়া',
+    path: '/weather', category: 'Info',
     description: 'Forecasts, temperature and climate updates.',
-    keywords: ['forecast', 'temperature', 'climate', 'rain', 'আবহাওয়া', 'তাপমাত্রা', 'বৃষ্টি'],
+    descriptionBn: 'পূর্বাভাস, তাপমাত্রা এবং আবহাওয়া আপডেট।',
+    keywords: ['forecast', 'temperature', 'climate', 'rain', 'weather', 'আবহাওয়া', 'তাপমাত্রা', 'বৃষ্টি', 'পূর্বাভাস'],
   },
   {
-    title: 'Real Estate', path: '/realestate', category: 'Shopping',
+    title: 'Real Estate', titleBn: 'রিয়েল এস্টেট',
+    path: '/realestate', category: 'Shopping',
     description: 'Buy, sell or rent homes, apartments and property.',
-    keywords: ['property', 'home', 'apartment', 'rent', 'buy', 'house', 'রিয়েল এস্টেট', 'বাড়ি', 'ফ্ল্যাট', 'ভাড়া', 'সম্পত্তি'],
+    descriptionBn: 'বাড়ি, অ্যাপার্টমেন্ট এবং সম্পত্তি কিনুন, বিক্রি করুন বা ভাড়া নিন।',
+    keywords: ['property', 'home', 'apartment', 'rent', 'buy', 'house', 'real estate', 'রিয়েল এস্টেট', 'বাড়ি', 'ফ্ল্যাট', 'ভাড়া', 'সম্পত্তি', 'অ্যাপার্টমেন্ট'],
   },
   {
-    title: 'Knowledge iN', path: '/qna', category: 'Info',
+    title: 'Knowledge iN', titleBn: 'জ্ঞান ইন',
+    path: '/qna', category: 'Info',
     description: 'Ask questions and get answers from the community.',
-    keywords: ['question', 'answer', 'q&a', 'qna', 'help', 'প্রশ্ন', 'উত্তর', 'জ্ঞান'],
+    descriptionBn: 'সম্প্রদায়ের কাছ থেকে প্রশ্ন করুন এবং উত্তর পান।',
+    keywords: ['question', 'answer', 'q&a', 'qna', 'help', 'knowledge', 'প্রশ্ন', 'উত্তর', 'জ্ঞান', 'সাহায্য', 'কমিউনিটি'],
   },
   {
-    title: 'Admin Panel', path: '/home/admin/', category: 'Tools', external: true,
+    title: 'Admin Panel', titleBn: 'অ্যাডমিন প্যানেল',
+    path: '/home/admin/', category: 'Tools', external: true,
     description: 'Multi-vendor super admin: manage vendors, products, orders and payments.',
-    keywords: ['admin', 'dashboard', 'vendor', 'manage', 'panel', 'super admin', 'অ্যাডমিন', 'প্যানেল', 'ড্যাশবোর্ড', 'বিক্রেতা'],
+    descriptionBn: 'মাল্টি-ভেন্ডার সুপার অ্যাডমিন: বিক্রেতা, পণ্য, অর্ডার এবং পেমেন্ট পরিচালনা করুন।',
+    keywords: ['admin', 'dashboard', 'vendor', 'manage', 'panel', 'super admin', 'অ্যাডমিন', 'প্যানেল', 'ড্যাশবোর্ড', 'বিক্রেতা', 'পরিচালনা'],
   },
   {
-    title: 'Job Portal', path: '/job-portal/', category: 'Tools', external: true,
+    title: 'Job Portal', titleBn: 'জব পোর্টাল',
+    path: '/job-portal/', category: 'Tools', external: true,
     description: 'Find jobs, post vacancies and build your career.',
-    keywords: ['job', 'career', 'employment', 'hiring', 'vacancy', 'work', 'চাকরি', 'কাজ', 'নিয়োগ', 'ক্যারিয়ার'],
+    descriptionBn: 'চাকরি খুঁজুন, শূন্যপদ পোস্ট করুন এবং ক্যারিয়ার গড়ুন।',
+    keywords: ['job', 'career', 'employment', 'hiring', 'vacancy', 'work', 'চাকরি', 'কাজ', 'নিয়োগ', 'ক্যারিয়ার', 'কর্মসংস্থান'],
   },
 ];
 
-// Score & filter the index for a query. Higher score = better match.
-export function searchSite(query: string): SearchEntry[] {
-  const q = query.trim().toLowerCase();
+/**
+ * Score & filter the index for a query.
+ * - Detects whether the query uses Bengali script and weights matching fields accordingly.
+ * - When language === 'BN', results are sorted with Bengali-field matches first.
+ * Higher score = better match.
+ */
+export function searchSite(query: string, language: 'EN' | 'BN' = 'EN'): SearchEntry[] {
+  const q = query.trim();
   if (!q) return [];
-  const terms = q.split(/\s+/);
+
+  const qLower = q.toLowerCase();
+  const terms = qLower.split(/\s+/);
+  const queryIsBengali = isBengaliScript(q);
 
   const scored = SEARCH_INDEX.map((entry) => {
-    const haystackTitle = entry.title.toLowerCase();
-    const haystackAll = [entry.title, entry.description, ...entry.keywords].join(' ').toLowerCase();
+    // Pick primary/secondary fields based on whether query is in Bengali
+    const priTitle  = (queryIsBengali ? entry.titleBn  : entry.title).toLowerCase();
+    const secTitle  = (queryIsBengali ? entry.title    : entry.titleBn).toLowerCase();
+    const priDesc   = (queryIsBengali ? entry.descriptionBn : entry.description).toLowerCase();
+    const secDesc   = (queryIsBengali ? entry.description   : entry.descriptionBn).toLowerCase();
+    const allFields = [entry.title, entry.titleBn, entry.description, entry.descriptionBn, ...entry.keywords].join(' ').toLowerCase();
+
     let score = 0;
     for (const term of terms) {
-      if (haystackTitle === term) score += 100;
-      else if (haystackTitle.startsWith(term)) score += 50;
-      else if (haystackTitle.includes(term)) score += 30;
-      if (entry.keywords.some((k) => k.toLowerCase() === term)) score += 25;
-      else if (entry.keywords.some((k) => k.toLowerCase().includes(term))) score += 12;
-      if (entry.description.toLowerCase().includes(term)) score += 5;
-      if (haystackAll.includes(term)) score += 1;
+      // Primary title — strongest signal
+      if (priTitle === term)             score += 100;
+      else if (priTitle.startsWith(term)) score += 55;
+      else if (priTitle.includes(term))   score += 32;
+
+      // Secondary title — cross-language bonus
+      if (secTitle === term)              score += 40;
+      else if (secTitle.startsWith(term)) score += 20;
+      else if (secTitle.includes(term))   score += 10;
+
+      // Keywords — unified list (already has both EN and BN keywords)
+      if (entry.keywords.some((k) => k.toLowerCase() === term))         score += 28;
+      else if (entry.keywords.some((k) => k.toLowerCase().includes(term))) score += 14;
+
+      // Descriptions
+      if (priDesc.includes(term))  score += 8;
+      if (secDesc.includes(term))  score += 3;
+
+      // Catch-all
+      if (allFields.includes(term)) score += 1;
     }
     return { entry, score };
   });

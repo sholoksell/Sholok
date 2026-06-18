@@ -18,8 +18,10 @@
     { "source": "/job-portal", "destination": "/job-portal/index.html" },
     { "source": "/home/admin/:path*", "destination": "/home/admin/index.html" },
     { "source": "/home/admin", "destination": "/home/admin/index.html" },
-    { "source": "/tv/:path*", "destination": "/tv/index.html" },
-    { "source": "/tv", "destination": "/tv/index.html" },
+    { "source": "/VideoPlatform/:path*", "destination": "/VideoPlatform/index.html" },
+    { "source": "/VideoPlatform", "destination": "/VideoPlatform/index.html" },
+    { "source": "/tv/:path*", "destination": "/VideoPlatform/index.html" },
+    { "source": "/tv", "destination": "/VideoPlatform/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import BlogCard from '../components/BlogCard';
 import toast from 'react-hot-toast';
 import { FiEdit3, FiUsers, FiFileText, FiEye, FiGlobe, FiMapPin, FiUserCheck, FiUserPlus } from 'react-icons/fi';
@@ -10,6 +11,7 @@ import { FiEdit3, FiUsers, FiFileText, FiEye, FiGlobe, FiMapPin, FiUserCheck, Fi
 export default function Profile() {
   const { username } = useParams();
   const { user: currentUser, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -124,7 +126,7 @@ export default function Profile() {
             <div className="flex items-center gap-2 sm:pb-2">
               {isOwn ? (
                 <Link to="/dashboard" className="btn-outline flex items-center gap-2 text-sm py-2">
-                  <FiEdit3 className="w-4 h-4" /> Edit Profile
+                  <FiEdit3 className="w-4 h-4" /> {t('editProfile')}
                 </Link>
               ) : (
                 <button onClick={handleFollow} disabled={followLoading}
@@ -134,7 +136,7 @@ export default function Profile() {
                       : 'bg-gradient-to-r from-primary-600 to-accent-500 text-white hover:opacity-90 shadow-lg'
                   }`}>
                   {isFollowing ? <FiUserCheck className="w-4 h-4" /> : <FiUserPlus className="w-4 h-4" />}
-                  {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                  {followLoading ? '...' : isFollowing ? t('followingStatus') : t('followBtn')}
                 </button>
               )}
             </div>
@@ -147,10 +149,10 @@ export default function Profile() {
           {/* Stats */}
           <div className="flex flex-wrap gap-6 mt-4">
             {[
-              { label: 'Posts', value: posts.length, icon: FiFileText },
-              { label: 'Followers', value: followerCount, icon: FiUsers },
-              { label: 'Following', value: profile.following?.length || 0, icon: FiUserCheck },
-              { label: 'Total Views', value: (profile.totalViews || 0).toLocaleString(), icon: FiEye },
+              { label: t('postsLabel'), value: posts.length, icon: FiFileText },
+              { label: t('followersLabel'), value: followerCount, icon: FiUsers },
+              { label: t('followingLabel'), value: profile.following?.length || 0, icon: FiUserCheck },
+              { label: t('totalViews'), value: (profile.totalViews || 0).toLocaleString(), icon: FiEye },
             ].map((stat) => (
               <div key={stat.label} className="flex items-center gap-2">
                 <stat.icon className="w-4 h-4 text-primary-500" />
@@ -164,9 +166,9 @@ export default function Profile() {
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-100 dark:border-gray-800 mt-6 overflow-x-auto">
           {[
-            { key: 'posts', label: 'Posts', count: posts.length },
-            { key: 'followers', label: 'Followers', count: followerCount },
-            { key: 'following', label: 'Following', count: profile.following?.length || 0 },
+            { key: 'posts', label: t('postsLabel'), count: posts.length },
+            { key: 'followers', label: t('followersLabel'), count: followerCount },
+            { key: 'following', label: t('followingLabel'), count: profile.following?.length || 0 },
           ].map((tab) => (
             <button key={tab.key} onClick={() => handleTabChange(tab.key)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
@@ -190,8 +192,8 @@ export default function Profile() {
             ) : (
               <div className="text-center py-16">
                 <p className="text-5xl mb-3">✍️</p>
-                <p className="text-gray-500">{isOwn ? "You haven't published any posts yet." : `${profile.displayName} hasn't published any posts yet.`}</p>
-                {isOwn && <Link to="/write" className="btn-primary mt-4 inline-flex items-center gap-2">Write First Post</Link>}
+                <p className="text-gray-500">{isOwn ? t('noPostsOwn') : `${profile.displayName} ${t('noPostsOwn')}`}</p>
+                {isOwn && <Link to="/write" className="btn-primary mt-4 inline-flex items-center gap-2">{t('writeFirstPostBtn')}</Link>}
               </div>
             )
           )}
@@ -211,7 +213,9 @@ export default function Profile() {
                 </Link>
               ))}
               {((activeTab === 'followers' ? followers : following).length === 0) && (
-                <div className="col-span-full text-center py-8 text-gray-400">No {activeTab} yet</div>
+                <div className="col-span-full text-center py-8 text-gray-400">
+                  {activeTab === 'followers' ? t('noFollowersYet') : t('noFollowingYet')}
+                </div>
               )}
             </div>
           )}

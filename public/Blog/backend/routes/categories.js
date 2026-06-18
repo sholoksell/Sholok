@@ -41,9 +41,9 @@ router.get('/:slug', async (req, res) => {
 // POST /api/categories (admin)
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, description, icon, color, image, parent, group, order, subcategories } = req.body;
+    const { name, nameBn, nameEn, description, icon, color, image, parent, group, order, subcategories } = req.body;
     const slug = slugify(name, { lower: true, strict: true });
-    const category = await Category.create({ name, slug, description, icon, color, image, parent, group, order, subcategories });
+    const category = await Category.create({ name, nameBn, nameEn, slug, description, icon, color, image, parent, group, order, subcategories });
     res.status(201).json({ success: true, category });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
