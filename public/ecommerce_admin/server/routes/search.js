@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
       $or: [{ name: regex }, { 'name.en': regex }, { 'name.bn': regex }, { description: regex }],
     })
       .limit(Number(limit))
-      .select('name slug price salePrice thumbnail images stock');
+      .select('name slug price regularPrice salePrice thumbnail images stock');
 
     res.json({ products });
   } catch (error) {

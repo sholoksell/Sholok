@@ -24,7 +24,11 @@ async function buildCartResponse(customer) {
     .filter((item) => item.productId)
     .map((item) => {
       const product = item.productId;
-      const price = product.salePrice && product.salePrice > 0 ? product.salePrice : product.price;
+      // Product docs predate the multilingual {name:{en,bn}, regularPrice}
+      // schema — older ones still have a plain string name / flat price.
+      const basePrice = product.regularPrice ?? product.price ?? 0;
+      const price = product.salePrice && product.salePrice > 0 ? product.salePrice : basePrice;
+      const name = typeof product.name === 'string' ? product.name : (product.name?.en || product.name?.bn || '');
       return {
         _id: item._id,
         productId: product._id,
@@ -33,7 +37,7 @@ async function buildCartResponse(customer) {
         price,
         product: {
           _id: product._id,
-          name: product.name,
+          name,
           slug: product.slug,
           thumbnail: product.thumbnail || (product.images && product.images[0]) || '',
           stock: product.stock,
