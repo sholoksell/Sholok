@@ -50,6 +50,10 @@ const bannerRoutes = require('./routes/banners');
 const marketingRoutes = require('./routes/marketing');
 const reviewRoutes = require('./routes/reviews');
 const homeSectionRoutes = require('./routes/homeSections');
+const cartRoutes = require('./routes/cart');
+const couponRoutes = require('./routes/coupons');
+const deliveryRoutes = require('./routes/delivery');
+const searchRoutes = require('./routes/search');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -67,6 +71,10 @@ app.use('/api/marketing', marketingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/home-sections', homeSectionRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/search', searchRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

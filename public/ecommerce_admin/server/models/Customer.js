@@ -83,6 +83,16 @@ const customerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
   }],
+  cart: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    variantId: { type: String, default: null },
+    quantity: { type: Number, required: true, min: 1, default: 1 },
+    addedAt: { type: Date, default: Date.now },
+  }],
+  appliedCoupon: {
+    code: { type: String, default: null },
+    discount: { type: Number, default: 0 },
+  },
   lastLoginDate: {
     type: Date,
     default: null,
