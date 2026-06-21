@@ -120,7 +120,7 @@ export default function Shipping() {
   };
 
   const filteredOrders = orders.filter(o => {
-    const name = typeof o.customerId === 'object' ? o.customerId.name : '';
+    const name = o.customerId && typeof o.customerId === 'object' ? o.customerId.name : '';
     const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || o.orderNumber?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchSearch && matchStatus;
@@ -175,7 +175,7 @@ export default function Shipping() {
               <TableHeader><TableRow><TableHead>Order</TableHead><TableHead>Customer</TableHead><TableHead>Total</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {filteredOrders.map(order => {
-                  const customerName = typeof order.customerId === 'object' ? order.customerId.name : 'N/A';
+                  const customerName = order.customerId && typeof order.customerId === 'object' ? order.customerId.name : 'N/A';
                   const cfg = shippingStatusConfig[order.status] || { label: order.status, className: 'bg-muted text-muted-foreground' };
                   return (
                     <TableRow key={order._id}>

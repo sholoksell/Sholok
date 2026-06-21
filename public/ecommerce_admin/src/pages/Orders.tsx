@@ -90,7 +90,7 @@ export default function Orders() {
       if (search) {
         const q = search.toLowerCase();
         const inNum = o.orderNumber.toLowerCase().includes(q);
-        const inCustomer = (typeof o.customerId === 'object' ? o.customerId.name : '').toLowerCase().includes(q);
+        const inCustomer = (o.customerId && typeof o.customerId === 'object' ? o.customerId.name : '').toLowerCase().includes(q);
         if (!inNum && !inCustomer) return false;
       }
       if (fromDate && new Date(o.createdAt) < new Date(fromDate)) return false;
@@ -246,7 +246,7 @@ export default function Orders() {
     finally { setExportLoading(false); }
   };
 
-  const customerName = (o: Order) => typeof o.customerId === 'object' ? o.customerId.name : 'N/A';
+  const customerName = (o: Order) => o.customerId && typeof o.customerId === 'object' ? o.customerId.name : 'N/A';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -359,7 +359,7 @@ export default function Orders() {
                     <TableCell><span className="font-mono font-medium">{order.orderNumber}</span></TableCell>
                     <TableCell>
                       <p className="font-medium">{customerName(order)}</p>
-                      {typeof order.customerId === 'object' && order.customerId.email && (
+                      {order.customerId && typeof order.customerId === 'object' && order.customerId.email && (
                         <p className="text-xs text-muted-foreground">{order.customerId.email}</p>
                       )}
                     </TableCell>
@@ -454,8 +454,8 @@ export default function Orders() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-muted-foreground">Customer</p>
-                  <p className="font-medium">{typeof viewOrder.customerId === 'object' ? viewOrder.customerId.name : 'N/A'}</p>
-                  <p>{typeof viewOrder.customerId === 'object' ? viewOrder.customerId.email : ''}</p>
+                  <p className="font-medium">{viewOrder.customerId && typeof viewOrder.customerId === 'object' ? viewOrder.customerId.name : 'N/A'}</p>
+                  <p>{viewOrder.customerId && typeof viewOrder.customerId === 'object' ? viewOrder.customerId.email : ''}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Order Date</p>
@@ -589,8 +589,8 @@ export default function Orders() {
                 </div>
                 <div className="text-right text-xs">
                   <p className="font-medium">Bill To:</p>
-                  <p>{typeof invoiceOrder.customerId === 'object' ? invoiceOrder.customerId.name : ''}</p>
-                  <p>{typeof invoiceOrder.customerId === 'object' ? invoiceOrder.customerId.email : ''}</p>
+                  <p>{invoiceOrder.customerId && typeof invoiceOrder.customerId === 'object' ? invoiceOrder.customerId.name : ''}</p>
+                  <p>{invoiceOrder.customerId && typeof invoiceOrder.customerId === 'object' ? invoiceOrder.customerId.email : ''}</p>
                   {invoiceOrder.shippingAddress && <>
                     <p>{invoiceOrder.shippingAddress.street}</p>
                     <p>{[invoiceOrder.shippingAddress.city,invoiceOrder.shippingAddress.state].filter(Boolean).join(', ')}</p>

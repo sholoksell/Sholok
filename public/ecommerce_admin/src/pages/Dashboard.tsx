@@ -261,8 +261,8 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground text-center py-4">No orders yet</p>
               ) : (
                 recentOrders.map((order) => {
-                  const customerName = typeof order.customerId === 'object' 
-                    ? order.customerId.name 
+                  const customerName = order.customerId && typeof order.customerId === 'object'
+                    ? order.customerId.name
                     : (order.deliveryAddress?.fullName || order.shippingAddress?.name || 'Customer');
                   return (
                     <div

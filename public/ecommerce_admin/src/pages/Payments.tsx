@@ -315,7 +315,7 @@ export default function Payments() {
                       </TableCell>
                       <TableCell>
                         <p className="font-medium">
-                          {typeof payment.customerId === 'object' ? payment.customerId.name : 'N/A'}
+                          {payment.customerId && typeof payment.customerId === 'object' ? payment.customerId.name : 'N/A'}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -405,9 +405,9 @@ export default function Payments() {
                 <div>
                   <p className="text-sm text-muted-foreground">Customer</p>
                   <p className="font-medium">
-                    {typeof viewPayment.customerId === 'object' ? viewPayment.customerId.name : 'N/A'}
+                    {viewPayment.customerId && typeof viewPayment.customerId === 'object' ? viewPayment.customerId.name : 'N/A'}
                   </p>
-                  {typeof viewPayment.customerId === 'object' && (
+                  {viewPayment.customerId && typeof viewPayment.customerId === 'object' && (
                     <p className="text-sm">{viewPayment.customerId.email}</p>
                   )}
                 </div>
