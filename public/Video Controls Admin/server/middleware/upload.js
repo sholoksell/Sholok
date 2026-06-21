@@ -3,13 +3,19 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
-const uploadDir = process.env.UPLOAD_DIR || "./uploads";
+// Vercel's filesystem is read-only except /tmp, so fall back there
+// instead of crashing on import.
+const uploadDir = process.env.VERCEL ? "/tmp/uploads" : (process.env.UPLOAD_DIR || "./uploads");
 const videoDir = path.join(uploadDir, "videos");
 const thumbDir = path.join(uploadDir, "thumbnails");
 
 // Ensure directories exist
 [videoDir, thumbDir].forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (e) {
+    console.warn(`Could not create upload dir ${dir}:`, e.message);
+  }
 });
 
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska"];

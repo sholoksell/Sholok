@@ -2,20 +2,28 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure uploads directories exist
-const dirs = ['uploads/images', 'uploads/videos', 'uploads/avatars'];
-dirs.forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+// Ensure uploads directories exist. Vercel's filesystem is read-only
+// except /tmp, so fall back there instead of crashing on require().
+const uploadsBase = process.env.VERCEL ? '/tmp/uploads' : 'uploads';
+const imagesDir = `${uploadsBase}/images`;
+const videosDir = `${uploadsBase}/videos`;
+const avatarsDir = `${uploadsBase}/avatars`;
+[imagesDir, videosDir, avatarsDir].forEach((dir) => {
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (e) {
+    console.warn(`Could not create upload dir ${dir}:`, e.message);
+  }
 });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.mimetype.startsWith('video/')) {
-      cb(null, 'uploads/videos');
+      cb(null, videosDir);
     } else if (file.fieldname === 'avatar' || file.fieldname === 'coverImage') {
-      cb(null, 'uploads/avatars');
+      cb(null, avatarsDir);
     } else {
-      cb(null, 'uploads/images');
+      cb(null, imagesDir);
     }
   },
   filename: (req, file, cb) => {
