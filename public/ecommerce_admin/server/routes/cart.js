@@ -19,14 +19,23 @@ const customerAuthMiddleware = (req, res, next) => {
 };
 
 async function buildCartResponse(customer) {
-  const populated = await Customer.populate(customer, { path: 'cart.productId' });
-  const items = populated.cart
-    .filter((item) => item.productId)
-    .map((item) => {
-      const product = item.productId;
-      // Product docs predate the multilingual {name:{en,bn}, regularPrice}
-      // schema — older ones still have a plain string name / flat price.
-      const basePrice = product.regularPrice ?? product.price ?? 0;
+  const productIds = customer.cart.map((item) => item.productId);
+  // .lean() avoids Mongoose casting raw legacy fields (plain string name,
+  // flat "price") into this schema's {name:{en,bn}, regularPrice} shape,
+  // which silently blanks them out — this collection has product docs from
+  // an older/shared schema mixed in with newer ones.
+  const products = await Product.find({ _id: { $in: productIds } }).lean();
+  const productsById = new Map(products.map((p) => [String(p._id), p]));
+
+  const items = customer.cart
+    .map((item) => ({ item, product: productsById.get(String(item.productId)) }))
+    .filter(({ product }) => product)
+    .map(({ item, product }) => {
+      // Real price may live in either the legacy flat "price" field or the
+      // newer "regularPrice" field, depending on which system created the doc.
+      const basePrice = (typeof product.price === 'number' && product.price > 0)
+        ? product.price
+        : (product.regularPrice ?? 0);
       const price = product.salePrice && product.salePrice > 0 ? product.salePrice : basePrice;
       const name = typeof product.name === 'string' ? product.name : (product.name?.en || product.name?.bn || '');
       return {
