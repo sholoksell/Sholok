@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5005/api";
+const API_BASE = import.meta.env.VITE_API_URL || "/jobportal-api";
 
 // Helper to get auth headers
 const getHeaders = () => {

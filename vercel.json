@@ -4,6 +4,13 @@
   "rewrites": [
     { "source": "/admin-api/:path*", "destination": "/api/admin-api" },
     { "source": "/admin-api", "destination": "/api/admin-api" },
+    { "source": "/blog-api/:path*", "destination": "/api/blog-api" },
+    { "source": "/blog-api", "destination": "/api/blog-api" },
+    { "source": "/api/v1/:path*", "destination": "/api/multivendor-api" },
+    { "source": "/jobportal-api/:path*", "destination": "/api/jobportal-api" },
+    { "source": "/jobportal-api", "destination": "/api/jobportal-api" },
+    { "source": "/tv-api/:path*", "destination": "/api/video-api" },
+    { "source": "/tv-api", "destination": "/api/video-api" },
     { "source": "/shopping/admin/:path*", "destination": "/shopping/admin/index.html" },
     { "source": "/shopping/admin", "destination": "/shopping/admin/index.html" },
     { "source": "/shopping/:path*", "destination": "/shopping/index.html" },
