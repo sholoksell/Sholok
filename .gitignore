@@ -48,3 +48,5 @@ dist-ssr
 !public/Job Portal/dist/**
 !public/multi-vendor admin/dist
 !public/multi-vendor admin/dist/**
+
+.vercel

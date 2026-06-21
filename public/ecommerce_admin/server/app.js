@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
@@ -14,6 +13,13 @@ const app = express();
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Ensure DB connection is ready before handling any request (serverless cold starts)
+app.use((req, res, next) => {
+  connectDB().then(() => next()).catch((err) => {
+    res.status(503).json({ message: 'Database unavailable', error: err.message });
+  });
+});
 
 // Request Logger
 app.use((req, res, next) => {
