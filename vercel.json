@@ -11,6 +11,7 @@
     { "source": "/jobportal-api", "destination": "/api/jobportal-api" },
     { "source": "/tv-api/:path*", "destination": "/api/video-api" },
     { "source": "/tv-api", "destination": "/api/video-api" },
+    { "source": "/api/:path((?!admin-api|blog-api|multivendor-api|jobportal-api|video-api).*)", "destination": "/api/admin-api" },
     { "source": "/shopping/admin/:path*", "destination": "/shopping/admin/index.html" },
     { "source": "/shopping/admin", "destination": "/shopping/admin/index.html" },
     { "source": "/shopping/:path*", "destination": "/shopping/index.html" },
