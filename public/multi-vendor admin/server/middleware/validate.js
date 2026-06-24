@@ -25,7 +25,7 @@ const schemas = {
     name:     Joi.string().min(2).max(100).required(),
     email:    Joi.string().email().required(),
     password: Joi.string().min(6).max(60).required(),
-    role:     Joi.string().valid("customer", "seller").default("customer"),
+    role:     Joi.string().valid("customer", "seller", "admin").default("customer"),
     phone:    Joi.string().allow(""),
     storeName:Joi.string().max(100).allow(""),
   }),
