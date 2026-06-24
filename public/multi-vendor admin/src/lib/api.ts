@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -35,7 +35,7 @@ export const adminLogin = (email: string, password: string) =>
   api.post('/auth/login', { email, password });
 
 export const adminRegister = (name: string, email: string, password: string) =>
-  api.post('/auth/register', { name, email, password, role: 'seller' });
+  api.post('/auth/register', { name, email, password, role: 'admin' });
 
 // ── Dashboard Stats ───────────────────────────────────────────────
 export const fetchAdminStats = () => api.get('/admin/dashboard');
