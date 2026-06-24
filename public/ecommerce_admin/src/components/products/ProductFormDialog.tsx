@@ -360,6 +360,8 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
     }
   }, [product, form]);
 
+  const [isTranslating, setIsTranslating] = useState(false);
+
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
@@ -367,10 +369,32 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
       .replace(/(^-|-$)/g, '');
   };
 
-  const handleNameChange = (name: string) => {
-    form.setValue('name', name);
+  const translateToBangla = async (text: string): Promise<string> => {
+    if (!text.trim()) return '';
+    try {
+      const res = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|bn`
+      );
+      const data = await res.json();
+      const translated = data?.responseData?.translatedText || '';
+      // MyMemory returns the original text if it can't translate — return empty in that case
+      return translated && translated !== text ? translated : '';
+    } catch {
+      return '';
+    }
+  };
+
+  const handleNameChange = async (name: string) => {
+    form.setValue('nameEn', name);
     if (!isEditing || !form.getValues('slug')) {
       form.setValue('slug', generateSlug(name));
+    }
+    // Auto-translate to Bangla after user stops typing (debounce via state check)
+    if (name.trim().length > 2) {
+      setIsTranslating(true);
+      const bn = await translateToBangla(name);
+      if (bn) form.setValue('nameBn', bn);
+      setIsTranslating(false);
     }
   };
 
@@ -515,7 +539,7 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                           <FormControl>
                             <Input
                               {...field}
-                              onChange={(e) => handleNameChange(e.target.value)}
+                              onChange={(e) => { field.onChange(e); handleNameChange(e.target.value); }}
                               placeholder="Product name in English"
                               className="bg-secondary border-border"
                             />
@@ -529,12 +553,13 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                       name="nameBn"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>🇧🇩 নাম (বাংলা)</FormLabel>
+                          <FormLabel>🇧🇩 নাম (বাংলা) {isTranslating && <span className="text-xs text-muted-foreground animate-pulse ml-1">অনুবাদ হচ্ছে…</span>}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               placeholder="বাংলায় পণ্যের নাম লিখুন"
                               className="bg-secondary border-border"
+                              disabled={isTranslating}
                             />
                           </FormControl>
                           <FormMessage />
@@ -686,7 +711,7 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                   images={images}
                   onChange={setImages}
                   maxImages={5}
-                  productName={form.watch('name')}
+                  productName={form.watch('nameEn')}
                 />
 
                 <div>
