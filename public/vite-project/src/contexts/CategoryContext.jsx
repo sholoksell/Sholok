@@ -124,6 +124,14 @@ const FALLBACK_CATEGORIES = [
   ]},
 ];
 
+function normalizeCat(c) {
+  if (!c) return c;
+  const name = typeof c.name === 'string' ? c.name : (c.name?.en || c.name?.bn || '');
+  const nameBn = c.nameBn || (typeof c.name === 'object' ? c.name?.bn : '') || name;
+  const children = c.subcategories || c.children || [];
+  return { ...c, name, nameBn, subcategories: children.map(normalizeCat) };
+}
+
 const readCache = () => {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -170,7 +178,7 @@ export const CategoryProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const data = await categoryService.getPublicAll();
-      const arr = Array.isArray(data) && data.length > 0 ? data : FALLBACK_CATEGORIES;
+      const arr = Array.isArray(data) && data.length > 0 ? data.map(normalizeCat) : FALLBACK_CATEGORIES;
       setCategories(arr);
       if (Array.isArray(data) && data.length > 0) writeCache(arr);
       return arr;
@@ -193,7 +201,7 @@ export const CategoryProvider = ({ children }) => {
       // Background refresh without showing loading
       categoryService.getPublicAll()
         .then(data => {
-          const arr = Array.isArray(data) && data.length > 0 ? data : null;
+          const arr = Array.isArray(data) && data.length > 0 ? data.map(normalizeCat) : null;
           if (arr) { setCategories(arr); writeCache(arr); }
         })
         .catch(() => {});
@@ -206,8 +214,8 @@ export const CategoryProvider = ({ children }) => {
       try {
         const data = await categoryService.getPublicAll();
         if (Array.isArray(data) && data.length > 0) {
-          setCategories(data);
-          writeCache(data);
+          setCategories(data.map(normalizeCat));
+          writeCache(data.map(normalizeCat));
         }
       } catch {}
     };

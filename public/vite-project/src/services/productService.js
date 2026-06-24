@@ -1,8 +1,20 @@
 import api from '../lib/axios';
 
+// Flatten admin-backend products (name:{en,bn}, regularPrice) to storefront shape
+function normalizeProd(p) {
+  if (!p) return p;
+  const name = typeof p.name === 'string' ? p.name : (p.name?.en || p.name?.bn || '');
+  const basePrice = (typeof p.price === 'number' && p.price > 0) ? p.price : (p.regularPrice ?? 0);
+  const price = (p.salePrice && p.salePrice > 0) ? p.salePrice : basePrice;
+  return { ...p, name, price };
+}
+
 const toProductsObj = (d) => {
-  if (Array.isArray(d)) return { products: d };
-  if (d && typeof d === 'object') return d;
+  if (Array.isArray(d)) return { products: d.map(normalizeProd) };
+  if (d && typeof d === 'object') {
+    if (d.products) return { ...d, products: d.products.map(normalizeProd) };
+    return d;
+  }
   return { products: [] };
 };
 
@@ -32,7 +44,7 @@ export const productService = {
   getBySlug: async (slug) => {
     try {
       const response = await api.get(`/products/public/slug/${slug}`);
-      return response.data || null;
+      return response.data ? normalizeProd(response.data) : null;
     } catch (error) {
       console.error('Error fetching product by slug:', error);
       return null;

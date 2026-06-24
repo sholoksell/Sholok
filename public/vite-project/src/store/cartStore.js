@@ -38,7 +38,8 @@ export const useCartStore = create((set, get) => ({
     const productId = product._id || product.id;
     const price = product.salePrice || product.regularPrice || product.price || 0;
     const image = product.thumbnail || product.images?.[0] || '';
-    const name = product.name || '';
+    const rawName = product.name;
+    const name = typeof rawName === 'string' ? rawName : (rawName?.en || rawName?.bn || '');
 
     const existingIndex = cart.items.findIndex((i) => i.productId === productId);
     let newItems;

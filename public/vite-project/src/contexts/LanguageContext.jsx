@@ -273,11 +273,13 @@ export const LanguageProvider = ({ children }) => {
     // Helper function to get translated field from object
     const getLocalizedField = (obj, field) => {
         if (!obj) return '';
-        
-        if (language === 'bn' && obj[`${field}Bn`]) {
-            return obj[`${field}Bn`];
-        }
-        return obj[field] || '';
+        if (language === 'bn' && obj[`${field}Bn`]) return obj[`${field}Bn`];
+        const val = obj[field];
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        // Handle {en, bn} nested objects returned by the admin backend
+        if (typeof val === 'object') return (language === 'bn' ? val.bn : val.en) || val.bn || val.en || '';
+        return String(val);
     };
 
     return (
