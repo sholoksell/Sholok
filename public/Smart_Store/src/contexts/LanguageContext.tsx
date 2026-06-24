@@ -113,5 +113,9 @@ export function getLocalizedField<T extends Record<string, any>>(obj: T, fieldNa
   const lang = language || (typeof window !== "undefined" ? (localStorage.getItem(STORAGE_KEY) as Language) : "bn") || "bn";
   const suffix = lang === "bn" ? "Bn" : "En";
   const localizedKey = `${fieldName}${suffix}`;
-  return obj[localizedKey] || obj[fieldName] || "";
+  const val = obj[localizedKey] || obj[fieldName];
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "object") return (lang === "bn" ? val.bn : val.en) || val.bn || val.en || "";
+  return String(val);
 }

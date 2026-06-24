@@ -1,5 +1,12 @@
 import type { Product } from "@/data/mockData";
 
+function resolveStr(v: any, lang?: "en" | "bn"): string {
+  if (!v) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "object") return (lang === "en" ? v.en : v.bn) || v.bn || v.en || "";
+  return String(v);
+}
+
 /** Convert backend MongoDB product → frontend Product shape */
 export function normalizeProduct(raw: any): Product | null {
   if (!raw) return null;
@@ -9,7 +16,7 @@ export function normalizeProduct(raw: any): Product | null {
     || "";
   return {
     id:            raw.id || raw._id || raw.slug || "",
-    name:          raw.name || "",
+    name:          resolveStr(raw.name),
     brand:         raw.brand || "",
     storeId:       raw.storeId || raw.store?._id || raw.store || "",
     price:         raw.price ?? 0,

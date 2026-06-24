@@ -14,7 +14,7 @@ export default function Categories() {
       if (list.length) {
         const palette = mockCategories.map((c: any) => c.color);
         setCategories(list.map((c: any, i: number) => ({
-          name:  c.name,
+          name:  typeof c.name === 'string' ? c.name : (c.name?.en || c.name?.bn || ''),
           icon:  c.icon || mockCategories[i % mockCategories.length].icon,
           color: c.color || palette[i % palette.length],
         })));
