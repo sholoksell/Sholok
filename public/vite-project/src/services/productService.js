@@ -1,12 +1,29 @@
 import api from '../lib/axios';
 
 // Flatten admin-backend products (name:{en,bn}, regularPrice) to storefront shape
+function resolveStr(v) {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object') return v.en || v.bn || '';
+  return String(v);
+}
+
 function normalizeProd(p) {
   if (!p) return p;
-  const name = typeof p.name === 'string' ? p.name : (p.name?.en || p.name?.bn || '');
+  const name = resolveStr(p.name);
+  const description = resolveStr(p.description);
+  const shortDescription = resolveStr(p.shortDescription);
+  const categoryName = p.categoryId?.name ? resolveStr(p.categoryId.name) : undefined;
   const basePrice = (typeof p.price === 'number' && p.price > 0) ? p.price : (p.regularPrice ?? 0);
   const price = (p.salePrice && p.salePrice > 0) ? p.salePrice : basePrice;
-  return { ...p, name, price };
+  return {
+    ...p,
+    name,
+    description,
+    shortDescription,
+    categoryId: p.categoryId ? { ...p.categoryId, name: categoryName ?? p.categoryId.name } : p.categoryId,
+    price,
+  };
 }
 
 const toProductsObj = (d) => {
