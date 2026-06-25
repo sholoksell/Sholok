@@ -150,7 +150,7 @@ export const useProductStore = create<ProductState>()((set) => ({
         slug: product.slug,
         description: product.description,
         descriptionBn: product.descriptionBn || '',
-        shortDescription: (typeof product.description === 'string' ? product.description : (product.description as any)?.en || '').substring(0, 160),
+        shortDescription: { en: (typeof product.description === 'string' ? product.description : (product.description as any)?.en || '').substring(0, 160), bn: '' },
         categoryId: product.categoryId || '',
         regularPrice: product.regularPrice,
         salePrice: product.salePrice,
