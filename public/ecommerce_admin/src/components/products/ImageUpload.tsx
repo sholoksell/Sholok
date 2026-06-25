@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Upload, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import axios from '@/lib/axios';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -11,6 +10,32 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+
+// Compress an image file client-side to keep it under Vercel's 4.5MB body limit.
+// Resizes to max 900×900 px and encodes as JPEG at 0.7 quality (~80–150 KB typical).
+const compressImage = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 900;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 
 interface ImageUploadProps {
   images: string[];
@@ -39,54 +64,29 @@ export default function ImageUpload({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    if (images.length + files.length > maxImages) {
+    const remaining = maxImages - images.length;
+    if (remaining <= 0) {
       toast.error(`Maximum ${maxImages} images allowed`);
       return;
     }
 
     setUploading(true);
-
     try {
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append('images', file);
-      });
-
-      const response = await axios.post('/upload/multiple', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const newImages = [...images, ...response.data.urls];
-      onChange(newImages);
-      toast.success('Images uploaded successfully');
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      toast.error(error.response?.data?.message || 'Failed to upload images');
+      const toProcess = files.slice(0, remaining);
+      const compressed = await Promise.all(toProcess.map(compressImage));
+      onChange([...images, ...compressed]);
+      toast.success(`${compressed.length} image${compressed.length > 1 ? 's' : ''} added`);
+    } catch {
+      toast.error('Failed to process images. Please try again.');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const handleRemoveImage = async (imageUrl: string) => {
-    try {
-      // Only attempt to delete from server if it's a local upload (not an external URL)
-      if (!imageUrl.startsWith('http')) {
-        const filename = imageUrl.split('/').pop();
-        await axios.delete(`/upload/${filename}`);
-      }
-      onChange(images.filter((img) => img !== imageUrl));
-      toast.success('Image removed');
-    } catch (error) {
-      console.error('Delete error:', error);
-      // Still remove from list even if server delete fails
-      onChange(images.filter((img) => img !== imageUrl));
-      toast.success('Image removed');
-    }
+  const handleRemoveImage = (imageUrl: string) => {
+    onChange(images.filter((img) => img !== imageUrl));
+    toast.success('Image removed');
   };
 
   const handleAddUrl = () => {
