@@ -51,7 +51,7 @@ function App() {
       <AuthProvider>
         <LanguageProvider>
           <CategoryProvider>
-            <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                     <Route path="/" element={<MainLayout />}>
