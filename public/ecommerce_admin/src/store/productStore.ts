@@ -62,6 +62,29 @@ interface ProductState {
   updateStock: (id: string, stock: number) => Promise<void>;
 }
 
+// Re-compress any data-URL image that is larger than ~200 KB encoded.
+// Runs in the browser so Canvas API is available.
+const compressDataUrl = (url: string): Promise<string> =>
+  new Promise((resolve) => {
+    if (!url.startsWith('data:image') || url.length < 270000) { resolve(url); return; }
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.65));
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
+
+const compressImages = (images: string[]) =>
+  Promise.all(images.map(compressDataUrl));
+
 const normaliseI18n = (
   nested: { en?: string; bn?: string } | string | null | undefined,
   legacyEn?: string,
@@ -156,7 +179,7 @@ export const useProductStore = create<ProductState>()((set) => ({
         salePrice: product.salePrice,
         sku: product.sku,
         stock: product.stock,
-        images: product.images,
+        images: await compressImages(product.images),
         variants: product.variants.map(v => ({
           name: v.name,
           sku: v.sku,
@@ -194,7 +217,7 @@ export const useProductStore = create<ProductState>()((set) => ({
       if (updates.salePrice !== undefined) updateData.salePrice = updates.salePrice;
       if (updates.sku) updateData.sku = updates.sku;
       if (updates.stock !== undefined) updateData.stock = updates.stock;
-      if (updates.images) updateData.images = updates.images;
+      if (updates.images) updateData.images = await compressImages(updates.images);
       if (updates.variants) updateData.variants = updates.variants;
       if (updates.status) {
         updateData.status = updates.status === 'published' ? 'active' : updates.status === 'out_of_stock' ? 'out_of_stock' : 'draft';
