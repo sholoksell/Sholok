@@ -25,6 +25,7 @@ const HomePage = () => {
   
   // Category-wise products state
   const [allProducts, setAllProducts] = useState([]);
+  const [newArrivalsProducts, setNewArrivalsProducts] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
@@ -113,18 +114,30 @@ const HomePage = () => {
           ? allProductsRes.products
           : demoProducts;
         // Helper: get category slug from product (handles both populated object and string id)
-        const getCatSlug = (p) =>
-          p.categoryId?.slug || p.category?.slug || p.categorySlug || '';
-
-        // Helper: filter with fallback to allProducts
-        const filterOrFallback = (slugs, limit = 12) => {
-          const filtered = products.filter(p => slugs.includes(getCatSlug(p)));
-          return filtered.length >= 4 ? filtered.slice(0, limit) : products.slice(0, limit);
+        // Strips -kh suffix so both hierarchies (standard + kh-market) match the same filters
+        const getCatSlug = (p) => {
+          const slug = p.categoryId?.slug || p.category?.slug || p.categorySlug || '';
+          const parentSlug = p.categoryId?.parentSlug || '';
+          return [slug, slug.replace(/-kh$/, ''), parentSlug].filter(Boolean);
         };
 
-        // Filter products by category slugs
-        setRecommendedProducts(filterOrFallback(['fresh-fruits', 'fresh-vegetables', 'milk', 'bread', 'eggs']));
-        
+        // Helper: filter with fallback to allProducts
+        // Returns products whose category slug matches ANY of the given slugs
+        const filterOrFallback = (slugs, limit = 12) => {
+          const slugSet = new Set(slugs);
+          const filtered = products.filter(p => getCatSlug(p).some(s => slugSet.has(s)));
+          return filtered.length > 0 ? filtered.slice(0, limit) : products.slice(0, limit);
+        };
+
+        // New Arrivals — always show the newest products regardless of category
+        setNewArrivalsProducts(products.slice(0, 12));
+
+        // Filter products by category slugs (includes both standard and -kh variants)
+        setRecommendedProducts(filterOrFallback([
+          'fresh-fruits', 'fresh-fruits-kh', 'fresh-vegetables', 'fresh-vegetable',
+          'fresh-produce', 'fruits-vegetable', 'milk', 'milk-kh', 'bread', 'bread-butter', 'eggs', 'eggs-kh'
+        ]));
+
         // Trending Products: Use best sellers or sort by soldCount
         const bestSellers = bestSellersRes.products || [];
         if (bestSellers.length > 0) {
@@ -133,44 +146,91 @@ const HomePage = () => {
           const sortedBySales = [...products]
             .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
             .slice(0, 12);
-          setTrendingProducts(sortedBySales.length >= 4 ? sortedBySales : products.slice(0, 12));
+          setTrendingProducts(sortedBySales.length > 0 ? sortedBySales : products.slice(0, 12));
         }
-        
+
         // Bread & More
-        setBreadProducts(filterOrFallback(['bread', 'eggs', 'cereals', 'breakfast-cereals', 'baby-food']));
-        
+        setBreadProducts(filterOrFallback([
+          'bread', 'bread-butter', 'eggs', 'eggs-kh',
+          'cereals', 'breakfast-cereals', 'oats-porridge', 'baby-food', 'baby-food-kh', 'breakfast'
+        ]));
+
         // Cleaning Products
-        setCleaningProducts(filterOrFallback(['home-cleaning', 'dishwashing', 'laundry-detergent', 'toilet-cleaner', 'floor-cleaner', 'glass-cleaner']));
-        
+        setCleaningProducts(filterOrFallback([
+          'home-cleaning', 'household-cleaning', 'household-tools',
+          'dishwashing', 'laundry-detergent', 'detergent', 'toilet-cleaner',
+          'floor-cleaner', 'glass-cleaner', 'cleaning-tools-kh', 'tissue-napkins', 'garbage-bags'
+        ]));
+
         // Cooking Products
-        setCookingProducts(filterOrFallback(['rice', 'edible-oil', 'cooking-oil', 'spices', 'salt-and-sugar', 'ready-mix', 'noodles-and-pasta']));
-        
+        setCookingProducts(filterOrFallback([
+          'rice', 'atta-flour', 'flour-kh', 'edible-oil', 'cooking-oil', 'oil-kh',
+          'spices', 'spices-masala', 'salt-sugar', 'salt-sugar-kh', 'ready-mix',
+          'noodles-pasta', 'sauces-ketchup', 'vinegar-sauce', 'grocery-staples', 'cooking-essentials'
+        ]));
+
         // Baby Products
-        setBabyProducts(filterOrFallback(['baby-food', 'baby-food-and-care', 'baby-diapers', 'baby-wipes', 'baby-bath-and-skin']));
-        
-        // Vegetables
-        setVegetableProducts(filterOrFallback(['fresh-vegetables', 'fresh-fruits', 'fresh-produce']));
-        
+        setBabyProducts(filterOrFallback([
+          'baby-food', 'baby-food-kh', 'baby-food-and-care', 'baby-care',
+          'baby-diapers', 'baby-wipes', 'baby-bath-and-skin', 'baby-lotion', 'baby-soap', 'baby-shampoo'
+        ]));
+
+        // Vegetables & Fruits
+        setVegetableProducts(filterOrFallback([
+          'fresh-vegetables', 'fresh-vegetable', 'fresh-fruits', 'fresh-fruits-kh',
+          'fresh-produce', 'fruits-vegetable', 'dry-fruits'
+        ]));
+
         // Eggs & Cereals
-        setEggsCerealsProducts(filterOrFallback(['eggs', 'brown-eggs', 'white-eggs', 'duck-eggs', 'quail-eggs', 'breakfast-cereals']));
-        
-        // Frozen Snacks
-        setFrozenSnacksProducts(filterOrFallback(['dairy-and-frozen', 'ice-cream', 'frozen-vegetables', 'frozen-snacks', 'yogurt']));
-        
-        // Diabetic Corner
-        setDiabeticProducts(filterOrFallback(['health-supplements', 'beauty-and-health']));
-        
+        setEggsCerealsProducts(filterOrFallback([
+          'eggs', 'eggs-kh', 'brown-eggs', 'white-eggs', 'duck-eggs', 'quail-eggs',
+          'cereals', 'breakfast-cereals', 'oats-porridge', 'breakfast'
+        ]));
+
+        // Frozen Snacks / Dairy
+        setFrozenSnacksProducts(filterOrFallback([
+          'dairy-frozen', 'dairy-and-frozen', 'ice-cream', 'frozen-vegetables',
+          'frozen-snacks', 'frozen-meat', 'yogurt', 'yogurt-kh',
+          'milk', 'milk-kh', 'butter-ghee', 'butter-ghee-kh', 'cheese', 'cheese-kh'
+        ]));
+
+        // Health / Beauty / Diabetic
+        setDiabeticProducts(filterOrFallback([
+          'health-supplements', 'beauty-and-health', 'health-wellness',
+          'beauty-healths', 'skin-care', 'hair-care', 'vitamins', 'vitamins-supplements',
+          'first-aid', 'personal-care'
+        ]));
+
         // Snacks & Sweets
-        setSnacksProducts(filterOrFallback(['snacks', 'biscuits-and-cookies', 'chips-crisps', 'chocolate', 'candy', 'traditional-sweets', 'cake-mix']));
-        
+        setSnacksProducts(filterOrFallback([
+          'snacks', 'snacks-confectionery', 'biscuits-cakes',
+          'biscuits', 'biscuits-kh', 'biscuits-and-cookies',
+          'cakes', 'cakes-kh', 'chips', 'chips-crisps', 'wafers-snacks',
+          'chocolate', 'chocolates', 'candy', 'nuts', 'traditional-sweets', 'cake-mix'
+        ]));
+
         // Beverages
-        setBeverageProducts(filterOrFallback(['tea-and-coffee', 'cola', 'juice', 'tea', 'coffee', 'soft-drinks', 'milk']));
-        
+        setBeverageProducts(filterOrFallback([
+          'beverages', 'drinks',
+          'soft-drinks', 'soft-drinks-kh', 'juice', 'juice-kh',
+          'tea', 'coffee', 'tea-coffee', 'tea-and-coffee', 'energy-drinks',
+          'mineral-water', 'water', 'lassi-shakes', 'powder-drinks',
+          'milk', 'milk-kh', 'cola'
+        ]));
+
         // Frozen Foods
-        setFrozenProducts(filterOrFallback(['dairy-and-frozen', 'ice-cream', 'frozen-vegetables', 'frozen-snacks', 'yogurt']));
-        
-        // Gadgets
-        setGadgetProducts(filterOrFallback(['gadget', 'mobile-accessories', 'audio', 'smart-devices', 'computer-accessories', 'camera-photo', 'headphones-and-earphones', 'power-banks', 'smart-watches']));
+        setFrozenProducts(filterOrFallback([
+          'dairy-frozen', 'dairy-and-frozen', 'ice-cream', 'frozen-vegetables',
+          'frozen-snacks', 'frozen-meat', 'yogurt', 'yogurt-kh'
+        ]));
+
+        // Gadgets & Electronics
+        setGadgetProducts(filterOrFallback([
+          'gadget', 'mobile-accessories', 'audio', 'smart-devices',
+          'computer-accessories', 'camera-photo', 'headphones-and-earphones',
+          'headphones', 'power-banks', 'power-bank', 'smart-watches', 'smart-watch',
+          'chargers', 'small-electronics'
+        ]));
 
       } catch (error) {
         console.error('Error fetching homepage data:', error);
@@ -417,6 +477,23 @@ const HomePage = () => {
               <div className="p-4 lg:p-6 bg-white">
                 <OfferSlider />
               </div>
+
+              {/* 0. NEW ARRIVALS — always shows the latest uploaded products */}
+              {newArrivalsProducts.filter(p => !p._id?.startsWith('demo')).length > 0 && (
+                <section className="bg-white p-4 lg:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900 uppercase">🆕 নতুন পণ্য</h2>
+                    <Link to="/search?q=" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
+                      সব দেখুন <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {newArrivalsProducts.filter(p => !p._id?.startsWith('demo')).slice(0, 8).map((product, i) => (
+                      <ProductCard key={product._id || product.id || i} product={product} />
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* 1. RECOMMENDED FOR YOU */}
               <section className="bg-white p-4 lg:p-6">
