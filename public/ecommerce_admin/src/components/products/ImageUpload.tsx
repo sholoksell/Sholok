@@ -44,18 +44,10 @@ export default function ImageUpload({
       return;
     }
 
-    if (!productName || !productName.trim()) {
-      toast.error('Please enter the product name first — it is used to generate SEO-friendly image filenames.');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
     setUploading(true);
 
     try {
       const formData = new FormData();
-      // IMPORTANT: append `name` BEFORE the files so multer can read it inside the filename callback
-      formData.append('name', productName.trim());
       files.forEach((file) => {
         formData.append('images', file);
       });
