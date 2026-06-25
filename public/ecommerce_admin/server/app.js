@@ -11,8 +11,8 @@ const app = express();
 
 // Middleware
 app.use(cors({ origin: '*', credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '4mb' }));
+app.use(express.urlencoded({ extended: true, limit: '4mb' }));
 
 // Ensure DB connection is ready before handling any request (serverless cold starts)
 app.use((req, res, next) => {
