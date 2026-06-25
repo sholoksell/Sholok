@@ -75,7 +75,7 @@ export const productService = {
     // 1) Try slug endpoint
     try {
       const r = await api.get(`/products/public/slug/${identifier}`);
-      if (r?.data) return r.data;
+      if (r?.data) return { product: normalizeProd(r.data) };
     } catch (_) {}
 
     // 2) Try id-based endpoints (different common conventions)
@@ -87,7 +87,7 @@ export const productService = {
     for (const url of idEndpoints) {
       try {
         const r = await api.get(url);
-        if (r?.data) return r.data;
+        if (r?.data) return { product: normalizeProd(r.data) };
       } catch (_) {}
     }
 
@@ -98,7 +98,7 @@ export const productService = {
       const found = list.find(
         (p) => p.slug === identifier || p._id === identifier || p.id === identifier
       );
-      if (found) return { product: found };
+      if (found) return { product: normalizeProd(found) };
     } catch (_) {}
 
     return null;
