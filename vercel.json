@@ -45,6 +45,9 @@
     { "source": "/webtoon/:path*", "destination": "/webtoon/index.html" },
     { "source": "/webtoon/", "destination": "/webtoon/index.html" },
     { "source": "/webtoon", "destination": "/webtoon/index.html" },
+    { "source": "/mail/:path*", "destination": "/mail/index.html" },
+    { "source": "/mail/", "destination": "/mail/index.html" },
+    { "source": "/mail", "destination": "/mail/index.html" },
     { "source": "/:path((?!api|admin-api).*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -74,6 +77,18 @@
     },
     {
       "source": "/shopping/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/mail",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/mail/",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]

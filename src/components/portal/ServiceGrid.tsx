@@ -25,13 +25,13 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Services that open as external sub-apps (full page navigation)
-const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/"]);
+const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/"]);
 
 const ServiceGrid = () => {
   const { t } = useLanguage();
 
   const services = [
-    { icon: Mail, label: "mail", color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", path: "/mail" },
+    { icon: Mail, label: "mail", color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", path: "/mail/" },
     { icon: Coffee, label: "cafe", color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400", path: "/cafe" },
     { icon: FileText, label: "blog", color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", path: "/blog" },
     { icon: ShoppingCart, label: "shopping", color: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400", path: "/shopping/" },

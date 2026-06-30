@@ -52,6 +52,12 @@ const WebtoonRedirect = () => {
   return null;
 };
 
+// Mail redirect component - redirects to Mail sub-app at /mail/
+const MailRedirect = () => {
+  window.location.replace('/mail/');
+  return null;
+};
+
 // Lazy load other pages for better performance
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const News = lazy(() => import("./pages/News"));
@@ -65,7 +71,6 @@ const Translate = lazy(() => import("./pages/Translate"));
 const Health = lazy(() => import("./pages/Health"));
 
 // New pages
-const Mail = lazy(() => import("./pages/Mail"));
 const Cafe = lazy(() => import("./pages/Cafe"));
 const SmartStore = lazy(() => import("./pages/SmartStore"));
 const Pay = lazy(() => import("./pages/Pay"));
@@ -130,7 +135,8 @@ const App = () => (
                 <Route path="/realestate" element={<RealEstate />} />
 
                 {/* Protected Routes */}
-                <Route path="/mail" element={<Mail />} />
+                <Route path="/mail" element={<MailRedirect />} />
+                <Route path="/mail/*" element={<MailRedirect />} />
                 <Route path="/cafe" element={<Cafe />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/smartstore" element={<SmartStoreRedirect />} />
