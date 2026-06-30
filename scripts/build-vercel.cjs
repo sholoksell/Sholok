@@ -24,7 +24,6 @@ const copies = [
   { from: 'public/Series/dist',              to: 'dist/series' },
   { from: 'public/Sports/dist',              to: 'dist/sports' },
   { from: 'public/Music/dist',               to: 'dist/music' },
-  { from: 'public/Music/dist',               to: 'dist/music' },
 ];
 
 function copyDir(src, dest) {
