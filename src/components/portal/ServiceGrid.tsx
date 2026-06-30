@@ -25,7 +25,7 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Services that open as external sub-apps (full page navigation)
-const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/", "/series/", "/sports/"]);
+const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/", "/series/", "/sports/", "/music/"]);
 
 const ServiceGrid = () => {
   const { t } = useLanguage();
@@ -40,7 +40,7 @@ const ServiceGrid = () => {
     { icon: BookOpen, label: "webtoon", color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", path: "/webtoon/" },
     { icon: Store, label: "smartStore", color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400", path: "/smartstore" },
     { icon: Wallet, label: "pay", color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", path: "/pay" },
-    { icon: Music, label: "music", color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400", path: "/music" },
+    { icon: Music, label: "music", color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400", path: "/music/" },
     { icon: Tv, label: "tv", color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", path: "/tv" },
     { icon: BookMarked, label: "series", color: "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400", path: "/series/" },
     { icon: Languages, label: "translate", color: "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", path: "/translate" },

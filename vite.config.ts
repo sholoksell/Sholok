@@ -291,6 +291,18 @@ export default defineConfig(({ mode }) => ({
             }
           }
 
+          // Music sub-app (সুরবাংলা)
+          if (url === '/music' || url === '/music/' || url.startsWith('/music/')) {
+            const distDir = path.resolve(__dirname, 'public/Music/dist');
+            if (isStaticAsset && serveStatic('/music', distDir)) return;
+            const musicIndex = path.resolve(distDir, 'index.html');
+            if (fs.existsSync(musicIndex)) {
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              res.end(fs.readFileSync(musicIndex, 'utf-8'));
+              return;
+            }
+          }
+
           next();
         });
       },

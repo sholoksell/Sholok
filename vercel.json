@@ -54,6 +54,9 @@
     { "source": "/sports/:path*", "destination": "/sports/index.html" },
     { "source": "/sports/", "destination": "/sports/index.html" },
     { "source": "/sports", "destination": "/sports/index.html" },
+    { "source": "/music/:path*", "destination": "/music/index.html" },
+    { "source": "/music/", "destination": "/music/index.html" },
+    { "source": "/music", "destination": "/music/index.html" },
     { "source": "/:path((?!api|admin-api).*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -119,6 +122,18 @@
     },
     {
       "source": "/sports/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/music",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/music/",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
