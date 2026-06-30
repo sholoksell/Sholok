@@ -48,5 +48,17 @@ dist-ssr
 !public/Job Portal/dist/**
 !public/multi-vendor admin/dist
 !public/multi-vendor admin/dist/**
+!public/Video Controls Admin/dist
+!public/Video Controls Admin/dist/**
+!public/Webtoon/webtoon-platform/dist
+!public/Webtoon/webtoon-platform/dist/**
+!public/Mail/dist
+!public/Mail/dist/**
+!public/Series/dist
+!public/Series/dist/**
+!public/Sports/dist
+!public/Sports/dist/**
+!public/Music/dist
+!public/Music/dist/**
 
 .vercel
