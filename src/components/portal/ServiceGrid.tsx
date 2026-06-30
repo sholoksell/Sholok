@@ -25,7 +25,7 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Services that open as external sub-apps (full page navigation)
-const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/"]);
+const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/", "/series/"]);
 
 const ServiceGrid = () => {
   const { t } = useLanguage();
@@ -42,7 +42,7 @@ const ServiceGrid = () => {
     { icon: Wallet, label: "pay", color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", path: "/pay" },
     { icon: Music, label: "music", color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400", path: "/music" },
     { icon: Tv, label: "tv", color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", path: "/tv" },
-    { icon: BookMarked, label: "series", color: "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400", path: "/series" },
+    { icon: BookMarked, label: "series", color: "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400", path: "/series/" },
     { icon: Languages, label: "translate", color: "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", path: "/translate" },
     { icon: BookOpen, label: "dictionary", color: "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-400", path: "/dictionary" },
     { icon: TrendingUp, label: "finance", color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400", path: "/finance" },

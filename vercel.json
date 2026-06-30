@@ -48,6 +48,9 @@
     { "source": "/mail/:path*", "destination": "/mail/index.html" },
     { "source": "/mail/", "destination": "/mail/index.html" },
     { "source": "/mail", "destination": "/mail/index.html" },
+    { "source": "/series/:path*", "destination": "/series/index.html" },
+    { "source": "/series/", "destination": "/series/index.html" },
+    { "source": "/series", "destination": "/series/index.html" },
     { "source": "/:path((?!api|admin-api).*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -89,6 +92,18 @@
     },
     {
       "source": "/mail/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/series",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/series/",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]

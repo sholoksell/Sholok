@@ -58,6 +58,12 @@ const MailRedirect = () => {
   return null;
 };
 
+// Series redirect component - redirects to Series sub-app at /series/
+const SeriesRedirect = () => {
+  window.location.replace('/series/');
+  return null;
+};
+
 // Lazy load other pages for better performance
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const News = lazy(() => import("./pages/News"));
@@ -74,7 +80,6 @@ const Health = lazy(() => import("./pages/Health"));
 const Cafe = lazy(() => import("./pages/Cafe"));
 const SmartStore = lazy(() => import("./pages/SmartStore"));
 const Pay = lazy(() => import("./pages/Pay"));
-const Series = lazy(() => import("./pages/Series"));
 const Music = lazy(() => import("./pages/Music"));
 const Dictionary = lazy(() => import("./pages/Dictionary"));
 const Finance = lazy(() => import("./pages/Finance"));
@@ -122,7 +127,8 @@ const App = () => (
                 <Route path="/health" element={<Health />} />
                 <Route path="/webtoon" element={<WebtoonRedirect />} />
                 <Route path="/webtoon/*" element={<WebtoonRedirect />} />
-                <Route path="/series" element={<Series />} />
+                <Route path="/series" element={<SeriesRedirect />} />
+                <Route path="/series/*" element={<SeriesRedirect />} />
                 <Route path="/tv" element={<TVRedirect />} />
                 <Route path="/tv/*" element={<TVRedirect />} />
                 <Route path="/VideoPlatform" element={<TVRedirect />} />

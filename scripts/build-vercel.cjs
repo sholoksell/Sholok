@@ -21,6 +21,7 @@ const copies = [
   { from: 'public/Video Controls Admin/dist', to: 'dist/VideoPlatform' },
   { from: 'public/Webtoon/webtoon-platform/dist', to: 'dist/webtoon' },
   { from: 'public/Mail/dist',                to: 'dist/mail' },
+  { from: 'public/Series/dist',              to: 'dist/series' },
 ];
 
 function copyDir(src, dest) {

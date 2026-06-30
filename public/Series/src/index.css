@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-50: #fdf2f3;
+  --color-brand-100: #fbe4e6;
+  --color-brand-200: #f5c1c8;
+  --color-brand-300: #ed99a5;
+  --color-brand-400: #dd5c70;
+  --color-brand-500: #c32f47;
+  --color-brand-600: #9e1b32;
+  --color-brand-700: #7d1529;
+  --color-brand-800: #5c1020;
+  --color-brand-900: #3f0a16;
+  --color-brand-950: #26060d;
+
+  --color-gold-50: #fdf9ec;
+  --color-gold-100: #faf0cb;
+  --color-gold-200: #f3dd92;
+  --color-gold-300: #ecc759;
+  --color-gold-400: #e5b431;
+  --color-gold-500: #d59a1f;
+  --color-gold-600: #b67818;
+  --color-gold-700: #915818;
+  --color-gold-800: #774719;
+  --color-gold-900: #653b19;
+
+  --color-emerald2-50: #ecfdf6;
+  --color-emerald2-100: #d1faea;
+  --color-emerald2-200: #a7f3d6;
+  --color-emerald2-300: #6ee7bb;
+  --color-emerald2-400: #34d39c;
+  --color-emerald2-500: #10b981;
+  --color-emerald2-600: #059468;
+  --color-emerald2-700: #047656;
+  --color-emerald2-800: #065e46;
+  --color-emerald2-900: #064d3b;
+
+  --font-bangla: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+  --shadow-soft: 0 4px 24px -4px rgba(0,0,0,0.08);
+  --shadow-glow: 0 0 30px -5px rgba(195,47,71,0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+  background-color: #fafafa;
+  color: #1f1623;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark body {
+  background-color: #120c14;
+  color: #f3eef5;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c32f47, #9e1b32);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9e1b32, #7d1529);
+  background-clip: padding-box;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+html.dark .glass {
+  background: rgba(30, 20, 33, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #c32f47, #d59a1f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 37%, rgba(0,0,0,0.06) 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+html.dark .skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.06) 63%);
+  background-size: 400px 100%;
+}
