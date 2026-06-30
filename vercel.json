@@ -32,6 +32,8 @@
     { "source": "/VideoPlatform", "destination": "/VideoPlatform/index.html" },
     { "source": "/tv/:path*", "destination": "/VideoPlatform/index.html" },
     { "source": "/tv", "destination": "/VideoPlatform/index.html" },
+    { "source": "/webtoon/:path*", "destination": "/webtoon/index.html" },
+    { "source": "/webtoon", "destination": "/webtoon/index.html" },
     { "source": "/:path((?!api|admin-api).*)", "destination": "/index.html" }
   ]
 }

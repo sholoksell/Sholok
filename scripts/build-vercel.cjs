@@ -19,6 +19,7 @@ const copies = [
   { from: 'public/Job Portal/dist',         to: 'dist/job-portal' },
   { from: 'public/multi-vendor admin/dist', to: 'dist/home/admin' },
   { from: 'public/Video Controls Admin/dist', to: 'dist/VideoPlatform' },
+  { from: 'public/Webtoon/webtoon-platform/dist', to: 'dist/webtoon' },
 ];
 
 function copyDir(src, dest) {

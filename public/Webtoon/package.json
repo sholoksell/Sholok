@@ -1,0 +1,9 @@
+{
+  "name": "webtoon-root",
+  "private": true,
+  "scripts": {
+    "dev": "cd webtoon-platform && npm run dev",
+    "build": "cd webtoon-platform && npm run build",
+    "preview": "cd webtoon-platform && npm run preview"
+  }
+}
