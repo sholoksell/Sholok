@@ -46,6 +46,12 @@ const TVRedirect = () => {
   return null;
 };
 
+// Webtoon redirect component - redirects to Webtoon sub-app at /webtoon/
+const WebtoonRedirect = () => {
+  window.location.replace('/webtoon/');
+  return null;
+};
+
 // Lazy load other pages for better performance
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const News = lazy(() => import("./pages/News"));
@@ -63,7 +69,6 @@ const Mail = lazy(() => import("./pages/Mail"));
 const Cafe = lazy(() => import("./pages/Cafe"));
 const SmartStore = lazy(() => import("./pages/SmartStore"));
 const Pay = lazy(() => import("./pages/Pay"));
-const Webtoon = lazy(() => import("./pages/Webtoon"));
 const Series = lazy(() => import("./pages/Series"));
 const Music = lazy(() => import("./pages/Music"));
 const Dictionary = lazy(() => import("./pages/Dictionary"));
@@ -110,7 +115,8 @@ const App = () => (
                 <Route path="/maps" element={<Maps />} />
                 <Route path="/translate" element={<Translate />} />
                 <Route path="/health" element={<Health />} />
-                <Route path="/webtoon" element={<Webtoon />} />
+                <Route path="/webtoon" element={<WebtoonRedirect />} />
+                <Route path="/webtoon/*" element={<WebtoonRedirect />} />
                 <Route path="/series" element={<Series />} />
                 <Route path="/tv" element={<TVRedirect />} />
                 <Route path="/tv/*" element={<TVRedirect />} />

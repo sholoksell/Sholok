@@ -25,7 +25,7 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Services that open as external sub-apps (full page navigation)
-const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/"]);
+const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/"]);
 
 const ServiceGrid = () => {
   const { t } = useLanguage();
@@ -37,7 +37,7 @@ const ServiceGrid = () => {
     { icon: ShoppingCart, label: "shopping", color: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400", path: "/shopping/" },
     { icon: Newspaper, label: "news", color: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400", path: "/news" },
     { icon: MapPin, label: "maps", color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400", path: "/maps" },
-    { icon: BookOpen, label: "webtoon", color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", path: "/webtoon" },
+    { icon: BookOpen, label: "webtoon", color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", path: "/webtoon/" },
     { icon: Store, label: "smartStore", color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400", path: "/smartstore" },
     { icon: Wallet, label: "pay", color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", path: "/pay" },
     { icon: Music, label: "music", color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400", path: "/music" },
