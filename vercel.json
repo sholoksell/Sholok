@@ -35,5 +35,25 @@
     { "source": "/webtoon/:path*", "destination": "/webtoon/index.html" },
     { "source": "/webtoon", "destination": "/webtoon/index.html" },
     { "source": "/:path((?!api|admin-api).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/webtoon",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/shopping",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
   ]
 }
