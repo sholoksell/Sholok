@@ -64,6 +64,12 @@ const SeriesRedirect = () => {
   return null;
 };
 
+// Sports redirect component - redirects to Sports sub-app at /sports/
+const SportsRedirect = () => {
+  window.location.replace('/sports/');
+  return null;
+};
+
 // Lazy load other pages for better performance
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const News = lazy(() => import("./pages/News"));
@@ -83,7 +89,7 @@ const Pay = lazy(() => import("./pages/Pay"));
 const Music = lazy(() => import("./pages/Music"));
 const Dictionary = lazy(() => import("./pages/Dictionary"));
 const Finance = lazy(() => import("./pages/Finance"));
-const Sports = lazy(() => import("./pages/Sports"));
+// Sports moved to sub-app at /sports/
 const Weather = lazy(() => import("./pages/Weather"));
 const RealEstate = lazy(() => import("./pages/RealEstate"));
 
@@ -136,7 +142,8 @@ const App = () => (
                 <Route path="/music" element={<Music />} />
                 <Route path="/dictionary" element={<Dictionary />} />
                 <Route path="/finance" element={<Finance />} />
-                <Route path="/sports" element={<Sports />} />
+                <Route path="/sports" element={<SportsRedirect />} />
+                <Route path="/sports/*" element={<SportsRedirect />} />
                 <Route path="/weather" element={<Weather />} />
                 <Route path="/realestate" element={<RealEstate />} />
 

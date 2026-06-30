@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+
+  --color-bd-green: #006a4e;
+  --color-bd-green-dark: #004d38;
+  --color-bd-red: #f42a41;
+  --color-gold: #f2b705;
+
+  --color-surface: #0b1220;
+  --color-surface-2: #111a2e;
+  --color-surface-3: #182438;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0b1220;
+  color: #e6e9f0;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1220;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #006a4e, #f2b705);
+  border-radius: 999px;
+}
+
+.glass {
+  background: rgba(17, 26, 46, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.text-gradient-bd {
+  background: linear-gradient(90deg, #f2b705, #f42a41 60%, #006a4e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.light body {
+  background-color: #f4f6fb;
+  color: #14181f;
+}

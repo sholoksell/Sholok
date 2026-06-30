@@ -22,6 +22,7 @@ const copies = [
   { from: 'public/Webtoon/webtoon-platform/dist', to: 'dist/webtoon' },
   { from: 'public/Mail/dist',                to: 'dist/mail' },
   { from: 'public/Series/dist',              to: 'dist/series' },
+  { from: 'public/Sports/dist',              to: 'dist/sports' },
 ];
 
 function copyDir(src, dest) {

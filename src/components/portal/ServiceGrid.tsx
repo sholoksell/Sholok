@@ -25,7 +25,7 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Services that open as external sub-apps (full page navigation)
-const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/", "/series/"]);
+const EXTERNAL_PATHS = new Set(["/shopping/", "/job-portal/", "/home/admin/", "/webtoon/", "/mail/", "/series/", "/sports/"]);
 
 const ServiceGrid = () => {
   const { t } = useLanguage();
@@ -46,7 +46,7 @@ const ServiceGrid = () => {
     { icon: Languages, label: "translate", color: "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", path: "/translate" },
     { icon: BookOpen, label: "dictionary", color: "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-400", path: "/dictionary" },
     { icon: TrendingUp, label: "finance", color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400", path: "/finance" },
-    { icon: Trophy, label: "sports", color: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400", path: "/sports" },
+    { icon: Trophy, label: "sports", color: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400", path: "/sports/" },
     { icon: Cloud, label: "weather", color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", path: "/weather" },
     { icon: Building2, label: "realEstate", color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", path: "/realestate" },
     { icon: LineChart, label: "knowledgeIn", color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400", path: "/qna" },

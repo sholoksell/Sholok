@@ -51,6 +51,9 @@
     { "source": "/series/:path*", "destination": "/series/index.html" },
     { "source": "/series/", "destination": "/series/index.html" },
     { "source": "/series", "destination": "/series/index.html" },
+    { "source": "/sports/:path*", "destination": "/sports/index.html" },
+    { "source": "/sports/", "destination": "/sports/index.html" },
+    { "source": "/sports", "destination": "/sports/index.html" },
     { "source": "/:path((?!api|admin-api).*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -104,6 +107,18 @@
     },
     {
       "source": "/series/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/sports",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/sports/",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
