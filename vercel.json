@@ -67,6 +67,18 @@
       ]
     },
     {
+      "source": "/shopping/admin/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/shopping/admin",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
       "source": "/webtoon",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
