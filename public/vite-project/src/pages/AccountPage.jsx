@@ -334,13 +334,34 @@ const AccountPage = () => {
 
                       {/* Order header */}
                       <div
-                        className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/30"
+                        className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/30 gap-3"
                         onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
                       >
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="font-semibold">{order.orderNumber}</p>
                           <p className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleDateString('en-GB')}</p>
-                          <p className="text-sm">{order.items?.length || 0} items</p>
+                          {/* Product thumbnails strip */}
+                          {order.items?.length > 0 && (
+                            <div className="flex gap-1.5 mt-2 flex-wrap">
+                              {order.items.slice(0, 5).map((item, idx) => {
+                                const img = item.image || item.thumbnail || item.productId?.thumbnail || item.productId?.images?.[0];
+                                const name = item.productName || item.name || (typeof item.productId?.name === 'object' ? item.productId.name?.en : item.productId?.name) || '';
+                                return img ? (
+                                  <img key={idx} src={getImageUrl(img)} alt={name} title={name}
+                                    className="w-10 h-10 object-contain rounded border bg-white flex-shrink-0" />
+                                ) : (
+                                  <div key={idx} className="w-10 h-10 rounded border bg-muted flex items-center justify-center flex-shrink-0" title={name}>
+                                    <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                );
+                              })}
+                              {order.items.length > 5 && (
+                                <div className="w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                                  +{order.items.length - 5}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                           <p className="font-bold">৳{order.total}</p>
@@ -423,10 +444,10 @@ const AccountPage = () => {
                               <div className="space-y-3">
                                 {order.items.map((item, idx) => (
                                   <div key={idx} className="flex items-center gap-3">
-                                    {item.image || item.thumbnail || item.productId?.thumbnail ? (
+                                    {(item.image || item.thumbnail || item.productId?.thumbnail || item.productId?.images?.[0]) ? (
                                       <img
-                                        src={getImageUrl(item.image || item.thumbnail || item.productId?.thumbnail)}
-                                        alt={item.name}
+                                        src={getImageUrl(item.image || item.thumbnail || item.productId?.thumbnail || item.productId?.images?.[0])}
+                                        alt={item.productName || item.name || ''}
                                         className="w-12 h-12 object-contain rounded bg-white border"
                                       />
                                     ) : (
@@ -435,7 +456,7 @@ const AccountPage = () => {
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium line-clamp-1">{item.name}</p>
+                                      <p className="text-sm font-medium line-clamp-1">{item.productName || item.name || (typeof item.productId?.name === 'object' ? item.productId.name?.en : item.productId?.name) || 'Product'}</p>
                                       {item.variant && <p className="text-xs text-muted-foreground">{item.variant}</p>}
                                     </div>
                                     <div className="text-right flex-shrink-0">
