@@ -103,6 +103,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Track last login date and IP
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+    await Customer.findByIdAndUpdate(customer._id, {
+      lastLoginDate: new Date(),
+      lastLoginIp: ip,
+    });
+
     res.json({
       token,
       customer: {
