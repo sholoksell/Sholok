@@ -314,10 +314,6 @@ const ProductPage = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-foreground mb-2">{product.name}</h1>
                         <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Unit:</span>
-                                <span className="font-medium bg-muted px-2 py-0.5 rounded text-sm">{product.unit || 'Each'}</span>
-                            </div>
                             <div className="flex items-center gap-1 text-yellow-400">
                                 <Star className="h-4 w-4 fill-current" />
                                 <span className="text-foreground font-medium text-sm">{reviewStats?.averageRating || '0'}</span>
@@ -342,7 +338,6 @@ const ProductPage = () => {
                             <span className="text-lg text-muted-foreground line-through mb-1">{formatPrice(product.comparePrice)}</span>
                         )}
                         <span className="text-3xl font-bold text-[#E31E24]">{formatPrice(product.price || product.salePrice || product.regularPrice)}</span>
-                        <span className="text-sm text-muted-foreground mb-1">{product.unit ? `Per ${product.unit.replace(/^per\s+/i, '')}` : 'Per Piece'}</span>
                     </div>
 
                     {/* Quantity + Add to bag */}
@@ -531,10 +526,6 @@ const ProductPage = () => {
 
                                 {/* Quick info grid — always shown for a polished look */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t">
-                                    <div className="bg-muted/40 rounded-lg p-3">
-                                        <div className="text-xs text-muted-foreground">Unit</div>
-                                        <div className="font-semibold text-sm mt-0.5">{product.unit || 'Each'}</div>
-                                    </div>
                                     {product.brand && (
                                         <div className="bg-muted/40 rounded-lg p-3">
                                             <div className="text-xs text-muted-foreground">Brand</div>
