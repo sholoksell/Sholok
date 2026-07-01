@@ -4,6 +4,7 @@ import Header from './Header';
 import Footer from './Footer';
 import CartSidebar from './CartSidebar';
 import MobileBottomNav from './MobileBottomNav';
+import CategoryNavBar from './CategoryNavBar';
 import { autoDetectDeliveryLocation } from '@/hooks/useDeliveryLocation';
 
 const MainLayout = () => {
@@ -16,6 +17,7 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <CategoryNavBar />
       <main className="flex-1 pb-20 md:pb-0">
         <Outlet />
       </main>
