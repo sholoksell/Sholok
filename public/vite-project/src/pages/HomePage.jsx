@@ -289,128 +289,13 @@ const HomePage = () => {
       {/* Debug component - remove after fixing images */}
       {allProducts.length > 0 && <ImageDebugger products={allProducts} />}
 
-      {/* Sidebar + Hero Section Container */}
+      {/* Hero Section Container */}
       <div className="relative">
         <div className="container mx-auto px-0 lg:px-4">
           <div className="flex">
 
-            {/* Level 1: Main Sidebar (Always Visible on Desktop/Tablet) */}
-            <div className="hidden md:block w-60 bg-white shadow-2xl z-40 relative min-h-[400px] border-r border-gray-100">
-
-              <div className="py-2 bg-white min-h-[350px]">
-                {displayCategories.length === 0 && (
-                  <div className="py-2">
-                    {[...Array(10)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 animate-pulse">
-                        <div className="w-5 h-5 bg-gray-200 rounded"></div>
-                        <div className="h-3 bg-gray-200 rounded flex-1"></div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {displayCategories.map((cat, index) => (
-                  <div
-                    key={cat._id || cat.id}
-                    className="group relative"
-                    onMouseEnter={() => {
-                      setHoveredCategory(cat._id || cat.id);
-                      setHoveredSubcategory(null);
-                    }}
-                    onMouseLeave={() => {
-                      setHoveredCategory(null);
-                      setHoveredSubcategory(null);
-                    }}
-                  >
-                    <div
-                      className={`flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer border-b border-gray-100 transition-colors ${
-                        hoveredCategory === (cat._id || cat.id) 
-                          ? 'bg-[#E31E24] text-white' 
-                          : 'text-gray-700 hover:bg-gray-100/50 hover:text-[#E31E24]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 pointer-events-none">
-                        <span className="w-5 h-5 flex items-center justify-center opacity-70">
-                          <CategoryIcon icon={cat.icon} image={cat.image} name={cat.name} className="w-5 h-5" />
-                        </span>
-                        <span className="font-medium">{getLocalizedField(cat, 'name')}</span>
-                      </div>
-                      {cat.subcategories && cat.subcategories.length > 0 && (
-                        <ChevronRight className={`h-4 w-4 flex-shrink-0 ${hoveredCategory === (cat._id || cat.id) ? 'text-white' : 'text-gray-400'}`} />
-                      )}
-                    </div>
-
-                    {/* Level 2: Subcategory Flyout - Only show when hovering THIS specific category */}
-                    {hoveredCategory === (cat._id || cat.id) && cat.subcategories && cat.subcategories.length > 0 && (
-                      <div 
-                        className="absolute top-0 left-full w-64 bg-white shadow-2xl border border-gray-200 z-[100]"
-                        style={{ minHeight: '400px' }}
-                        onMouseEnter={() => setHoveredCategory(cat._id || cat.id)}
-                        onMouseLeave={() => {
-                          setHoveredCategory(null);
-                          setHoveredSubcategory(null);
-                        }}
-                      >
-                        <div className="py-2 bg-white">
-                          {cat.subcategories.map((subcat, subIndex) => (
-                            <div 
-                              key={subcat._id || subcat.id} 
-                              className="relative"
-                              onMouseEnter={() => setHoveredSubcategory(subcat._id || subcat.id)}
-                              onMouseLeave={() => setHoveredSubcategory(null)}
-                            >
-                              <Link
-                                to={`/category/${subcat.slug}`}
-                                className={`flex items-center justify-between px-4 py-2.5 text-sm border-b border-gray-100 transition-colors ${
-                                  hoveredSubcategory === (subcat._id || subcat.id) && subcat.subcategories && subcat.subcategories.length > 0
-                                    ? 'bg-[#E31E24] text-white'
-                                    : 'text-gray-700 hover:bg-gray-50 hover:text-[#E31E24]'
-                                }`}
-                              >
-                                <span>{subcat.name}</span>
-                                {subcat.subcategories && subcat.subcategories.length > 0 && (
-                                  <ChevronRight className={`h-4 w-4 ${hoveredSubcategory === (subcat._id || subcat.id) ? 'text-white' : 'text-gray-400'}`} />
-                                )}
-                              </Link>
-
-                              {/* Level 3: Third Level Flyout */}
-                              {hoveredSubcategory === (subcat._id || subcat.id) && subcat.subcategories && subcat.subcategories.length > 0 && (
-                                <div 
-                                  className="absolute top-0 left-full w-56 bg-white shadow-2xl border border-gray-200 z-[110]"
-                                  style={{ minHeight: '400px' }}
-                                  onMouseEnter={() => setHoveredSubcategory(subcat._id || subcat.id)}
-                                  onMouseLeave={() => setHoveredSubcategory(null)}
-                                >
-                                  <div className="py-2">
-                                    {subcat.subcategories.map((thirdLevel) => (
-                                      <div key={thirdLevel._id || thirdLevel.id}>
-                                        <Link
-                                          to={`/category/${thirdLevel.slug}`}
-                                          className="block px-4 py-2.5 text-sm text-gray-700 hover:text-[#E31E24] hover:bg-gray-50 border-b border-gray-100 transition-colors"
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            <span>{thirdLevel.name}</span>
-                                            {thirdLevel.subcategories && thirdLevel.subcategories.length > 0 && (
-                                              <ChevronRight className="h-4 w-4 text-gray-400" />
-                                            )}
-                                          </div>
-                                        </Link>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Hero Slider Area */}
-            <div className="flex-1 min-w-0 bg-white lg:ml-0">
+            {/* Hero Slider Area — full width */}
+            <div className="flex-1 min-w-0 bg-white">
               {/* Promotional Text Banner */}
               {(() => {
                 const fb = homeSections['festival-banner'];
