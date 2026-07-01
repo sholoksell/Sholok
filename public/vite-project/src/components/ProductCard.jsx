@@ -128,9 +128,9 @@ const ProductCard = memo(({ product }) => {
               <span className="text-xs text-gray-400 line-through">{formatPrice(comparePrice)}</span>
             )}
           </div>
-          <p className="text-[11px] text-gray-500">
-            {unit}{minQty ? ` (Min. ${minQty})` : ''}
-          </p>
+          {minQty > 1 && (
+            <p className="text-[11px] text-gray-500">(Min. {minQty})</p>
+          )}
 
           {/* Add to Bag Button */}
           <button
