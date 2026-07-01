@@ -282,7 +282,7 @@ export default function Reviews() {
                           />
                         )}
                         <div>
-                          <p className="font-medium">{review.productId?.name || 'Unknown Product'}</p>
+                          <p className="font-medium">{typeof review.productId?.name === 'object' ? (review.productId.name?.en || review.productId.name?.bn || 'Unknown Product') : (review.productId?.name || 'Unknown Product')}</p>
                           <p className="text-sm text-muted-foreground">
                             by {review.customerId?.name || 'Unknown'} ({review.customerId?.email || ''})
                           </p>
