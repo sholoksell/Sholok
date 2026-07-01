@@ -60,7 +60,7 @@ const ShopByCategoryMenu = () => {
       {/* Toggle Button */}
       <button
         onClick={toggleMenu}
-        className="flex items-center gap-2 px-4 py-2 bg-[#E31E24] hover:bg-[#c41920] text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
+        className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-lg transition-colors shadow-sm hover:shadow-md font-bold text-sm"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         <span className="font-semibold">SHOP BY CATEGORY</span>
