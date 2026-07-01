@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,6 +36,28 @@ import { Badge } from '@/components/ui/badge';
 import ImageUpload from './ImageUpload';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import Tree from 'rc-tree';
+import 'rc-tree/assets/index.css';
+
+const TREE_STYLE = `
+  .product-cat-tree .rc-tree { font-size: 13px; line-height: 1.6; }
+  .product-cat-tree .rc-tree-treenode { padding: 2px 0; display: flex; align-items: center; white-space: nowrap; }
+  .product-cat-tree .rc-tree-node-content-wrapper { border-radius: 4px; padding: 1px 4px; cursor: pointer; flex: 1; }
+  .product-cat-tree .rc-tree-node-content-wrapper:hover { background: rgba(255,255,255,0.08); }
+  .product-cat-tree .rc-tree-node-selected { background: rgba(99,102,241,0.25) !important; }
+  .product-cat-tree .rc-tree-switcher { display: inline-flex; align-items: center; justify-content: center; width: 16px; cursor: pointer; }
+  .product-cat-tree .rc-tree-iconEle { margin-right: 3px; }
+  .node-motion { transition: all .25s; overflow-y: hidden; }
+`;
+
+const treeMotion = {
+  motionName: 'node-motion',
+  motionAppear: false,
+  onAppearStart: () => ({ height: 0 }),
+  onAppearActive: (node: HTMLElement) => ({ height: node.scrollHeight }),
+  onLeaveStart: (node: HTMLElement) => ({ height: node.offsetHeight }),
+  onLeaveActive: () => ({ height: 0 }),
+};
 
 const productSchema = z.object({
   // Multilingual name
@@ -432,20 +454,21 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
     setTags(tags.filter((t) => t !== tag));
   };
 
-  const getCategoryPath = (category: Category): string => {
-    const path: string[] = [category.name];
-    let current = category;
-    while (current.parentId) {
-      const parent = categories.find((c) => c.id === current.parentId);
-      if (parent) {
-        path.unshift(parent.name);
-        current = parent;
-      } else {
-        break;
-      }
-    }
-    return path.join(' > ');
-  };
+  const categoryTreeData = useMemo(() => {
+    const buildNodes = (parentId: string | null): any[] =>
+      categories
+        .filter((c) => c.parentId === parentId)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.name.localeCompare(b.name))
+        .map((c) => {
+          const children = buildNodes(c.id);
+          return {
+            key: c.id,
+            title: c.name,
+            ...(children.length > 0 ? { children } : { isLeaf: true }),
+          };
+        });
+    return buildNodes(null);
+  }, [categories]);
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true);
@@ -635,33 +658,52 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                   <FormField
                     control={form.control}
                     name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select
-                          value={field.value || 'none'}
-                          onValueChange={(v) => field.onChange(v === 'none' ? '' : v)}
-                        >
+                    render={({ field }) => {
+                      const selectedName = field.value
+                        ? (categories.find((c) => c.id === field.value)?.name ?? '')
+                        : '';
+                      const selectedKeys = field.value ? [field.value] : [];
+                      const handleSelect = (keys: React.Key[]) => {
+                        const key = keys[0] as string;
+                        field.onChange(key || '');
+                      };
+                      return (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
                           <FormControl>
-                            <SelectTrigger className="bg-secondary border-border">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
+                            <div>
+                              <Input
+                                readOnly
+                                value={selectedName}
+                                placeholder="— Select a category —"
+                                className="bg-secondary border-border cursor-default mb-1"
+                              />
+                              <div className="product-cat-tree border border-border rounded-md p-2 bg-secondary/40 max-h-60 overflow-y-auto">
+                                <style dangerouslySetInnerHTML={{ __html: TREE_STYLE }} />
+                                <Tree
+                                  expandAction="click"
+                                  treeData={categoryTreeData}
+                                  selectedKeys={selectedKeys}
+                                  defaultExpandAll={false}
+                                  onSelect={handleSelect}
+                                  motion={treeMotion}
+                                />
+                              </div>
+                              {field.value && (
+                                <button
+                                  type="button"
+                                  onClick={() => field.onChange('')}
+                                  className="mt-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                  ✕ Clear selection
+                                </button>
+                              )}
+                            </div>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">No Category</SelectItem>
-                            {categories
-                              .slice()
-                              .sort((a, b) => getCategoryPath(a).localeCompare(getCategoryPath(b)))
-                              .map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {getCategoryPath(cat)}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
