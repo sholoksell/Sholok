@@ -77,7 +77,7 @@ const productSchema = z.object({
   lowStockThreshold: z.number().min(0),
   weight: z.number().min(0),
   metaTitle: z.string().max(60).optional(),
-  metaDescription: z.string().max(160).optional(),
+  metaDescription: z.string().optional(),
   status: z.enum(['draft', 'published', 'out_of_stock', 'archived']),
   featured: z.boolean(),
   isNew: z.boolean(),
@@ -266,6 +266,8 @@ function ProductPicker({
   );
 }
 
+const stripHtml = (html: string) => html ? html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() : '';
+
 export default function ProductFormDialog({ open, onOpenChange, product }: Props) {
   const { products, addProduct, updateProduct } = useProductStore();
   const { categories } = useCategoryStore();
@@ -328,7 +330,7 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
         lowStockThreshold: product.lowStockThreshold,
         weight: product.weight,
         metaTitle: product.metaTitle || '',
-        metaDescription: product.metaDescription || '',
+        metaDescription: stripHtml(product.metaDescription || ''),
         status: product.status,
         featured: product.featured,
         isNew: product.isNew,
@@ -1252,18 +1254,14 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                   name="metaDescription"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta Description (max 160 chars)</FormLabel>
+                      <FormLabel>Meta Description</FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
-                          maxLength={160}
                           rows={3}
                           className="bg-secondary border-border resize-none"
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        {field.value?.length || 0}/160 characters
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
