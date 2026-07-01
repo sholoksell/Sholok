@@ -82,8 +82,8 @@ const categorySchema = z.object({
   icon: z.string().optional(),
   image: z.string().optional(),
   banner: z.string().optional(),
-  metaTitle: z.string().max(60).optional(),
-  metaDescription: z.string().max(160).optional(),
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
   status: z.enum(['active', 'inactive']),
   featured: z.boolean(),
   position: z.number().min(0),
@@ -719,18 +719,14 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Pro
                   name="metaTitle"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta Title (max 60 chars)</FormLabel>
+                      <FormLabel>Meta Title</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           placeholder="SEO title for search engines"
-                          maxLength={60}
                           className="bg-secondary border-border"
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        {field.value?.length || 0}/60 characters
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -741,19 +737,15 @@ export default function CategoryFormDialog({ open, onOpenChange, category }: Pro
                   name="metaDescription"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta Description (max 160 chars)</FormLabel>
+                      <FormLabel>Meta Description</FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
                           placeholder="SEO description for search engines"
-                          maxLength={160}
                           rows={3}
                           className="bg-secondary border-border resize-none"
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        {field.value?.length || 0}/160 characters
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

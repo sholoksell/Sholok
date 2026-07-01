@@ -76,7 +76,7 @@ const productSchema = z.object({
   stock: z.number().min(0),
   lowStockThreshold: z.number().min(0),
   weight: z.number().min(0),
-  metaTitle: z.string().max(60).optional(),
+  metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   status: z.enum(['draft', 'published', 'out_of_stock', 'archived']),
   featured: z.boolean(),
@@ -1233,17 +1233,13 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
                   name="metaTitle"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta Title (max 60 chars)</FormLabel>
+                      <FormLabel>Meta Title</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          maxLength={60}
                           className="bg-secondary border-border"
                         />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        {field.value?.length || 0}/60 characters
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
