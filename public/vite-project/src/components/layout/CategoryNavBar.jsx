@@ -67,7 +67,7 @@ const CategoryNavBar = () => {
             onMouseLeave={handleMenuLeave}
           >
             <button
-              className="flex items-center gap-2 h-full px-4 font-bold text-sm text-gray-800 hover:text-[#E31E24] border-r border-gray-200 transition-colors select-none whitespace-nowrap"
+              className={`flex items-center gap-2 h-full px-4 font-bold text-sm border-r border-gray-200 transition-colors select-none whitespace-nowrap bg-white ${isMenuOpen ? 'text-[#E31E24]' : 'text-gray-800 hover:text-[#E31E24]'}`}
               onClick={() => setIsMenuOpen((v) => !v)}
             >
               <Menu className="w-4 h-4" />
