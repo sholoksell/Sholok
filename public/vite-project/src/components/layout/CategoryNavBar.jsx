@@ -77,14 +77,11 @@ const CategoryNavBar = () => {
               <div className="absolute top-full left-0 z-50 flex bg-white shadow-2xl border border-gray-200 rounded-b-lg overflow-hidden min-w-[220px]">
                 <ul className="w-56 py-2 border-r border-gray-100 max-h-[420px] overflow-y-auto">
                   {topCategories.map((cat) => (
-                    <li
-                      key={cat._id}
-                      onMouseEnter={() => setActiveCategory(cat)}
-                      onMouseLeave={() => setActiveCategory(null)}
-                    >
+                    <li key={cat._id}>
                       <Link
                         to={`/category/${cat.slug}`}
                         onClick={() => setIsMenuOpen(false)}
+                        onMouseEnter={() => setActiveCategory(cat)}
                         className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                           activeCategory?._id === cat._id
                             ? 'bg-red-50 text-[#E31E24]'
@@ -95,8 +92,8 @@ const CategoryNavBar = () => {
                           <CategoryIcon icon={cat.icon} name={cat.name} asText className="w-5 h-5" />
                         </span>
                         <span className="flex-1 font-medium">{cat.name}</span>
-                        {activeSubs.length > 0 && activeCategory?._id === cat._id && (
-                          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                        {(cat.subcategories?.length > 0 || cat.children?.length > 0) && (
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         )}
                       </Link>
                     </li>
@@ -114,28 +111,22 @@ const CategoryNavBar = () => {
                 </ul>
 
                 {activeCategory && activeSubs.length > 0 && (
-                  <div
-                    className="w-64 p-4 bg-gray-50 max-h-[420px] overflow-y-auto"
-                    onMouseEnter={() => clearTimeout(closeTimer.current)}
-                    onMouseLeave={handleMenuLeave}
-                  >
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wide">
+                  <div className="w-64 py-2 bg-white max-h-[420px] overflow-y-auto">
+                    <p className="text-xs font-bold text-gray-400 uppercase px-4 pt-2 pb-1 tracking-wide">
                       {activeCategory.name}
                     </p>
-                    <ul className="grid grid-cols-1 gap-1">
+                    <ul>
                       {activeSubs.map((sub) => (
                         <li key={sub._id}>
                           <Link
                             to={`/category/${sub.slug}`}
                             onClick={() => setIsMenuOpen(false)}
-                            className="flex items-center gap-2 px-3 py-2 rounded text-sm text-gray-700 hover:bg-white hover:text-[#E31E24] hover:shadow-sm transition-all"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-[#E31E24] transition-colors border-b border-gray-50"
                           >
                             {sub.icon && (
-                              <span className="text-sm">
-                                <CategoryIcon icon={sub.icon} name={sub.name} asText className="w-4 h-4" />
-                              </span>
+                              <CategoryIcon icon={sub.icon} name={sub.name} asText className="w-4 h-4 flex-shrink-0" />
                             )}
-                            {sub.name}
+                            <span>{sub.name}</span>
                           </Link>
                         </li>
                       ))}
