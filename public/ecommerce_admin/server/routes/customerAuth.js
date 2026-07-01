@@ -48,6 +48,9 @@ router.post('/register', async (req, res) => {
       status: 'active',
     });
 
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+    customer.lastLoginDate = new Date();
+    customer.lastLoginIp = ip;
     await customer.save();
 
     const token = jwt.sign(
