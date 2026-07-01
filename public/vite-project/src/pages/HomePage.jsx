@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock, Truck, Shield, CreditCard, Sparkles } from 'lucide-react';
+import PremiumCategoryGrid from '@/components/PremiumCategoryGrid';
 import OfferSlider from '@/components/OfferSlider';
 import ProductCard from '@/components/ProductCard';
 import FeaturedCarousel from '@/components/FeaturedCarousel';
@@ -295,9 +296,7 @@ const HomePage = () => {
 
             {/* Level 1: Main Sidebar (Always Visible on Desktop/Tablet) */}
             <div className="hidden md:block w-60 bg-white shadow-2xl z-40 relative min-h-[400px] border-r border-gray-100">
-              <div className="bg-[#E31E24] text-white px-4 py-3 font-bold text-sm uppercase flex items-center gap-2">
-                <span>☰</span> SHOP BY CATEGORY
-              </div>
+
               <div className="py-2 bg-white min-h-[350px]">
                 {displayCategories.length === 0 && (
                   <div className="py-2">
@@ -974,6 +973,8 @@ const HomePage = () => {
           </section>
         ))}
       </div>
+      {/* ── Premium Category Grid — full width below sidebar layout ── */}
+      <PremiumCategoryGrid />
     </div>
   );
 };
