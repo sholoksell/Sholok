@@ -380,7 +380,7 @@ export default function ProductFormDialog({ open, onOpenChange, product }: Props
       setUpsellProducts([]);
       setCrossSellProducts([]);
     }
-  }, [product, form]);
+  }, [product, open, form]);
 
   const [isTranslating, setIsTranslating] = useState(false);
 
