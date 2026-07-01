@@ -137,7 +137,7 @@ const CategoryPage = () => {
           <div>
             <h1 className="text-3xl font-bold">{category.name}</h1>
             {category.description && (
-              <p className="text-muted-foreground mt-1">{category.description}</p>
+              <p className="text-muted-foreground mt-1" dangerouslySetInnerHTML={{ __html: category.description }} />
             )}
           </div>
         </div>
