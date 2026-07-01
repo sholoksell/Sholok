@@ -62,15 +62,17 @@ const AccountPage = () => {
 
   const handlePrintInvoice = (order) => {
     const win = window.open('', '_blank');
+    const resolveStr = (v) => !v ? '' : (typeof v === 'object' ? (v.en || v.bn || '') : String(v));
     const items = (order.items || []).map(item => `
       <tr style="border-bottom:1px solid #eee">
-        <td style="padding:8px">${item.name}${item.variant ? ` (${item.variant})` : ''}</td>
+        <td style="padding:8px">${resolveStr(item.productName || item.name)}${item.variant ? ` (${item.variant})` : ''}</td>
         <td style="padding:8px;text-align:center">${item.quantity}</td>
         <td style="padding:8px;text-align:right">৳${(item.price || 0).toLocaleString()}</td>
         <td style="padding:8px;text-align:right">৳${((item.price || 0) * item.quantity).toLocaleString()}</td>
       </tr>`).join('');
     const addr = order.deliveryAddress || order.shippingAddress || {};
-    const addrStr = [addr.addressLine1 || addr.street, addr.area || addr.city, addr.city || addr.state, addr.postalCode || addr.zipCode].filter(Boolean).join(', ');
+    const addrParts = [addr.name, addr.phone, addr.street || addr.addressLine1, addr.city || addr.area, addr.state, addr.zipCode || addr.postalCode, addr.country].filter(Boolean);
+    const addrStr = addrParts.join(', ');
     win.document.write(`<!DOCTYPE html><html><head><title>Invoice ${order.orderNumber}</title>
       <style>body{font-family:Arial,sans-serif;padding:24px;max-width:700px;margin:0 auto}h1{font-size:22px;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f5f5f5;padding:8px;text-align:left}td{padding:8px}tfoot td{font-weight:bold;border-top:2px solid #333}@media print{button{display:none}}</style>
     </head><body>

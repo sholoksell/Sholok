@@ -87,6 +87,27 @@ const CheckoutPage = () => {
             };
 
             await orderService.create(orderData);
+
+            // Save shipping address to customer's address book
+            try {
+                const existingAddresses = await addressService.getAll();
+                const alreadySaved = existingAddresses.some(
+                    a => a.street === data.address && a.city === data.city
+                );
+                if (!alreadySaved) {
+                    await addressService.create({
+                        label: 'Home',
+                        name: data.fullName,
+                        phone: data.phone,
+                        street: data.address,
+                        city: data.city,
+                        state: data.area || '',
+                        country: 'Bangladesh',
+                        isDefault: existingAddresses.length === 0,
+                    });
+                }
+            } catch (_) { /* non-blocking */ }
+
             toast.success('Order placed successfully!');
             clearCart();
             navigate('/account'); // Redirect to order history
