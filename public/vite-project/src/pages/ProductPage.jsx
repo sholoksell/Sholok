@@ -15,6 +15,7 @@ import { homeSectionService } from '@/services/homeSectionService';
 import { useDeliveryLocation } from '@/hooks/useDeliveryLocation';
 import DeliveryLocationModal from '@/components/DeliveryLocationModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCategories } from '@/contexts/CategoryContext';
 
 const ProductPage = () => {
     const { slug } = useParams();
@@ -30,6 +31,22 @@ const ProductPage = () => {
     const [relatedSection, setRelatedSection] = useState(null);
     const [showLocationModal, setShowLocationModal] = useState(false);
     const { location: deliveryLocation } = useDeliveryLocation();
+    const { categories } = useCategories();
+
+    // Build full category breadcrumb path from product's category up to root
+    const categoryBreadcrumb = React.useMemo(() => {
+        if (!product || !categories.length) return [];
+        const catId = product.categoryId || product.category?._id || product.category?.id;
+        if (!catId) return product.category ? [{ name: product.category.name, slug: product.category.slug }] : [];
+        const path = [];
+        let current = categories.find(c => c._id === catId || c.id === catId);
+        while (current) {
+            path.unshift({ name: current.name, slug: current.slug });
+            const parentId = current.parentId;
+            current = parentId ? categories.find(c => c._id === parentId || c.id === parentId) : null;
+        }
+        return path;
+    }, [product, categories]);
     const { customer } = useAuth();
     const addToCart = useCartStore((state) => state.addToCart);
 
@@ -240,13 +257,15 @@ const ProductPage = () => {
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Breadcrumb */}
-            <nav className="flex items-center text-sm text-muted-foreground mb-8">
-                <Link to="/" className="hover:text-primary">Home</Link>
-                <ChevronRight className="h-4 w-4 mx-2" />
-                <Link to={`/category/${product.category?.slug}`} className="hover:text-primary">
-                    {product.category?.name || 'Category'}
-                </Link>
-                <ChevronRight className="h-4 w-4 mx-2" />
+            <nav className="flex items-center flex-wrap text-sm text-muted-foreground mb-8 gap-1">
+                <Link to="/" className="hover:text-primary shrink-0">Home</Link>
+                {categoryBreadcrumb.map((cat) => (
+                    <React.Fragment key={cat.slug}>
+                        <ChevronRight className="h-4 w-4 shrink-0" />
+                        <Link to={`/category/${cat.slug}`} className="hover:text-primary shrink-0">{cat.name}</Link>
+                    </React.Fragment>
+                ))}
+                <ChevronRight className="h-4 w-4 shrink-0" />
                 <span className="text-foreground font-medium truncate max-w-[200px]">{product.name}</span>
             </nav>
 
