@@ -35,15 +35,36 @@ const ProductPage = () => {
 
     // Build full category breadcrumb path from product's category up to root
     const categoryBreadcrumb = React.useMemo(() => {
-        if (!product || !categories.length) return [];
-        const catId = product.categoryId || product.category?._id || product.category?.id;
-        if (!catId) return product.category ? [{ name: product.category.name, slug: product.category.slug }] : [];
+        if (!product) return [];
+
+        // Flatten nested category tree into a map keyed by _id
+        const flatMap = {};
+        const flatten = (cats, parentId = null) => {
+            for (const c of cats) {
+                flatMap[c._id] = { ...c, parentId: c.parentId || parentId };
+                if (c.subcategories?.length) flatten(c.subcategories, c._id);
+                if (c.children?.length) flatten(c.children, c._id);
+            }
+        };
+        if (categories.length) flatten(categories);
+
+        // product.categoryId may be a populated object or a string ID
+        const catObj = product.categoryId && typeof product.categoryId === 'object' ? product.categoryId : null;
+        const catId = catObj ? (catObj._id || catObj.id) : (product.categoryId || product.category?._id || product.category?.id);
+
+        if (!catId && !catObj) {
+            return product.category ? [{ name: product.category.name, slug: product.category.slug }] : [];
+        }
+
         const path = [];
-        let current = categories.find(c => c._id === catId || c.id === catId);
-        while (current) {
+        // Walk up using flatMap; if not in flatMap, use the populated object itself
+        let current = flatMap[catId] || catObj;
+        const visited = new Set();
+        while (current && !visited.has(current._id || current.id)) {
+            visited.add(current._id || current.id);
             path.unshift({ name: current.name, slug: current.slug });
             const parentId = current.parentId;
-            current = parentId ? categories.find(c => c._id === parentId || c.id === parentId) : null;
+            current = parentId ? flatMap[parentId] : null;
         }
         return path;
     }, [product, categories]);
