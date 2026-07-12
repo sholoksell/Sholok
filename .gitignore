@@ -60,5 +60,9 @@ dist-ssr
 !public/Sports/dist/**
 !public/Music/dist
 !public/Music/dist/**
+!public/Knowledge/jiggasa-bd/dist
+!public/Knowledge/jiggasa-bd/dist/**
+!dist/qna
+!dist/qna/**
 
 .vercel
