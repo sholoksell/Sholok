@@ -80,7 +80,7 @@ const RealEstateSection = () => {
   const isBn = language === "BN";
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-6">
+    <div className="w-full py-6">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">

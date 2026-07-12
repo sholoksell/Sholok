@@ -9,6 +9,11 @@ import net from "net";
 export default defineConfig(({ mode }) => ({
   // Disable default public dir to prevent public/node_modules from shadowing real deps
   publicDir: false,
+  build: {
+    // Don't wipe sub-app dirs that live alongside the main-app output.
+    // Each sub-app dist is committed to dist/ and restored by build-vercel.cjs.
+    emptyOutDir: false,
+  },
   server: {
     host: "::",
     port: 8080,

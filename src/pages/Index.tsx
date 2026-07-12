@@ -11,28 +11,30 @@ const Index = () => {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <Header />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
         <ServiceGrid />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-2">
           {/* Main Content Column */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-2">
             <ShoppingSection />
             <RealEstateSection />
             <CafeSection />
           </div>
 
-          {/* Sidebar Column */}
-          <div className="hidden lg:block space-y-6">
+          {/* Sidebar Column — desktop only */}
+          <div className="hidden lg:flex flex-col gap-6">
             <WeatherWidget />
 
-            {/* Login Widget / Promo */}
             <div className="bg-card rounded-xl border border-border p-5 text-center shadow-sm">
               <p className="text-sm text-muted-foreground mb-4">{t("signInPrompt")}</p>
-              <a href="/login" className="block w-full py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors">
+              <a
+                href="/login"
+                className="block w-full py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors"
+              >
                 {t("login")}
               </a>
               <div className="mt-3 flex justify-center gap-2 text-xs text-muted-foreground">
@@ -42,10 +44,11 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mini Ad / Promo */}
-            <div className="bg-secondary/30 rounded-xl border border-border p-4 h-48 flex items-center justify-center relative overflow-hidden group cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-br from-portal-blue/10 to-portal-green/10"></div>
-              <span className="relative font-bold text-muted-foreground group-hover:scale-105 transition-transform">{t("adSpace")}</span>
+            <div className="bg-secondary/30 rounded-xl border border-border p-4 flex-1 min-h-[120px] flex items-center justify-center relative overflow-hidden group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-br from-portal-blue/10 to-portal-green/10" />
+              <span className="relative font-bold text-muted-foreground group-hover:scale-105 transition-transform">
+                {t("adSpace")}
+              </span>
             </div>
           </div>
         </div>

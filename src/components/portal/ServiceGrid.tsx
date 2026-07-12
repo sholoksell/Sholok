@@ -55,7 +55,7 @@ const ServiceGrid = () => {
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full py-6">
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-4">
         {services.map((service, index) =>
           EXTERNAL_PATHS.has(service.path) ? (

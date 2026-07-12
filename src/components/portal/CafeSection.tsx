@@ -1,9 +1,5 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin, Star, Coffee } from "lucide-react";
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 interface Cafe {
   _id: string;
@@ -127,24 +123,10 @@ const RatingStars = ({ rating }: { rating: number }) => {
 };
 
 const CafeSection = () => {
-  const [cafes, setCafes] = useState<Cafe[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/cafes`, { params: { city: "Dhaka", sort: "rating", limit: 5 } })
-      .then((res) => {
-        const data: Cafe[] = res.data?.cafes || [];
-        setCafes(data.length > 0 ? data : fallbackCafes);
-      })
-      .catch(() => setCafes(fallbackCafes))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const display = loading ? fallbackCafes : cafes;
+  const display = fallbackCafes;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-6">
+    <div className="w-full py-6">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">

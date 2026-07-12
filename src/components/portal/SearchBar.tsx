@@ -112,7 +112,7 @@ const SearchBar = ({ initialQuery = "" }: SearchBarProps) => {
   const hasDropContent = dictHints.length > 0 || apiResults.length > 0;
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4" ref={wrapRef}>
+    <div className="w-full relative" ref={wrapRef}>
       <form onSubmit={handleSearch} className="relative flex items-center">
 
         {/* S Logo */}
@@ -178,7 +178,7 @@ const SearchBar = ({ initialQuery = "" }: SearchBarProps) => {
 
       {/* ── Unified Dropdown ──────────────────────────────────────────────── */}
       {showDrop && hasDropContent && (
-        <div className="absolute left-0 right-0 mx-4 mt-1 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden">
 
           {/* Dictionary hints (BN mode) */}
           {dictHints.length > 0 && (
