@@ -308,6 +308,38 @@ export default defineConfig(({ mode }) => ({
             }
           }
 
+          // Mail sub-app
+          if (url === '/mail' || url === '/mail/' || url.startsWith('/mail/')) {
+            const distDir = path.resolve(__dirname, 'public/Mail/dist');
+            if (isStaticAsset && serveStatic('/mail', distDir)) return;
+            const idx = path.resolve(distDir, 'index.html');
+            if (fs.existsSync(idx)) { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(fs.readFileSync(idx, 'utf-8')); return; }
+          }
+
+          // Series sub-app
+          if (url === '/series' || url === '/series/' || url.startsWith('/series/')) {
+            const distDir = path.resolve(__dirname, 'public/Series/dist');
+            if (isStaticAsset && serveStatic('/series', distDir)) return;
+            const idx = path.resolve(distDir, 'index.html');
+            if (fs.existsSync(idx)) { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(fs.readFileSync(idx, 'utf-8')); return; }
+          }
+
+          // Sports sub-app
+          if (url === '/sports' || url === '/sports/' || url.startsWith('/sports/')) {
+            const distDir = path.resolve(__dirname, 'public/Sports/dist');
+            if (isStaticAsset && serveStatic('/sports', distDir)) return;
+            const idx = path.resolve(distDir, 'index.html');
+            if (fs.existsSync(idx)) { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(fs.readFileSync(idx, 'utf-8')); return; }
+          }
+
+          // Webtoon sub-app
+          if (url === '/webtoon' || url === '/webtoon/' || url.startsWith('/webtoon/')) {
+            const distDir = path.resolve(__dirname, 'public/Webtoon/webtoon-platform/dist');
+            if (isStaticAsset && serveStatic('/webtoon', distDir)) return;
+            const idx = path.resolve(distDir, 'index.html');
+            if (fs.existsSync(idx)) { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(fs.readFileSync(idx, 'utf-8')); return; }
+          }
+
           next();
         });
       },

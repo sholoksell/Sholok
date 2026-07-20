@@ -26,7 +26,7 @@ const SearchResults = () => {
     if (!query.trim()) { setProducts([]); setCategories([]); setTotal(0); return; }
     setProdLoading(true);
     searchService.search(query, 1, 12, queryEn || undefined)
-      .then(r => { setProducts(r.products); setCategories(r.categories); setTotal(r.total); })
+      .then(r => { setProducts(r?.products ?? []); setCategories(r?.categories ?? []); setTotal(r?.total ?? 0); })
       .catch(() => { setProducts([]); setCategories([]); setTotal(0); })
       .finally(() => setProdLoading(false));
   }, [query, queryEn]);
