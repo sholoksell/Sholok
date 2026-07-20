@@ -404,7 +404,6 @@ const SearchResults = () => {
 
   const renderAllTab = () => {
     if (loading) return <Loader />;
-    if (totalHits === 0 && portalResults.length === 0) return <EmptyState query={query} lang={lang} />;
     return (
       <div className="space-y-10">
         {results.products.length > 0 && (
@@ -455,13 +454,25 @@ const SearchResults = () => {
             <div className="space-y-3">{results.blogPosts.map(p => <BlogCard key={p._id} post={p} lang={lang} />)}</div>
           </section>
         )}
+        {/* No backend results message */}
+        {totalHits === 0 && portalResults.length === 0 && (
+          <div className="text-center py-8">
+            <Compass className="w-10 h-10 mx-auto mb-3 opacity-25" />
+            <p className="font-semibold text-base mb-1">
+              {bn ? `"${query}" এর জন্য কোনো ফলাফল পাওয়া যায়নি` : `No results found for "${query}"`}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {bn ? "নিচের সার্ভিসগুলোতে সার্চ করে দেখুন" : "Try searching in the services below"}
+            </p>
+          </div>
+        )}
         {portalResults.length > 0 && (
           <section>
             <SectionHeader emoji="🔍" title={bn ? "শোলক সার্ভিস" : "Sholok Services"} />
             <div className="space-y-4">{portalResults.map(r => <PortalCard key={r.path} result={r} lang={lang} />)}</div>
           </section>
         )}
-        {/* Frontend-only service routing */}
+        {/* Frontend-only service routing — always shown */}
         <section>
           <SectionHeader emoji="🌐" title={bn ? "অন্যান্য সার্ভিসে সার্চ করুন" : "Search in other services"} />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
