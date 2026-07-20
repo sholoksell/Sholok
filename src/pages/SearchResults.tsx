@@ -403,10 +403,20 @@ const SearchResults = () => {
   );
 
   const renderAllTab = () => {
-    if (loading) return <Loader />;
+    // Service cards render FIRST — immediately, no waiting for APIs
     return (
       <div className="space-y-10">
-        {results.products.length > 0 && (
+
+        {/* ── Loading strip (shown while APIs are fetching) ── */}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-4 py-3 rounded-xl">
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 text-primary" />
+            <span>{bn ? `"${query}" সব সার্ভিসে খোঁজা হচ্ছে…` : `Searching "${query}" across all services…`}</span>
+          </div>
+        )}
+
+        {/* ── API results (appear after loading) ── */}
+        {!loading && results.products.length > 0 && (
           <section>
             <SectionHeader emoji="🛍️" title={bn ? "কেনাকাটা — পণ্য" : "Shopping Products"}
               total={results.totalProducts} href={`/shopping/?search=${encodeURIComponent(query)}`}
@@ -414,7 +424,7 @@ const SearchResults = () => {
             <GridCards>{results.products.map(p => <ProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
           </section>
         )}
-        {results.multivendorProducts.length > 0 && (
+        {!loading && results.multivendorProducts.length > 0 && (
           <section>
             <SectionHeader emoji="🏪" title={bn ? "স্মার্ট স্টোর পণ্য" : "Smart Store Products"}
               total={results.totalMultivendorProducts} href={`/smart-store?q=${encodeURIComponent(query)}`}
@@ -422,7 +432,7 @@ const SearchResults = () => {
             <GridCards>{results.multivendorProducts.map(p => <MvProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
           </section>
         )}
-        {results.stores.length > 0 && (
+        {!loading && results.stores.length > 0 && (
           <section>
             <SectionHeader emoji="🏬" title={bn ? "স্টোর" : "Stores"}
               total={results.totalStores} href={`/smart-store?q=${encodeURIComponent(query)}`}
@@ -430,7 +440,7 @@ const SearchResults = () => {
             <div className="space-y-3">{results.stores.map(s => <StoreCard key={s._id} store={s} lang={lang} />)}</div>
           </section>
         )}
-        {results.jobs.length > 0 && (
+        {!loading && results.jobs.length > 0 && (
           <section>
             <SectionHeader emoji="💼" title={bn ? "চাকরি" : "Jobs"}
               total={results.totalJobs} href={`/job-portal/?search=${encodeURIComponent(query)}`}
@@ -438,7 +448,7 @@ const SearchResults = () => {
             <div className="space-y-3">{results.jobs.map(j => <JobCard key={j._id} job={j} lang={lang} />)}</div>
           </section>
         )}
-        {results.videos.length > 0 && (
+        {!loading && results.videos.length > 0 && (
           <section>
             <SectionHeader emoji="🎬" title={bn ? "ভিডিও" : "Videos"}
               total={results.totalVideos} href={`/tv?q=${encodeURIComponent(query)}`}
@@ -446,7 +456,7 @@ const SearchResults = () => {
             <GridCards>{results.videos.map(v => <VideoCard key={v._id} video={v} lang={lang} />)}</GridCards>
           </section>
         )}
-        {results.blogPosts.length > 0 && (
+        {!loading && results.blogPosts.length > 0 && (
           <section>
             <SectionHeader emoji="✍️" title={bn ? "ব্লগ পোস্ট" : "Blog Posts"}
               total={results.totalBlogPosts} href={`/blog?search=${encodeURIComponent(query)}`}
@@ -454,28 +464,23 @@ const SearchResults = () => {
             <div className="space-y-3">{results.blogPosts.map(p => <BlogCard key={p._id} post={p} lang={lang} />)}</div>
           </section>
         )}
-        {/* No backend results message */}
-        {totalHits === 0 && portalResults.length === 0 && (
-          <div className="text-center py-8">
-            <Compass className="w-10 h-10 mx-auto mb-3 opacity-25" />
-            <p className="font-semibold text-base mb-1">
-              {bn ? `"${query}" এর জন্য কোনো ফলাফল পাওয়া যায়নি` : `No results found for "${query}"`}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {bn ? "নিচের সার্ভিসগুলোতে সার্চ করে দেখুন" : "Try searching in the services below"}
-            </p>
-          </div>
-        )}
-        {portalResults.length > 0 && (
+        {!loading && portalResults.length > 0 && (
           <section>
             <SectionHeader emoji="🔍" title={bn ? "শোলক সার্ভিস" : "Sholok Services"} />
             <div className="space-y-4">{portalResults.map(r => <PortalCard key={r.path} result={r} lang={lang} />)}</div>
           </section>
         )}
-        {/* Frontend-only service routing — always shown */}
+        {!loading && totalHits === 0 && portalResults.length === 0 && (
+          <div className="text-center py-6 text-muted-foreground">
+            <p className="font-medium">{bn ? `"${query}" — কোনো পণ্য, চাকরি বা পোস্ট পাওয়া যায়নি` : `No products, jobs or posts found for "${query}"`}</p>
+            <p className="text-sm mt-1">{bn ? "নিচের সার্ভিসগুলো থেকে সার্চ করুন" : "Try one of the services below"}</p>
+          </div>
+        )}
+
+        {/* ── Service routing — ALWAYS VISIBLE immediately ── */}
         <section>
-          <SectionHeader emoji="🌐" title={bn ? "অন্যান্য সার্ভিসে সার্চ করুন" : "Search in other services"} />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <SectionHeader emoji="🌐" title={bn ? "সার্ভিসে সরাসরি সার্চ করুন" : "Search directly in a service"} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {NAVIGATE_SERVICES.map(tab => <ServiceRouteCard key={tab.key} tab={tab} query={query} lang={lang} />)}
           </div>
         </section>
