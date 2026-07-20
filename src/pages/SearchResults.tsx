@@ -1,22 +1,47 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import Header from "@/components/portal/Header";
-import SearchBar from "@/components/portal/SearchBar";
-import { searchSite, SEARCH_INDEX, SearchEntry, CATEGORY_BN, isBengaliScript } from "@/lib/searchIndex";
+import { searchSite, SEARCH_INDEX, SearchEntry, CATEGORY_BN } from "@/lib/searchIndex";
 import { Search, ArrowRight, ExternalLink, Compass, ShoppingBag, Star } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { searchService, ProductResult, CategoryResult, getLocalizedName } from "@/services/search.service";
 
-const CATEGORIES = ["All", "Apps", "Media", "Shopping", "Info", "Tools", "Finance"] as const;
+// Search type tabs — each has an emoji, EN label, BN label, and where it routes
+const SEARCH_TYPES = [
+  { key: "all",        emoji: "🔍", en: "All",         bn: "সব",           route: null },
+  { key: "web",        emoji: "🌐", en: "Web",         bn: "ওয়েব",         route: null },
+  { key: "news",       emoji: "📰", en: "News",        bn: "নিউজ",         route: "/news" },
+  { key: "image",      emoji: "🖼️", en: "Images",      bn: "ছবি",          route: null },
+  { key: "video",      emoji: "🎬", en: "Video",       bn: "ভিডিও",        route: "/tv" },
+  { key: "blog",       emoji: "✍️", en: "Blog",        bn: "ব্লগ",          route: "/blog" },
+  { key: "cafe",       emoji: "💬", en: "Community",   bn: "কমিউনিটি",     route: "/cafe" },
+  { key: "qna",        emoji: "❓", en: "Q&A",         bn: "প্রশ্ন-উত্তর", route: "/qna" },
+  { key: "shopping",   emoji: "🛍️", en: "Shopping",    bn: "কেনাকাটা",     route: "/shopping/" },
+  { key: "smartstore", emoji: "🏪", en: "Smart Store", bn: "স্মার্ট স্টোর", route: "/smartstore" },
+  { key: "map",        emoji: "🗺️", en: "Maps",        bn: "ম্যাপ",         route: "/maps" },
+  { key: "realestate", emoji: "🏠", en: "Real Estate", bn: "রিয়েল এস্টেট", route: "/realestate" },
+  { key: "jobs",       emoji: "💼", en: "Jobs",        bn: "চাকরি",         route: "/job-portal/" },
+  { key: "finance",    emoji: "📈", en: "Finance",     bn: "ফাইন্যান্স",    route: "/finance" },
+  { key: "weather",    emoji: "🌦️", en: "Weather",     bn: "আবহাওয়া",      route: "/weather" },
+  { key: "sports",     emoji: "⚽", en: "Sports",      bn: "স্পোর্টস",      route: "/sports" },
+  { key: "music",      emoji: "🎵", en: "Music",       bn: "মিউজিক",        route: "/music" },
+  { key: "books",      emoji: "📚", en: "Books",       bn: "বই ও সিরিজ",   route: "/series" },
+  { key: "dictionary", emoji: "📖", en: "Dictionary",  bn: "ডিকশনারি",     route: "/dictionary" },
+  { key: "translate",  emoji: "🌍", en: "Translate",   bn: "অনুবাদ",        route: "/translate" },
+  { key: "trending",   emoji: "📊", en: "Trending",    bn: "ট্রেন্ডিং",     route: null },
+] as const;
+
+type SearchTypeKey = typeof SEARCH_TYPES[number]["key"];
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const query     = searchParams.get("q") || "";
-  const queryEn   = searchParams.get("qEn") || "";   // original English (BN-mode search)
-  const activeCat = searchParams.get("cat") || "All";
+  const query    = searchParams.get("q") || "";
+  const queryEn  = searchParams.get("qEn") || "";
+  const activeTab = (searchParams.get("type") || "all") as SearchTypeKey;
   const { t, language } = useLanguage();
+  const displayBn = language === "BN";
 
-  // ── Live MongoDB product results ──────────────────────────────────────────
+  // ── Live MongoDB product results ─────────────────────────────────────────
   const [products,   setProducts]   = useState<ProductResult[]>([]);
   const [categories, setCategories] = useState<CategoryResult[]>([]);
   const [totalProducts, setTotal]   = useState(0);
@@ -31,58 +56,64 @@ const SearchResults = () => {
       .finally(() => setProdLoading(false));
   }, [query, queryEn]);
 
-  // Display language: site language controls result language regardless of query script
-  // Site language controls result display — query language does NOT matter
-  const displayBn = language === "BN";
-
-  // Pass language to static portal search
+  // ── Static portal index results ──────────────────────────────────────────
   const allResults = useMemo(() => searchSite(query, language), [query, language]);
-  const results = useMemo(
-    () => (activeCat === "All" ? allResults : allResults.filter((r) => r.category === activeCat)),
-    [allResults, activeCat]
-  );
+  const results    = useMemo(() => allResults, [allResults]);
 
-  const setCat = (cat: string) => {
+  const getTitle    = (entry: SearchEntry) => displayBn ? entry.titleBn        : entry.title;
+  const getDesc     = (entry: SearchEntry) => displayBn ? entry.descriptionBn  : entry.description;
+
+  const ResultLink = ({ result, children, className }: { result: SearchEntry; children: React.ReactNode; className?: string }) =>
+    result.external
+      ? <a href={result.path} className={className}>{children}</a>
+      : <Link to={result.path} className={className}>{children}</Link>;
+
+  const handleTabClick = (tab: typeof SEARCH_TYPES[number]) => {
+    if (tab.route && query.trim()) {
+      // Navigate to the sub-app with search query
+      const sep = tab.route.includes("?") ? "&" : "?";
+      const searchParam = tab.key === "jobs" ? "q" : "q";
+      window.location.href = `${tab.route}${sep}${searchParam}=${encodeURIComponent(query)}`;
+      return;
+    }
     const next = new URLSearchParams(searchParams);
-    if (cat === "All") next.delete("cat");
-    else next.set("cat", cat);
+    if (tab.key === "all") next.delete("type");
+    else next.set("type", tab.key);
     setSearchParams(next);
   };
 
-  const availableCats = new Set(allResults.map((r) => r.category));
+  const tabLabel = (tab: typeof SEARCH_TYPES[number]) => displayBn ? tab.bn : tab.en;
 
-  // Helpers for portal service results
-  const getTitle    = (entry: SearchEntry) => displayBn ? entry.titleBn    : entry.title;
-  const getDesc     = (entry: SearchEntry) => displayBn ? entry.descriptionBn : entry.description;
-  const getCatLabel = (cat: string)        => displayBn ? (CATEGORY_BN[cat] ?? cat) : cat;
-
-  const ResultLink = ({ result, children, className }: { result: SearchEntry; children: React.ReactNode; className?: string }) =>
-    result.external ? (
-      <a href={result.path} className={className}>{children}</a>
-    ) : (
-      <Link to={result.path} className={className}>{children}</Link>
-    );
+  // For "trending" tab — show popular search suggestions
+  const showTrending = activeTab === "trending";
+  // For "image" tab — show image placeholder message
+  const showImage = activeTab === "image";
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
+      {/* ── Search Type Tabs ── */}
       <div className="border-b border-border bg-card shadow-sm sticky top-16 z-10">
-        <div className="max-w-7xl mx-auto px-4 pt-2 pb-0">
-          <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-            {CATEGORIES.filter((c) => c === "All" || availableCats.has(c)).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setCat(tab)}
-                className={`flex items-center gap-2 px-1 py-3 border-b-2 text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeCat === tab
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {getCatLabel(tab)}
-              </button>
-            ))}
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-1">
+            {SEARCH_TYPES.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabClick(tab)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  <span className="text-base leading-none">{tab.emoji}</span>
+                  <span>{tabLabel(tab)}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -90,8 +121,38 @@ const SearchResults = () => {
       <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
 
-          {/* ── LIVE PRODUCT RESULTS (MongoDB) ── */}
-          {query.trim() && (
+          {/* ── TRENDING TAB ── */}
+          {showTrending && (
+            <section>
+              <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <span>📊</span> {displayBn ? "ট্রেন্ডিং সার্চ" : "Trending Searches"}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {SEARCH_INDEX.slice(0, 12).map((s) => (
+                  <Link
+                    key={s.path}
+                    to={`/search?q=${encodeURIComponent(displayBn ? s.titleBn : s.title)}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-full text-sm transition-colors"
+                  >
+                    <span className="text-primary">🔥</span>
+                    {displayBn ? s.titleBn : s.title}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── IMAGE TAB ── */}
+          {showImage && (
+            <section className="text-center py-16">
+              <div className="text-6xl mb-4">🖼️</div>
+              <h3 className="text-lg font-semibold mb-2">{displayBn ? "ছবি সার্চ শীঘ্রই আসছে" : "Image Search Coming Soon"}</h3>
+              <p className="text-muted-foreground text-sm">{displayBn ? "এই ফিচারটি近近 যোগ করা হবে।" : "This feature will be added soon."}</p>
+            </section>
+          )}
+
+          {/* ── PRODUCT RESULTS (MongoDB) ── */}
+          {!showTrending && !showImage && query.trim() && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-base flex items-center gap-2">
@@ -113,12 +174,11 @@ const SearchResults = () => {
                 )}
               </div>
 
-              {/* Loading skeleton */}
               {prodLoading && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-pulse">
                   {[1,2,3,4,5,6].map(i => (
                     <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
-                      <div className="h-36 bg-secondary shimmer" />
+                      <div className="h-36 bg-secondary" />
                       <div className="p-3 space-y-2">
                         <div className="h-3 bg-secondary rounded w-3/4" />
                         <div className="h-3 bg-secondary rounded w-1/2" />
@@ -128,7 +188,6 @@ const SearchResults = () => {
                 </div>
               )}
 
-              {/* Product grid */}
               {!prodLoading && products.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {products.map(p => {
@@ -176,7 +235,6 @@ const SearchResults = () => {
                 </div>
               )}
 
-              {/* Category matches */}
               {!prodLoading && categories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {categories.map(c => (
@@ -192,92 +250,90 @@ const SearchResults = () => {
                 </div>
               )}
 
-              {/* No products found */}
               {!prodLoading && products.length === 0 && (
-                <p className="text-sm text-muted-foreground py-4">
-                  {displayBn
-                    ? `"${query}" এর জন্য কোনো পণ্য পাওয়া যায়নি`
-                    : `No products found for "${query}"`
-                  }
+                <p className="text-sm text-muted-foreground py-2">
+                  {displayBn ? `"${query}" এর জন্য কোনো পণ্য পাওয়া যায়নি` : `No products found for "${query}"`}
                 </p>
               )}
             </section>
           )}
 
           {/* ── PORTAL SERVICES (static index) ── */}
-          <section>
-          <div>
-            <h2 className="text-xl font-semibold mb-1">
-              {t("searchResultsFor")} <span className="text-primary">"{query}"</span>
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {results.length} {results.length === 1 ? t("result") : t("results")} {t("onSholok")}
-            </p>
-          </div>
+          {!showTrending && !showImage && (
+            <section>
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold mb-1">
+                  {query.trim()
+                    ? <>{displayBn ? "অনুসন্ধান ফলাফল" : "Results for"} <span className="text-primary">"{query}"</span></>
+                    : <>{displayBn ? "সার্চ করুন" : "Start searching"}</>
+                  }
+                </h2>
+                {query.trim() && (
+                  <p className="text-sm text-muted-foreground">
+                    {results.length} {results.length === 1 ? (displayBn ? "ফলাফল" : "result") : (displayBn ? "ফলাফল" : "results")} {displayBn ? "পাওয়া গেছে" : "on Sholok"}
+                  </p>
+                )}
+              </div>
 
-          {/* No query */}
-          {!query.trim() && (
-            <div className="text-center py-16 text-muted-foreground">
-              <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p>{t("typeToSearch")}</p>
-            </div>
-          )}
+              {!query.trim() && (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                  <p>{displayBn ? "উপরে সার্চ করুন" : "Type something to search"}</p>
+                </div>
+              )}
 
-          {/* No results */}
-          {query.trim() && results.length === 0 && (
-            <div className="text-center py-12">
-              <Compass className="w-12 h-12 mx-auto mb-4 opacity-30 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-1">{t("noMatchesFor")} "{query}"</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                {t("tryDifferentKeyword")}
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
-                {SEARCH_INDEX.slice(0, 8).map((s) => (
+              {query.trim() && results.length === 0 && (
+                <div className="text-center py-12">
+                  <Compass className="w-12 h-12 mx-auto mb-4 opacity-30 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-1">{displayBn ? `"${query}" এর জন্য কোনো ফলাফল নেই` : `No matches for "${query}"`}</h3>
+                  <p className="text-sm text-muted-foreground mb-6">{displayBn ? "ভিন্ন কীওয়ার্ড চেষ্টা করুন" : "Try a different keyword"}</p>
+                  <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
+                    {SEARCH_INDEX.slice(0, 8).map((s) => (
+                      <ResultLink
+                        key={s.path}
+                        result={s}
+                        className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-full text-sm hover:bg-secondary/80 transition-colors"
+                      >
+                        {getTitle(s)}
+                      </ResultLink>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-5">
+                {results.map((result) => (
                   <ResultLink
-                    key={s.path}
-                    result={s}
-                    className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-full text-sm hover:bg-secondary/80 transition-colors"
+                    key={result.path}
+                    result={result}
+                    className="block group rounded-xl border border-border bg-card p-5 hover:border-primary/50 hover:shadow-sm transition-all"
                   >
-                    {getTitle(s)}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-muted-foreground">sholok{result.path}</span>
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                        {displayBn ? (CATEGORY_BN[result.category] ?? result.category) : result.category}
+                      </span>
+                      {result.external && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
+                    </div>
+                    <h3 className="text-xl text-primary font-medium group-hover:underline mb-1">
+                      {getTitle(result)}
+                    </h3>
+                    <p className="text-sm text-foreground/80 leading-relaxed">{getDesc(result)}</p>
+                    <div className="mt-3 text-xs font-medium text-muted-foreground group-hover:text-primary flex items-center gap-1 transition-colors">
+                      {displayBn ? "খুলুন" : "Open"} {getTitle(result)} <ArrowRight className="w-3 h-3" />
+                    </div>
                   </ResultLink>
                 ))}
               </div>
-            </div>
+            </section>
           )}
-
-          {/* Results */}
-          <div className="space-y-5">
-            {results.map((result) => (
-              <ResultLink
-                key={result.path}
-                result={result}
-                className="block group rounded-xl border border-border bg-card p-5 hover:border-primary/50 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-muted-foreground">sholok{result.path}</span>
-                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                    {getCatLabel(result.category)}
-                  </span>
-                  {result.external && <ExternalLink className="w-3 h-3 text-muted-foreground" />}
-                </div>
-                <h3 className="text-xl text-primary font-medium group-hover:underline mb-1 flex items-center gap-2">
-                  {getTitle(result)}
-                </h3>
-                <p className="text-sm text-foreground/80 leading-relaxed">{getDesc(result)}</p>
-                <div className="mt-3 text-xs font-medium text-muted-foreground group-hover:text-primary flex items-center gap-1 transition-colors">
-                  {t("open")} {getTitle(result)} <ArrowRight className="w-3 h-3" />
-                </div>
-              </ResultLink>
-            ))}
-          </div>
-          </section>
         </div>
 
-        {/* Sidebar */}
+        {/* ── Sidebar ── */}
         <div className="hidden lg:block space-y-6">
-          {results.length > 0 && (
+          {results.length > 0 && !showTrending && !showImage && (
             <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-              <h3 className="font-semibold mb-2">{t("topResult")}</h3>
+              <h3 className="font-semibold mb-2">{displayBn ? "সেরা ফলাফল" : "Top Result"}</h3>
               <ResultLink result={results[0]} className="block group">
                 <p className="text-lg font-medium text-primary group-hover:underline">{getTitle(results[0])}</p>
                 <p className="text-sm text-muted-foreground mt-1">{getDesc(results[0])}</p>
@@ -286,7 +342,7 @@ const SearchResults = () => {
           )}
 
           <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-            <h3 className="font-semibold mb-4">{t("exploreSholok")}</h3>
+            <h3 className="font-semibold mb-4">{displayBn ? "শোলক অন্বেষণ করুন" : "Explore Sholok"}</h3>
             <div className="flex flex-wrap gap-2">
               {SEARCH_INDEX.slice(0, 10).map((s) => (
                 <ResultLink
@@ -296,6 +352,23 @@ const SearchResults = () => {
                 >
                   {getTitle(s)}
                 </ResultLink>
+              ))}
+            </div>
+          </div>
+
+          {/* Search type quick links */}
+          <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
+            <h3 className="font-semibold mb-4">{displayBn ? "সার্চ ধরন" : "Search Types"}</h3>
+            <div className="space-y-1">
+              {SEARCH_TYPES.filter(t => t.key !== "all").map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabClick(tab)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-secondary transition-colors text-left"
+                >
+                  <span className="text-base">{tab.emoji}</span>
+                  <span className="text-muted-foreground">{tabLabel(tab)}</span>
+                </button>
               ))}
             </div>
           </div>
