@@ -59,6 +59,13 @@ export default defineConfig(({ mode }) => ({
         secure: false,
         rewrite: (path: string) => path.replace(/^\/blog-uploads/, '/uploads'),
       },
+      // Job Portal backend (port 5005)
+      '/jobportal-api': {
+        target: 'http://localhost:5005',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path: string) => path.replace(/^\/jobportal-api/, '/api'),
+      },
     },
     // Shopping sub-app served from public/shopping/ (static build)
   },
