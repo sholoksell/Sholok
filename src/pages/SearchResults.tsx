@@ -12,7 +12,7 @@ import {
   universalSearchService,
   ProductResult, JobResult, BlogPost, VideoResult,
   StoreResult, MultivendorProduct,
-  getLocalizedName, formatDuration,
+  getLocalizedName, formatDuration, getProductPrice,
 } from "@/services/universalSearch.service";
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
@@ -76,10 +76,10 @@ const SectionHeader = ({ emoji, title, total, href, btnLabel }: {
 
 // ─── Product card (Shopping) ──────────────────────────────────────────────────
 const ProductCard = ({ p, lang }: { p: ProductResult; lang: "EN" | "BN" }) => {
-  const name = getLocalizedName({ name: p.name, nameBn: p.nameBn }, lang);
-  const cat  = p.categoryId ? getLocalizedName(p.categoryId, lang) : "";
-  const disc = (p.salePrice && p.regularPrice)
-    ? Math.round((1 - p.salePrice / p.regularPrice) * 100) : 0;
+  const name  = getLocalizedName({ name: p.name, nameBn: p.nameBn }, lang);
+  const cat   = p.categoryId ? getLocalizedName(p.categoryId, lang) : "";
+  const { display, original } = getProductPrice(p);
+  const disc  = original ? Math.round((1 - display / original) * 100) : 0;
   return (
     <a href={`/shopping/product/${p.slug}`}
       className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200">
@@ -93,8 +93,8 @@ const ProductCard = ({ p, lang }: { p: ProductResult; lang: "EN" | "BN" }) => {
         {cat && <p className="text-[11px] text-muted-foreground mb-0.5 truncate">{cat}</p>}
         <p className="text-sm font-medium line-clamp-2 leading-snug mb-2">{name}</p>
         <div className="flex items-center gap-2">
-          <span className="text-primary font-bold text-sm">৳{(p.salePrice ?? p.regularPrice).toLocaleString()}</span>
-          {p.salePrice && <span className="line-through text-muted-foreground text-xs">৳{p.regularPrice.toLocaleString()}</span>}
+          <span className="text-primary font-bold text-sm">৳{display.toLocaleString()}</span>
+          {original && <span className="line-through text-muted-foreground text-xs">৳{original.toLocaleString()}</span>}
         </div>
         {(p.rating ?? 0) > 0 && (
           <div className="flex items-center gap-1 mt-1">

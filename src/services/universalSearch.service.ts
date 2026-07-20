@@ -4,9 +4,20 @@
 
 export interface ProductResult {
   _id: string; name: string; nameBn?: string; slug: string;
-  thumbnail?: string; regularPrice: number; salePrice?: number | null;
-  brand?: string; rating?: number; reviewCount?: number;
+  thumbnail?: string;
+  // admin-api returns a single 'price' field (sale price if set, else regular)
+  price?: number;
+  // customer-api returns separate regularPrice / salePrice
+  regularPrice?: number; salePrice?: number | null;
+  brand?: string; rating?: number; reviewCount?: number; stock?: number;
   categoryId?: { name: string; nameBn?: string; slug: string } | null;
+}
+
+export function getProductPrice(p: ProductResult): { display: number; original?: number } {
+  if (p.price != null) return { display: p.price };
+  const display   = p.salePrice ?? p.regularPrice ?? 0;
+  const original  = p.salePrice && p.regularPrice ? p.regularPrice : undefined;
+  return { display, original };
 }
 
 export interface CategoryResult {
