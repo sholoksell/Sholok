@@ -97,9 +97,16 @@ export const searchService = {
     if (!q.trim()) return [];
     const params = new URLSearchParams({ q: q.trim() });
     if (qEn?.trim()) params.set('qEn', qEn.trim());
-    const res = await fetch(`${HOME_API}/search/suggestions?${params.toString()}`);
-    if (!res.ok) return [];
-    return res.json();
+    try {
+      const res = await fetch(`${HOME_API}/search/suggestions?${params.toString()}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      // customer-api returns a flat array; admin-api may return { suggestions: [] }
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.suggestions)) return data.suggestions;
+      if (Array.isArray(data?.products)) return data.products;
+      return [];
+    } catch { return []; }
   },
 };
 

@@ -13,6 +13,7 @@
     { "source": "/tv-api", "destination": "/api/video-api" },
     { "source": "/multivendor-api/:path*", "destination": "/api/multivendor-api" },
     { "source": "/multivendor-api", "destination": "/api/multivendor-api" },
+    { "source": "/api/search/suggestions", "destination": "/api/customer-api" },
     { "source": "/api/search", "destination": "/api/admin-api" },
     { "source": "/api/search/:path*", "destination": "/api/admin-api" },
     { "source": "/api/banners/:path*", "destination": "/api/customer-api" },

@@ -49,7 +49,7 @@ L.Icon.Default.mergeOptions({
 const BANGLADESH_CENTER: [number, number] = [23.685, 90.3563];
 const DEFAULT_ZOOM = 7;
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
+const API_BASE = "/api";
 
 interface SearchResult {
   place_id: number;

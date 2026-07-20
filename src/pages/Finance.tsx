@@ -15,7 +15,7 @@ import {
   DollarSign, Receipt, FileDown, Eye,
 } from "lucide-react";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
+const API = "/api";
 
 const PIE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#6b7280", "#a855f7", "#06b6d4", "#84cc16"];
 
