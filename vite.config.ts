@@ -66,6 +66,20 @@ export default defineConfig(({ mode }) => ({
         secure: false,
         rewrite: (path: string) => path.replace(/^\/jobportal-api/, '/api'),
       },
+      // Video / TV backend (port 5003)
+      '/tv-api': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path: string) => path.replace(/^\/tv-api/, '/api'),
+      },
+      // Multi-vendor / Smart Store backend (port 5002)
+      '/multivendor-api': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path: string) => path.replace(/^\/multivendor-api/, '/api'),
+      },
     },
     // Shopping sub-app served from public/shopping/ (static build)
   },
