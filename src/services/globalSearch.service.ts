@@ -6,13 +6,13 @@
  *
  * Sources:
  *  1. Portal services   — static, always instant (searchIndex.ts)
- *  2. Shopping backend  — products + categories + brands (MySQL, /api/search)
- *  3. Blog backend      — posts (MySQL blog_db, port 5050)
+ *  2. Shopping backend  — products + categories + brands via /api/search/suggestions
+ *                         (Banglish handled server-side in Node.js/Express/MySQL)
+ *  3. Blog backend      — posts (MySQL blog_db)
  *  4. Dictionary        — word meanings (in-memory)
  */
 
 import { searchSite } from '@/lib/searchIndex';
-import { transliterateText } from '@/lib/transliteration';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,17 +20,18 @@ export type GlobalSuggestionType = 'product' | 'category' | 'brand' | 'service' 
 
 export interface GlobalSuggestionItem {
   type: GlobalSuggestionType;
-  name: string;       // English display name
-  nameBn: string;     // Bengali display name (falls back to name)
-  slug?: string;      // for internal navigation
-  url?: string;       // full path to navigate to on click
-  thumbnail?: string; // product image
-  icon?: string;      // emoji icon for the type
+  name: string;
+  nameBn: string;
+  slug?: string;
+  url?: string;
+  thumbnail?: string;
+  icon?: string;
   regularPrice?: number;
   salePrice?: number | null;
+  categoryName?: string;
 }
 
-// ─── Type metadata (icons + bilingual labels) ──────────────────────────────
+// ─── Type metadata ─────────────────────────────────────────────────────────────
 
 export const GLOBAL_TYPE_META: Record<GlobalSuggestionType, { icon: string; label: string; labelBn: string }> = {
   product:    { icon: '🛍️',  label: 'Product',    labelBn: 'পণ্য'       },
@@ -41,12 +42,12 @@ export const GLOBAL_TYPE_META: Record<GlobalSuggestionType, { icon: string; labe
   dictionary: { icon: '📖',  label: 'Dictionary', labelBn: 'অভিধান'     },
 };
 
-// ─── API prefixes (match vite.config.ts proxy) ────────────────────────────
+// ─── API prefixes ─────────────────────────────────────────────────────────────
 
 const HOME_API = '/api';
 const BLOG_API = '/blog-api';
 
-// ─── Source: Portal Services (static, synchronous) ───────────────────────
+// ─── Source: Portal Services ──────────────────────────────────────────────────
 
 function searchPortalServices(q: string, language: 'EN' | 'BN'): GlobalSuggestionItem[] {
   return searchSite(q, language)
@@ -60,102 +61,50 @@ function searchPortalServices(q: string, language: 'EN' | 'BN'): GlobalSuggestio
     }));
 }
 
-// ─── Source: Shopping — products + categories + brands via /api/search ────
-// Root cause of the previous autocomplete failure:
-//   /api/search/suggestions crashed with
-//   "Table 'sholokcp_shopping.popular_searches' doesn't exist"
-// Fix: use the public /api/search endpoint which works and returns
-//   products[] (with thumbnail, regular_price, sale_price) +
-//   facets.categories[] + facets.brands[]
+// ─── Source: Shopping — /api/search/suggestions (Banglish handled by server) ──
 
 async function fetchShoppingSuggestions(
   q: string,
-  qEn: string | undefined,
   signal: AbortSignal | undefined,
 ): Promise<GlobalSuggestionItem[]> {
+  const params = new URLSearchParams({ q, limit: '8' });
+  const res = await fetch(`${HOME_API}/search/suggestions?${params}`, { signal });
+  if (!res.ok) throw new Error(`search/suggestions ${res.status}`);
+  const data = await res.json();
 
-  const fetchSearch = async (term: string): Promise<{
-    products: GlobalSuggestionItem[];
-    categories: GlobalSuggestionItem[];
-    brands: GlobalSuggestionItem[];
-  }> => {
-    const params = new URLSearchParams({ q: term, limit: '8' });
-    const res = await fetch(`${HOME_API}/search?${params}`, { signal });
-    if (!res.ok) return { products: [], categories: [], brands: [] };
-    const data = await res.json();
+  const products: GlobalSuggestionItem[] = (data.products ?? []).slice(0, 5).map((p: any) => ({
+    type:         'product' as GlobalSuggestionType,
+    name:         p.name     || '',
+    nameBn:       p.nameBn   || p.name || '',
+    slug:         p.slug     || '',
+    thumbnail:    p.thumbnail || '',
+    regularPrice: p.regular_price != null ? Number(p.regular_price) : undefined,
+    salePrice:    p.sale_price    != null ? Number(p.sale_price)    : null,
+    categoryName: p.category_name || '',
+  }));
 
-    const products: GlobalSuggestionItem[] = (data.products ?? []).slice(0, 5).map((p: any) => ({
-      type: 'product' as GlobalSuggestionType,
-      name:         p.name      || '',
-      nameBn:       p.name      || '',
-      slug:         p.slug      || '',
-      thumbnail:    p.thumbnail || '',
-      regularPrice: p.regular_price != null ? Number(p.regular_price) : undefined,
-      salePrice:    p.sale_price    != null ? Number(p.sale_price)    : null,
-    }));
+  const categories: GlobalSuggestionItem[] = (data.categories ?? []).slice(0, 3).map((c: any) => ({
+    type:   'category' as GlobalSuggestionType,
+    name:   c.name   || '',
+    nameBn: c.nameBn || c.name || '',
+    slug:   c.slug   || '',
+    url:    `/shopping/category/${c.slug}`,
+    icon:   '📂',
+  }));
 
-    const categories: GlobalSuggestionItem[] = (data.facets?.categories ?? []).slice(0, 3).map((c: any) => ({
-      type:   'category' as GlobalSuggestionType,
-      name:   c.name   || '',
-      nameBn: c.nameBn || c.name || '',
-      slug:   c.slug   || '',
-      url:    `/shopping/category/${c.slug}`,
-      icon:   '📂',
-    }));
+  const brands: GlobalSuggestionItem[] = (data.brands ?? []).slice(0, 2).map((b: any) => ({
+    type:   'brand' as GlobalSuggestionType,
+    name:   b.name  || '',
+    nameBn: b.name  || '',
+    slug:   b.slug  || '',
+    url:    `/search?q=${encodeURIComponent(b.name || '')}&filter=brand`,
+    icon:   '🏷️',
+  }));
 
-    const brands: GlobalSuggestionItem[] = (data.facets?.brands ?? []).slice(0, 2).map((b: any) => ({
-      type:   'brand' as GlobalSuggestionType,
-      name:   b.name  || '',
-      nameBn: b.name  || '',
-      slug:   b.slug  || '',
-      url:    `/search?q=${encodeURIComponent(b.name || '')}&filter=brand`,
-      icon:   '🏷️',
-    }));
-
-    return { products, categories, brands };
-  };
-
-  // Primary search with the user's typed query
-  const primary = await fetchSearch(q);
-
-  // Banglish: if the query transliterates to something different, also try that
-  // e.g. "mobile" → "মোবাইল", "cha" → "চা"
-  let extraProducts: GlobalSuggestionItem[] = [];
-  if (qEn && qEn !== q) {
-    try {
-      const secondary = await fetchSearch(qEn);
-      const primarySlugs = new Set(primary.products.map(p => p.slug));
-      extraProducts = secondary.products
-        .filter(p => p.slug && !primarySlugs.has(p.slug))
-        .slice(0, 2);
-    } catch { /* ignore errors from secondary search */ }
-  }
-
-  // Also try a prefix-based Banglish transliteration of the raw query
-  const rawBn = transliterateText(q);
-  if (rawBn !== q && rawBn !== qEn) {
-    try {
-      const tertiary = await fetchSearch(rawBn);
-      const existingSlugs = new Set([
-        ...primary.products.map(p => p.slug),
-        ...extraProducts.map(p => p.slug),
-      ]);
-      const moreProducts = tertiary.products
-        .filter(p => p.slug && !existingSlugs.has(p.slug))
-        .slice(0, 2);
-      extraProducts = [...extraProducts, ...moreProducts];
-    } catch { /* ignore */ }
-  }
-
-  return [
-    ...primary.products,
-    ...extraProducts,
-    ...primary.categories,
-    ...primary.brands,
-  ];
+  return [...products, ...categories, ...brands];
 }
 
-// ─── Source: Blog — published posts (MySQL blog_db) ──────────────────────
+// ─── Source: Blog ─────────────────────────────────────────────────────────────
 
 async function fetchBlogSuggestions(
   q: string,
@@ -178,7 +127,7 @@ async function fetchBlogSuggestions(
   }));
 }
 
-// ─── Source: Dictionary — in-memory word lookup ───────────────────────────
+// ─── Source: Dictionary ───────────────────────────────────────────────────────
 
 async function fetchDictionarySuggestions(
   q: string,
@@ -200,7 +149,7 @@ async function fetchDictionarySuggestions(
   }));
 }
 
-// ─── Navigate helper (exported so SearchBar can use it) ──────────────────
+// ─── Navigate helper ──────────────────────────────────────────────────────────
 
 export function getItemUrl(item: GlobalSuggestionItem): { href?: string; to?: string } {
   switch (item.type) {
@@ -216,9 +165,7 @@ export function getItemUrl(item: GlobalSuggestionItem): { href?: string; to?: st
         : { to: item.url || `/search?q=${encodeURIComponent(item.name)}` };
     case 'service':
       if (!item.url) return { to: '/' };
-      return item.url.startsWith('http')
-        ? { href: item.url }
-        : { to: item.url };
+      return item.url.startsWith('http') ? { href: item.url } : { to: item.url };
     case 'blog':
       return { to: item.url || `/search?q=${encodeURIComponent(item.name)}&tab=blog` };
     case 'dictionary':
@@ -228,28 +175,25 @@ export function getItemUrl(item: GlobalSuggestionItem): { href?: string; to?: st
   }
 }
 
-// ─── Main export: fan-out global suggestions ──────────────────────────────
+// ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function getGlobalSuggestions(
   q: string,
-  qEn: string | undefined,
+  _qEn: string | undefined,
   language: 'EN' | 'BN',
   signal?: AbortSignal,
 ): Promise<GlobalSuggestionItem[]> {
   const trimmed = q.trim();
   if (!trimmed) return [];
 
-  // 1. Portal services — always instant, no network needed
   const services = searchPortalServices(trimmed, language);
 
-  // 2. Fan out to all network sources simultaneously
   const [shoppingResult, blogResult, dictResult] = await Promise.allSettled([
-    fetchShoppingSuggestions(trimmed, qEn, signal),
+    fetchShoppingSuggestions(trimmed, signal),
     fetchBlogSuggestions(trimmed, signal),
     fetchDictionarySuggestions(trimmed, signal),
   ]);
 
-  // Re-throw AbortError so the caller can detect cancellation
   for (const r of [shoppingResult, blogResult, dictResult]) {
     if (r.status === 'rejected' && r.reason?.name === 'AbortError') throw r.reason;
   }
@@ -262,7 +206,6 @@ export async function getGlobalSuggestions(
   const categories = shopping.filter(s => s.type === 'category').slice(0, 2);
   const brands     = shopping.filter(s => s.type === 'brand').slice(0, 2);
 
-  // Merge in display priority order, cap at 12 total
   return [
     ...services.slice(0, 2),
     ...products,
