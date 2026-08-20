@@ -68,9 +68,30 @@ async function fetchShoppingSuggestions(
   signal: AbortSignal | undefined,
 ): Promise<GlobalSuggestionItem[]> {
   const params = new URLSearchParams({ q, limit: '8' });
-  const res = await fetch(`${HOME_API}/search/suggestions?${params}`, { signal });
-  if (!res.ok) throw new Error(`search/suggestions ${res.status}`);
-  const data = await res.json();
+
+  // Try dedicated suggestions endpoint first; fall back to main search endpoint
+  let data: any;
+  const resSugg = await fetch(`${HOME_API}/search/suggestions?${params}`, { signal });
+  if (resSugg.ok) {
+    const ct = resSugg.headers.get('content-type') ?? '';
+    if (ct.includes('application/json')) {
+      data = await resSugg.json();
+    }
+  }
+
+  if (!data) {
+    // Fallback: use the main search endpoint and reshape its response
+    const resFull = await fetch(`${HOME_API}/search?q=${encodeURIComponent(q)}&limit=8`, { signal });
+    if (!resFull.ok) return [];
+    const ct = resFull.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) return [];
+    const full = await resFull.json();
+    data = {
+      products:   full.products ?? [],
+      categories: full.facets?.categories ?? [],
+      brands:     full.facets?.brands ?? [],
+    };
+  }
 
   const products: GlobalSuggestionItem[] = (data.products ?? []).slice(0, 5).map((p: any) => ({
     type:         'product' as GlobalSuggestionType,
@@ -115,6 +136,8 @@ async function fetchBlogSuggestions(
     { signal },
   );
   if (!res.ok) return [];
+  const ct = res.headers.get('content-type') ?? '';
+  if (!ct.includes('application/json')) return [];
   const data = await res.json();
   const posts: any[] = data?.suggestions?.posts ?? [];
   return posts.slice(0, 3).map(p => ({
