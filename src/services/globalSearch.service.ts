@@ -61,31 +61,57 @@ function searchPortalServices(q: string, language: 'EN' | 'BN'): GlobalSuggestio
     }));
 }
 
+// ─── Client-side Banglish expansion (fallback when server code is old) ─────────
+// Maps common Banglish clothing/food terms to English words found in product names.
+const BANGLISH_CLIENT: Record<string, string[]> = {
+  kapor:   ['lawn', 'printed', 'embroidered'],
+  kapour:  ['lawn', 'printed', 'embroidered'],
+  jama:    ['lawn', 'printed', 'collection'],
+  jaama:   ['lawn', 'printed', 'collection'],
+  sari:    ['lawn', 'embroidered', 'collection'],
+  sharee:  ['lawn', 'embroidered', 'collection'],
+  salwar:  ['lawn', 'printed', 'collection'],
+  panjabi: ['lawn', 'printed', 'collection'],
+  mach:    ['fish'],
+  macher:  ['fish'],
+  murgi:   ['chicken'],
+  fol:     ['fruit'],
+  foler:   ['fruit'],
+  alu:     ['potato'],
+  chal:    ['rice'],
+};
+
+function expandBanglishClient(q: string): string | null {
+  const lower = q.toLowerCase().trim();
+  const terms = BANGLISH_CLIENT[lower];
+  return terms ? terms[0] : null;
+}
+
 // ─── Source: Shopping — /api/search/suggestions (Banglish handled by server) ──
 
 async function fetchShoppingSuggestions(
   q: string,
   signal: AbortSignal | undefined,
 ): Promise<GlobalSuggestionItem[]> {
-  const params = new URLSearchParams({ q, limit: '8' });
+  // Apply client-side Banglish expansion as fallback
+  const expanded = expandBanglishClient(q);
+  const effectiveQ = expanded ?? q;
+  const params = new URLSearchParams({ q: effectiveQ, limit: '8' });
 
   // Try dedicated suggestions endpoint first; fall back to main search endpoint
   let data: any;
   const resSugg = await fetch(`${HOME_API}/search/suggestions?${params}`, { signal });
   if (resSugg.ok) {
-    const ct = resSugg.headers.get('content-type') ?? '';
-    if (ct.includes('application/json')) {
-      data = await resSugg.json();
-    }
+    try { data = await resSugg.json(); } catch { /* non-JSON, fall through */ }
   }
 
   if (!data) {
     // Fallback: use the main search endpoint and reshape its response
-    const resFull = await fetch(`${HOME_API}/search?q=${encodeURIComponent(q)}&limit=8`, { signal });
+    const resFull = await fetch(`${HOME_API}/search?q=${encodeURIComponent(effectiveQ)}&limit=8`, { signal });
     if (!resFull.ok) return [];
-    const ct = resFull.headers.get('content-type') ?? '';
-    if (!ct.includes('application/json')) return [];
-    const full = await resFull.json();
+    let full: any;
+    try { full = await resFull.json(); } catch { return []; }
+    if (!full) return [];
     data = {
       products:   full.products ?? [],
       categories: full.facets?.categories ?? [],
