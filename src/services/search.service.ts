@@ -1,6 +1,39 @@
 // All calls go through Vite's proxy: /api → http://localhost:5001/api
 const HOME_API = '/api';
 
+function resizeImageToBase64(file: File, maxPx = 400, quality = 0.6): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const ratio = Math.min(maxPx / img.width, maxPx / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          base64:   (e.target!.result as string).split(',')[1],
+          mimeType: 'image/jpeg',
+        });
+        reader.readAsDataURL(blob!);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => {
+      // Fallback: read file as-is
+      const reader = new FileReader();
+      reader.onload = e => resolve({
+        base64:   (e.target!.result as string).split(',')[1],
+        mimeType: file.type || 'image/jpeg',
+      });
+      reader.readAsDataURL(file);
+    };
+    img.src = url;
+  });
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface SuggestionItem {
@@ -134,16 +167,15 @@ export const searchService = {
    * Returns a query string and/or results if image recognition is available.
    */
   imageSearch: async (file: File): Promise<{ success: boolean; query?: string; message?: string; products?: SuggestionItem[]; categories?: SuggestionItem[] }> => {
-    const formData = new FormData();
-    formData.append('image', file);
+    // Resize to ≤400px before encoding — keeps base64 payload ~20-40 KB
+    const { base64, mimeType } = await resizeImageToBase64(file, 400, 0.6);
     const res = await fetch(`${HOME_API}/search/image`, {
       method: 'POST',
-      body: formData,
-      signal: AbortSignal.timeout(20000),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mimeType }),
+      signal: AbortSignal.timeout(30000),
     });
-    if (res.status === 404) {
-      return { success: false, message: 'Image search coming soon' };
-    }
+    if (res.status === 404) return { success: false, message: 'Image search coming soon' };
     if (!res.ok) throw new Error(`Image search failed: ${res.status}`);
     return res.json();
   },
