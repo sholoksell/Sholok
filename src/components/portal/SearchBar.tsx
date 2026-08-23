@@ -170,7 +170,8 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
     if (isListening) { recognitionRef.current?.stop(); return; }
 
     const recognition = new SpeechRec();
-    recognition.lang             = language === "BN" ? "bn-BD" : "en-US";
+    // en-US captures Banglish (romanized Bengali); Banglish expansion handles the rest
+    recognition.lang             = "en-US";
     recognition.continuous       = false;
     recognition.interimResults   = true;
     recognition.maxAlternatives  = 1;

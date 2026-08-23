@@ -6,6 +6,7 @@ import {
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { searchService, SuggestionItem, getLocalizedName } from "@/services/search.service";
+import { getGlobalSuggestions } from "@/services/globalSearch.service";
 import { transliterateText } from "@/lib/transliteration";
 
 interface AISearchDialogProps {
@@ -83,18 +84,24 @@ const AISearchDialog = ({ isOpen, onClose, onSearch }: AISearchDialogProps) => {
       throw new Error(data.message || "AI search unavailable");
 
     } catch (err: any) {
-      // Local keyword-based fallback so the user still sees Sholok results
+      // Fallback: use existing global search (includes Banglish expansion)
       try {
-        const qBn = transliterateText(q);
-        const suggestions = await searchService.getSuggestions(q, qBn !== q ? qBn : undefined);
+        const suggestions = await getGlobalSuggestions(q, undefined, language);
         setResults({
           answer:     null,
-          products:   suggestions.filter((s) => s.type === "product"),
-          categories: suggestions.filter((s) => s.type === "category"),
+          products:   suggestions.filter((s) => s.type === "product").map((s) => ({
+            type: "product" as const,
+            name: s.name, nameBn: s.nameBn, slug: s.slug || "",
+            thumbnail: s.thumbnail, regularPrice: s.regularPrice, salePrice: s.salePrice,
+          })),
+          categories: suggestions.filter((s) => s.type === "category").map((s) => ({
+            type: "category" as const,
+            name: s.name, nameBn: s.nameBn, slug: s.slug || "", icon: s.icon,
+          })),
           configError: true,
           configMessage: language === "BN"
-            ? "AI উত্তর পাওয়া যায়নি — শুধু ডেটাবেস ফলাফল দেখানো হচ্ছে।"
-            : "AI answer unavailable — showing database results only.",
+            ? "AI উত্তর পাওয়া যায়নি — ডেটাবেস ফলাফল দেখানো হচ্ছে।"
+            : "AI answer unavailable — showing database results.",
         });
       } catch {
         setError(

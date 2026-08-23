@@ -46,12 +46,21 @@ export interface SearchResponse {
   limit: number;
 }
 
+export interface AISearchResponse {
+  success: boolean;
+  answer?: string | null;
+  products: SuggestionItem[];
+  categories: SuggestionItem[];
+  interpretedQuery?: string;
+  originalQuery?: string;
+  message?: string;
+  configError?: boolean;
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 /**
  * Returns the localised display name.
- * - lang = 'BN' → Bengali, falls back to English if BN is empty
- * - lang = 'EN' → English, falls back to Bengali if EN is empty
  * The search keyword language does NOT affect this — only the site language does.
  */
 export function getLocalizedName(
@@ -67,21 +76,14 @@ export function getLocalizedName(
 export const searchService = {
   /**
    * Full search — queries MongoDB across all bilingual product & category fields.
-   * @param q     Primary search term (Bangla if BN mode was used)
+   * @param q     Primary search term (user's raw input)
    * @param page  Page number
    * @param limit Results per page
-   * @param qEn   Original English term (passed when BN mode converts it)
-   *              The backend searches BOTH q and qEn to maximise results.
+   * @param qEn   Secondary search term (e.g. Bengali transliteration of Banglish)
    */
   search: async (q: string, page = 1, limit = 20, qEn?: string): Promise<SearchResponse> => {
-    if (!q.trim()) {
-      return { products: [], categories: [], total: 0, page: 1, limit };
-    }
-    const params = new URLSearchParams({
-      q: q.trim(),
-      page: String(page),
-      limit: String(limit),
-    });
+    if (!q.trim()) return { products: [], categories: [], total: 0, page: 1, limit };
+    const params = new URLSearchParams({ q: q.trim(), page: String(page), limit: String(limit) });
     if (qEn?.trim()) params.set('qEn', qEn.trim());
     const res = await fetch(`${HOME_API}/search?${params.toString()}`);
     if (!res.ok) throw new Error(`Search failed: ${res.status}`);
@@ -90,23 +92,59 @@ export const searchService = {
 
   /**
    * Autocomplete suggestions — debounced on the component side.
-   * @param q    Partial query (Bangla or English)
-   * @param qEn  Optional English equivalent for BN-mode typing
+   * @param q       Partial query (user's raw text)
+   * @param qEn     Bengali equivalent for bilingual matching
+   * @param signal  AbortSignal for request cancellation
    */
-  getSuggestions: async (q: string, qEn?: string): Promise<SuggestionItem[]> => {
+  getSuggestions: async (q: string, qEn?: string, signal?: AbortSignal): Promise<SuggestionItem[]> => {
     if (!q.trim()) return [];
     const params = new URLSearchParams({ q: q.trim() });
     if (qEn?.trim()) params.set('qEn', qEn.trim());
     try {
-      const res = await fetch(`${HOME_API}/search/suggestions?${params.toString()}`);
+      const res = await fetch(`${HOME_API}/search/suggestions?${params.toString()}`, { signal });
       if (!res.ok) return [];
       const data = await res.json();
-      // customer-api returns a flat array; admin-api may return { suggestions: [] }
       if (Array.isArray(data)) return data;
       if (Array.isArray(data?.suggestions)) return data.suggestions;
       if (Array.isArray(data?.products)) return data.products;
       return [];
-    } catch { return []; }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err;  // re-throw so caller can detect cancellation
+      return [];
+    }
+  },
+
+  /**
+   * AI-powered natural language search.
+   * Falls back gracefully if the AI endpoint is not available.
+   */
+  aiSearch: async (query: string, language: 'EN' | 'BN' = 'EN'): Promise<AISearchResponse> => {
+    const res = await fetch(`${HOME_API}/search/ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: query.trim(), language }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) throw new Error(`AI search failed: ${res.status}`);
+    return res.json();
+  },
+
+  /**
+   * Image-based search — uploads an image file.
+   * Returns a query string and/or results if image recognition is available.
+   */
+  imageSearch: async (file: File): Promise<{ success: boolean; query?: string; message?: string; products?: SuggestionItem[]; categories?: SuggestionItem[] }> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`${HOME_API}/search/image`, {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(20000),
+    });
+    if (res.status === 404) {
+      return { success: false, message: 'Image search coming soon' };
+    }
+    if (!res.ok) throw new Error(`Image search failed: ${res.status}`);
+    return res.json();
   },
 };
-
