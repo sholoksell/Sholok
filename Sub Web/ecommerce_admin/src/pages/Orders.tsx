@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { orderApi, Order } from '@/services/orderService';
 import { Button } from '@/components/ui/button';
@@ -24,26 +25,48 @@ import {
 import TakaIcon from '@/components/TakaIcon';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  pending:          { label: 'Pending',          className: 'bg-warning/20 text-warning' },
-  confirmed:        { label: 'Confirmed',         className: 'bg-chart-2/20 text-chart-2' },
-  processing:       { label: 'Processing',        className: 'bg-chart-1/20 text-chart-1' },
-  shipped:          { label: 'Shipped',           className: 'bg-chart-3/20 text-chart-3' },
-  out_for_delivery: { label: 'Out for Delivery',  className: 'bg-chart-5/20 text-chart-5' },
-  delivered:        { label: 'Delivered',         className: 'bg-success/20 text-success' },
-  cancelled:        { label: 'Cancelled',         className: 'bg-muted text-muted-foreground' },
-  refunded:         { label: 'Refunded',          className: 'bg-destructive/20 text-destructive' },
+  pending:            { label: 'Pending',            className: 'bg-warning/20 text-warning' },
+  confirmed:          { label: 'Confirmed',           className: 'bg-chart-2/20 text-chart-2' },
+  processing:         { label: 'Processing',          className: 'bg-chart-1/20 text-chart-1' },
+  packed:             { label: 'Packed',              className: 'bg-blue-500/20 text-blue-600' },
+  ready_for_delivery: { label: 'Ready for Delivery',  className: 'bg-purple-500/20 text-purple-600' },
+  shipped:            { label: 'Shipped',             className: 'bg-chart-3/20 text-chart-3' },
+  out_for_delivery:   { label: 'Out for Delivery',    className: 'bg-chart-5/20 text-chart-5' },
+  delivered:          { label: 'Delivered',           className: 'bg-success/20 text-success' },
+  cancelled:          { label: 'Cancelled',           className: 'bg-muted text-muted-foreground' },
+  returned:           { label: 'Returned',            className: 'bg-orange-500/20 text-orange-600' },
+  refunded:           { label: 'Refunded',            className: 'bg-destructive/20 text-destructive' },
 };
 
 const paymentStatusConfig: Record<string, { label: string; className: string }> = {
-  pending:  { label: 'Pending',  className: 'bg-warning/20 text-warning' },
-  paid:     { label: 'Paid',     className: 'bg-success/20 text-success' },
-  failed:   { label: 'Failed',   className: 'bg-destructive/20 text-destructive' },
-  refunded: { label: 'Refunded', className: 'bg-muted text-muted-foreground' },
+  pending:            { label: 'Pending',             className: 'bg-warning/20 text-warning' },
+  paid:               { label: 'Paid',                className: 'bg-success/20 text-success' },
+  failed:             { label: 'Failed',              className: 'bg-destructive/20 text-destructive' },
+  refunded:           { label: 'Refunded',            className: 'bg-muted text-muted-foreground' },
+  partially_refunded: { label: 'Partially Refunded',  className: 'bg-orange-500/20 text-orange-600' },
+};
+
+const shipmentConfig: Record<string, { label: string; className: string }> = {
+  not_created:      { label: 'Not Created',      className: 'bg-muted text-muted-foreground' },
+  preparing:        { label: 'Preparing',        className: 'bg-chart-1/20 text-chart-1' },
+  shipped:          { label: 'Shipped',          className: 'bg-chart-3/20 text-chart-3' },
+  out_for_delivery: { label: 'Out for Delivery', className: 'bg-chart-5/20 text-chart-5' },
+  delivered:        { label: 'Delivered',        className: 'bg-success/20 text-success' },
 };
 
 const defaultCfg = { label: 'Unknown', className: 'bg-muted text-muted-foreground' };
-const ALL_STATUSES = ['pending','confirmed','processing','shipped','out_for_delivery','delivered','cancelled','refunded'];
-const PAYMENT_STATUSES = ['pending','paid','failed','refunded'];
+const ALL_STATUSES = ['pending','confirmed','processing','packed','ready_for_delivery','shipped','out_for_delivery','delivered','cancelled','returned','refunded'];
+const PAYMENT_STATUSES = ['pending','paid','failed','refunded','partially_refunded'];
+
+function getShipmentStatus(order: Order) {
+  const o = order as any;
+  if (order.status === 'delivered')        return shipmentConfig.delivered;
+  if (order.status === 'out_for_delivery') return shipmentConfig.out_for_delivery;
+  if (order.status === 'shipped')          return shipmentConfig.shipped;
+  if (o.trackingNumber)                    return shipmentConfig.shipped;
+  if (o.courierName)                       return shipmentConfig.preparing;
+  return shipmentConfig.not_created;
+}
 
 export default function Orders() {
   const { t } = useLanguage();
@@ -247,9 +270,13 @@ export default function Orders() {
   };
 
   const customerName = (o: Order) => (o.customerId as any)?.name ?? 'N/A';
+  const customerEmail = (o: Order) => (o.customerId as any)?.email ?? '';
+  const customerPhone = (o: Order) => (o.customerId as any)?.phone ?? '';
+  const customerId = (o: Order) => (o.customerId as any)?._id ?? '';
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t('orders')}</h1>
@@ -261,6 +288,7 @@ export default function Orders() {
         </Button>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-chart-1/10 flex items-center justify-center"><ShoppingCart className="w-6 h-6 text-chart-1" /></div>
@@ -280,6 +308,7 @@ export default function Orders() {
         </CardContent></Card>
       </div>
 
+      {/* Filters */}
       <Card className="glass-card border-border"><CardContent className="p-4">
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[180px]">
@@ -304,6 +333,7 @@ export default function Orders() {
         </div>
       </CardContent></Card>
 
+      {/* Bulk actions bar */}
       {selected.length > 0 && (
         <Card className="border-primary/40 bg-primary/5"><CardContent className="p-3 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium">{selected.length} selected</span>
@@ -324,97 +354,174 @@ export default function Orders() {
         </CardContent></Card>
       )}
 
+      {/* Orders Table */}
       <Card className="glass-card border-border">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Orders ({filteredOrders.length})</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Orders ({filteredOrders.length})</CardTitle>
           <Button variant="ghost" size="sm" onClick={fetchOrders}><RefreshCw className="w-4 h-4" /></Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">
+                <TableRow className="bg-secondary/40 hover:bg-secondary/40">
+                  <TableHead className="w-8 pl-4">
                     <Checkbox checked={filteredOrders.length > 0 && selected.length === filteredOrders.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
-                  <TableHead>{t('orderNumber')}</TableHead>
-                  <TableHead>{t('customer')}</TableHead>
-                  <TableHead>{t('items')}</TableHead>
-                  <TableHead>{t('total')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead>{t('paymentStatus')}</TableHead>
-                  <TableHead>{t('tracking')}</TableHead>
-                  <TableHead>{t('date')}</TableHead>
-                  <TableHead className="text-right">{t('actions')}</TableHead>
+                  <TableHead className="min-w-[130px] font-semibold">Order ID</TableHead>
+                  <TableHead className="min-w-[110px] font-semibold">Date &amp; Time</TableHead>
+                  <TableHead className="min-w-[160px] font-semibold">Customer</TableHead>
+                  <TableHead className="min-w-[55px] font-semibold text-center">Items</TableHead>
+                  <TableHead className="min-w-[90px] font-semibold">Total</TableHead>
+                  <TableHead className="min-w-[140px] font-semibold">Payment</TableHead>
+                  <TableHead className="min-w-[155px] font-semibold">Order Status</TableHead>
+                  <TableHead className="min-w-[140px] font-semibold">Shipment</TableHead>
+                  <TableHead className="min-w-[60px] font-semibold text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8">{t('loadingOrders')}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">{t('loadingOrders')}</TableCell></TableRow>
                 ) : filteredOrders.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">{t('noOrdersFound')}</TableCell></TableRow>
-                ) : filteredOrders.map((order) => (
-                  <TableRow key={order._id} className={selected.includes(order._id) ? 'bg-primary/5' : ''}>
-                    <TableCell><Checkbox checked={selected.includes(order._id)} onCheckedChange={() => toggleSelect(order._id)} /></TableCell>
-                    <TableCell><span className="font-mono font-medium">{order.orderNumber}</span></TableCell>
-                    <TableCell>
-                      <p className="font-medium">{customerName(order)}</p>
-                      {(order.customerId as any)?.email && (
-                        <p className="text-xs text-muted-foreground">{(order.customerId as any)?.email}</p>
-                      )}
-                    </TableCell>
-                    <TableCell>{order.items.length} items</TableCell>
-                    <TableCell><span className="font-semibold">৳{(order.total || 0).toLocaleString()}</span></TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="focus:outline-none">
-                            <Badge className={`${(statusConfig[order.status] ?? defaultCfg).className} border-0 cursor-pointer`}>
-                              {(statusConfig[order.status] ?? defaultCfg).label} <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
-                            </Badge>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          {ALL_STATUSES.map(s => <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(order._id, s)}>{statusConfig[s].label}</DropdownMenuItem>)}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="focus:outline-none">
-                            <Badge className={`${(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer`}>
-                              {(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).label} <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
-                            </Badge>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          {PAYMENT_STATUSES.map(s => <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(order._id, s)}>{paymentStatusConfig[s].label}</DropdownMenuItem>)}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs">
-                        {(order as any).trackingNumber ? <span className="font-mono text-foreground">{(order as any).trackingNumber}</span> : <span className="text-muted-foreground">—</span>}
-                      </span>
-                    </TableCell>
-                    <TableCell><span className="text-sm">{new Date(order.createdAt).toLocaleDateString()}</span></TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="sm"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewOrder(order)}><Eye className="w-4 h-4 mr-2" />{t('view')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openInvoice(order)}><FileText className="w-4 h-4 mr-2" />{t('invoice')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openTrackingDialog(order)}><Truck className="w-4 h-4 mr-2" />{t('setTracking')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openNoteDialog(order)}><StickyNote className="w-4 h-4 mr-2" />{t('addNote')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'processing')}><Package className="w-4 h-4 mr-2" />{t('markProcessing')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'delivered')}><CheckCircle className="w-4 h-4 mr-2" />{t('markDelivered')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(order._id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />{t('delete')}</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">{t('noOrdersFound')}</TableCell></TableRow>
+                ) : filteredOrders.map((order) => {
+                  const shipment = getShipmentStatus(order);
+                  const cId = customerId(order);
+                  return (
+                    <TableRow key={order._id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${selected.includes(order._id) ? 'bg-primary/5' : ''}`}>
+
+                      {/* Checkbox */}
+                      <TableCell className="pl-4">
+                        <Checkbox checked={selected.includes(order._id)} onCheckedChange={() => toggleSelect(order._id)} />
+                      </TableCell>
+
+                      {/* Order ID — clickable → order details */}
+                      <TableCell>
+                        <button
+                          onClick={() => handleViewOrder(order)}
+                          className="font-mono text-sm font-semibold text-primary hover:underline focus:outline-none text-left"
+                        >
+                          {order.orderNumber}
+                        </button>
+                      </TableCell>
+
+                      {/* Date & Time */}
+                      <TableCell>
+                        <p className="text-xs font-medium text-foreground whitespace-nowrap">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </TableCell>
+
+                      {/* Customer — name clickable → /customers */}
+                      <TableCell>
+                        {cId ? (
+                          <Link to="/customers" className="text-sm font-medium text-primary hover:underline leading-snug block">
+                            {customerName(order)}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-medium leading-snug">{customerName(order)}</p>
+                        )}
+                        {customerPhone(order) ? (
+                          <p className="text-[11px] text-muted-foreground">{customerPhone(order)}</p>
+                        ) : customerEmail(order) ? (
+                          <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">{customerEmail(order)}</p>
+                        ) : null}
+                      </TableCell>
+
+                      {/* Items */}
+                      <TableCell className="text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-secondary text-xs font-semibold">
+                          {order.items.length}
+                        </span>
+                      </TableCell>
+
+                      {/* Total */}
+                      <TableCell>
+                        <span className="text-sm font-bold whitespace-nowrap">৳{(order.total || 0).toLocaleString()}</span>
+                      </TableCell>
+
+                      {/* Payment Status — clickable dropdown */}
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="focus:outline-none">
+                              <Badge className={`${(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer text-[11px] px-2 py-0.5 whitespace-nowrap`}>
+                                {(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).label}
+                                <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline-block" />
+                              </Badge>
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            {PAYMENT_STATUSES.map(s => (
+                              <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(order._id, s)}>
+                                {paymentStatusConfig[s].label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+
+                      {/* Order Status — clickable dropdown */}
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="focus:outline-none">
+                              <Badge className={`${(statusConfig[order.status] ?? defaultCfg).className} border-0 cursor-pointer text-[11px] px-2 py-0.5 whitespace-nowrap`}>
+                                {(statusConfig[order.status] ?? defaultCfg).label}
+                                <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline-block" />
+                              </Badge>
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            {ALL_STATUSES.map(s => (
+                              <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(order._id, s)}>
+                                {statusConfig[s].label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+
+                      {/* Shipment Status */}
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          <Badge className={`${shipment.className} border-0 text-[11px] px-2 py-0.5 whitespace-nowrap`}>
+                            {shipment.label}
+                          </Badge>
+                          {(order as any).courierName && (
+                            <p className="text-[10px] text-muted-foreground">{(order as any).courierName}</p>
+                          )}
+                          {(order as any).trackingNumber && (
+                            <p className="text-[10px] font-mono text-muted-foreground">{(order as any).trackingNumber}</p>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Actions — unchanged */}
+                      <TableCell className="text-right pr-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewOrder(order)}><Eye className="w-4 h-4 mr-2" />{t('view')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openInvoice(order)}><FileText className="w-4 h-4 mr-2" />{t('invoice')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openTrackingDialog(order)}><Truck className="w-4 h-4 mr-2" />{t('setTracking')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openNoteDialog(order)}><StickyNote className="w-4 h-4 mr-2" />{t('addNote')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'processing')}><Package className="w-4 h-4 mr-2" />{t('markProcessing')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'delivered')}><CheckCircle className="w-4 h-4 mr-2" />{t('markDelivered')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(order._id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />{t('delete')}</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
