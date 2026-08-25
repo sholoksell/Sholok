@@ -371,7 +371,7 @@ export default function Orders() {
                   <TableHead className="min-w-[130px] font-semibold">Order ID</TableHead>
                   <TableHead className="min-w-[110px] font-semibold">Date &amp; Time</TableHead>
                   <TableHead className="min-w-[160px] font-semibold">Customer</TableHead>
-                  <TableHead className="min-w-[55px] font-semibold text-center">Items</TableHead>
+                  <TableHead className="min-w-[160px] font-semibold">Items / Products</TableHead>
                   <TableHead className="min-w-[90px] font-semibold">Total</TableHead>
                   <TableHead className="min-w-[140px] font-semibold">Payment</TableHead>
                   <TableHead className="min-w-[155px] font-semibold">Order Status</TableHead>
@@ -432,10 +432,18 @@ export default function Orders() {
                       </TableCell>
 
                       {/* Items */}
-                      <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-secondary text-xs font-semibold">
-                          {order.items.length}
-                        </span>
+                      <TableCell>
+                        <div className="space-y-1 max-w-[160px]">
+                          {order.items.slice(0, 2).map((item, i) => (
+                            <div key={i}>
+                              <p className="text-xs font-medium text-foreground truncate">{item.productName || 'Unknown'}</p>
+                              <p className="text-[10px] text-muted-foreground">Qty: {item.quantity} · ৳{(item.price||0).toLocaleString()}</p>
+                            </div>
+                          ))}
+                          {order.items.length > 2 && (
+                            <p className="text-[10px] text-muted-foreground">+{order.items.length - 2} more item{order.items.length - 2 > 1 ? 's' : ''}</p>
+                          )}
+                        </div>
                       </TableCell>
 
                       {/* Total */}
