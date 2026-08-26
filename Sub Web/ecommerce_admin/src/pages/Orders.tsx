@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { orderApi, Order } from '@/services/orderService';
+import { customerApi, CustomerDetails } from '@/services/customerService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -20,7 +21,7 @@ import { toast } from 'sonner';
 import {
   Search, MoreVertical, Eye, Edit, Trash2, Package, Clock, CheckCircle,
   ShoppingCart, Download, Truck, FileText, StickyNote,
-  ChevronDown, X, Printer, RefreshCw,
+  ChevronDown, X, Printer, RefreshCw, Star, Shield, ShoppingBag, User,
 } from 'lucide-react';
 import TakaIcon from '@/components/TakaIcon';
 
@@ -55,6 +56,18 @@ const shipmentConfig: Record<string, { label: string; className: string }> = {
 };
 
 const defaultCfg = { label: 'Unknown', className: 'bg-muted text-muted-foreground' };
+
+const custStatusConfig: Record<string, { label: string; className: string }> = {
+  active:   { label: 'Active',   className: 'bg-success/20 text-success' },
+  inactive: { label: 'Inactive', className: 'bg-muted text-muted-foreground' },
+  blocked:  { label: 'Blocked',  className: 'bg-destructive/20 text-destructive' },
+};
+const custGroupConfig: Record<string, { label: string; className: string }> = {
+  regular:   { label: 'Regular',   className: 'bg-blue-500/20 text-blue-600' },
+  wholesale: { label: 'Wholesale', className: 'bg-purple-500/20 text-purple-600' },
+  vip:       { label: 'VIP',       className: 'bg-yellow-500/20 text-yellow-700' },
+  dealer:    { label: 'Dealer',    className: 'bg-emerald-500/20 text-emerald-600' },
+};
 const ALL_STATUSES = ['pending','confirmed','processing','packed','ready_for_delivery','shipped','out_for_delivery','delivered','cancelled','returned','refunded'];
 const PAYMENT_STATUSES = ['pending','paid','failed','refunded','partially_refunded'];
 
@@ -90,6 +103,10 @@ export default function Orders() {
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
   const invoicePrintRef = useRef<HTMLDivElement>(null);
+
+  const [custDetailOpen, setCustDetailOpen] = useState(false);
+  const [custDetailData, setCustDetailData] = useState<CustomerDetails | null>(null);
+  const [custDetailLoading, setCustDetailLoading] = useState(false);
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -269,6 +286,20 @@ export default function Orders() {
     finally { setExportLoading(false); }
   };
 
+  const openCustomerDetail = async (id: string) => {
+    setCustDetailLoading(true);
+    setCustDetailOpen(true);
+    setCustDetailData(null);
+    try {
+      const data = await customerApi.getDetails(id);
+      setCustDetailData(data);
+    } catch {
+      toast.error('Failed to load customer details');
+    } finally {
+      setCustDetailLoading(false);
+    }
+  };
+
   const customerName = (o: Order) => (o.customerId as any)?.name ?? 'N/A';
   const customerEmail = (o: Order) => (o.customerId as any)?.email ?? '';
   const customerPhone = (o: Order) => (o.customerId as any)?.phone ?? '';
@@ -415,12 +446,12 @@ export default function Orders() {
                         </p>
                       </TableCell>
 
-                      {/* Customer — name clickable → /customers */}
+                      {/* Customer — name clickable → customer detail dialog */}
                       <TableCell>
                         {cId ? (
-                          <Link to="/customers" className="text-sm font-medium text-primary hover:underline leading-snug block">
+                          <button onClick={() => openCustomerDetail(cId)} className="text-sm font-medium text-primary hover:underline leading-snug block text-left focus:outline-none">
                             {customerName(order)}
-                          </Link>
+                          </button>
                         ) : (
                           <p className="text-sm font-medium leading-snug">{customerName(order)}</p>
                         )}
@@ -681,6 +712,139 @@ export default function Orders() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setNoteOpen(false)}>{t('cancel')}</Button>
             <Button onClick={handleSaveNote}><StickyNote className="w-4 h-4 mr-2" />{t('saveNote')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Detail Dialog */}
+      <Dialog open={custDetailOpen} onOpenChange={setCustDetailOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Customer Details</DialogTitle></DialogHeader>
+          {custDetailLoading ? (
+            <div className="text-center py-10 text-muted-foreground">Loading…</div>
+          ) : custDetailData ? (
+            <Tabs defaultValue="profile">
+              <TabsList className="grid w-full grid-cols-3 text-xs">
+                <TabsTrigger value="profile"><User className="w-3 h-3 mr-1 inline" />Profile</TabsTrigger>
+                <TabsTrigger value="orders"><ShoppingCart className="w-3 h-3 mr-1 inline" />Orders ({custDetailData.orders.length})</TabsTrigger>
+                <TabsTrigger value="reviews"><Star className="w-3 h-3 mr-1 inline" />Reviews ({custDetailData.reviews.length})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="profile" className="space-y-4 mt-4">
+                <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
+                    {custDetailData.customer.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-lg">{custDetailData.customer.name}</p>
+                    <p className="text-sm text-muted-foreground">{custDetailData.customer.email}</p>
+                    {custDetailData.customer.phone && <p className="text-sm text-muted-foreground">{custDetailData.customer.phone}</p>}
+                  </div>
+                  <div className="ml-auto flex flex-col items-end gap-1">
+                    <Badge className={`${(custStatusConfig[custDetailData.customer.status] ?? defaultCfg).className} border-0`}>
+                      {(custStatusConfig[custDetailData.customer.status] ?? defaultCfg).label}
+                    </Badge>
+                    <Badge className={`${(custGroupConfig[custDetailData.customer.group || 'regular'] ?? defaultCfg).className} border-0`}>
+                      {(custGroupConfig[custDetailData.customer.group || 'regular'] ?? defaultCfg).label}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Total Orders</p>
+                    <p className="font-bold text-lg">{custDetailData.customer.totalOrders}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Total Spent</p>
+                    <p className="font-bold text-lg">৳{custDetailData.customer.totalSpent?.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Reward Points</p>
+                    <p className="font-bold text-lg text-yellow-600">{custDetailData.customer.rewardPoints || 0}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Last Login</p>
+                    <p className="font-medium text-sm">{custDetailData.customer.lastLoginDate ? new Date(custDetailData.customer.lastLoginDate).toLocaleString() : 'Never'}</p>
+                  </div>
+                </div>
+                {custDetailData.customer.address && (custDetailData.customer.address.street || custDetailData.customer.address.city) && (
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Address</p>
+                    <p className="text-sm">{[custDetailData.customer.address.street, custDetailData.customer.address.city, custDetailData.customer.address.state, custDetailData.customer.address.zipCode, custDetailData.customer.address.country].filter(Boolean).join(', ')}</p>
+                  </div>
+                )}
+                {custDetailData.customer.loginHistory && custDetailData.customer.loginHistory.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold mb-2 flex items-center gap-1"><Shield className="w-3 h-3" />Login Activity</p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {custDetailData.customer.loginHistory.slice(0, 5).map((h, i) => (
+                        <div key={i} className="flex justify-between text-xs p-2 bg-muted rounded">
+                          <span>{h.ip || 'Unknown IP'}</span>
+                          <span className="text-muted-foreground">{h.device || 'Unknown'}</span>
+                          <span className="text-muted-foreground">{new Date(h.date).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="orders" className="space-y-3 mt-4">
+                {custDetailData.orders.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No orders yet</p>
+                ) : custDetailData.orders.map((order: any) => (
+                  <div key={order._id} className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between p-3 bg-muted/30">
+                      <div>
+                        <p className="font-medium text-sm">#{order.orderNumber}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-sm">৳{order.total?.toLocaleString()}</p>
+                        <Badge variant="outline" className="capitalize text-xs">{order.status}</Badge>
+                      </div>
+                    </div>
+                    {order.items && order.items.slice(0, 3).map((item: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs px-3 py-1.5 border-t">
+                        {item.image || item.thumbnail ? (
+                          <img src={item.image || item.thumbnail} alt={item.name} className="w-7 h-7 rounded object-contain bg-muted" />
+                        ) : (
+                          <div className="w-7 h-7 rounded bg-muted flex items-center justify-center"><ShoppingBag className="w-3 h-3 text-muted-foreground" /></div>
+                        )}
+                        <span className="flex-1 truncate">{item.productName || item.name || 'Unknown'}</span>
+                        <span className="text-muted-foreground">×{item.quantity}</span>
+                        <span className="font-medium">৳{item.price?.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    {order.items && order.items.length > 3 && (
+                      <p className="text-xs text-muted-foreground px-3 py-1.5 border-t">+{order.items.length - 3} more items</p>
+                    )}
+                  </div>
+                ))}
+              </TabsContent>
+
+              <TabsContent value="reviews" className="space-y-3 mt-4">
+                {custDetailData.reviews.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No reviews yet</p>
+                ) : custDetailData.reviews.map((review: any) => (
+                  <div key={review._id} className="p-3 border rounded-lg space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm">{review.productId?.name || 'Unknown Product'}</p>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} className={`w-3 h-3 ${i <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{review.comment}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </TabsContent>
+            </Tabs>
+          ) : null}
+          <DialogFooter>
+            <Button onClick={() => setCustDetailOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
