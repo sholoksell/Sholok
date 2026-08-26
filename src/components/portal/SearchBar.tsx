@@ -207,17 +207,14 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
   };
 
   // ─── Image search ────────────────────────────────────────────────────────
-  // Runs MobileNet (TensorFlow.js) entirely in the browser — no external API.
-  // The model is ~25 MB and downloads once, then lives in the browser cache.
+  // Primary: Gemini 1.5 Flash (free AI, best accuracy).
+  // Fallback: MobileNet + label map (runs offline in browser).
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setImageLoading(true);
-    const loadingMsg = modelStatus !== "ready"
-      ? (language === "BN" ? "AI মডেল লোড হচ্ছে (প্রথমবার একটু সময় লাগবে)…" : "Loading AI model (first time may take a moment)…")
-      : (language === "BN" ? "ছবি স্ক্যান করা হচ্ছে…" : "Scanning image…");
-    setImageMsg(loadingMsg);
+    setImageMsg(language === "BN" ? "ছবি বিশ্লেষণ করা হচ্ছে…" : "Analyzing image…");
 
     try {
       const keywords = await classify(file);
