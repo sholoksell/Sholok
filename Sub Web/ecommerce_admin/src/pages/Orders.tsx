@@ -371,7 +371,7 @@ export default function Orders() {
                   <TableHead className="min-w-[130px] font-semibold">Order ID</TableHead>
                   <TableHead className="min-w-[110px] font-semibold">Date &amp; Time</TableHead>
                   <TableHead className="min-w-[160px] font-semibold">Customer</TableHead>
-                  <TableHead className="min-w-[160px] font-semibold">Items / Products</TableHead>
+                  <TableHead className="min-w-[80px] font-semibold">Items</TableHead>
                   <TableHead className="min-w-[90px] font-semibold">Total</TableHead>
                   <TableHead className="min-w-[140px] font-semibold">Payment</TableHead>
                   <TableHead className="min-w-[155px] font-semibold">Order Status</TableHead>
@@ -433,17 +433,7 @@ export default function Orders() {
 
                       {/* Items */}
                       <TableCell>
-                        <div className="space-y-1 max-w-[160px]">
-                          {order.items.slice(0, 2).map((item, i) => (
-                            <div key={i}>
-                              <p className="text-xs font-medium text-foreground truncate">{item.productName || 'Unknown'}</p>
-                              <p className="text-[10px] text-muted-foreground">Qty: {item.quantity} · ৳{(item.price||0).toLocaleString()}</p>
-                            </div>
-                          ))}
-                          {order.items.length > 2 && (
-                            <p className="text-[10px] text-muted-foreground">+{order.items.length - 2} more item{order.items.length - 2 > 1 ? 's' : ''}</p>
-                          )}
-                        </div>
+                        <span className="text-sm font-medium">{order.items.length} {order.items.length === 1 ? 'item' : 'items'}</span>
                       </TableCell>
 
                       {/* Total */}
@@ -453,23 +443,28 @@ export default function Orders() {
 
                       {/* Payment Status — clickable dropdown */}
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none">
-                              <Badge className={`${(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer text-[11px] px-2 py-0.5 whitespace-nowrap`}>
-                                {(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).label}
-                                <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline-block" />
-                              </Badge>
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {PAYMENT_STATUSES.map(s => (
-                              <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(order._id, s)}>
-                                {paymentStatusConfig[s].label}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="space-y-0.5">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="focus:outline-none">
+                                <Badge className={`${(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer text-[11px] px-2 py-0.5 whitespace-nowrap`}>
+                                  {(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).label}
+                                  <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline-block" />
+                                </Badge>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              {PAYMENT_STATUSES.map(s => (
+                                <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(order._id, s)}>
+                                  {paymentStatusConfig[s].label}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {order.paymentMethod && (
+                            <p className="text-[10px] text-muted-foreground capitalize">{order.paymentMethod.replace(/_/g, ' ')}</p>
+                          )}
+                        </div>
                       </TableCell>
 
                       {/* Order Status — clickable dropdown */}
