@@ -457,8 +457,15 @@ export default function Orders() {
                         )}
                         {customerPhone(order) ? (
                           <p className="text-[11px] text-muted-foreground">{customerPhone(order)}</p>
-                        ) : customerEmail(order) ? (
-                          <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">{customerEmail(order)}</p>
+                        ) : null}
+                        {customerEmail(order) ? (
+                          cId ? (
+                            <button onClick={() => openCustomerDetail(cId)} className="text-[11px] text-primary hover:underline truncate max-w-[150px] block text-left focus:outline-none">
+                              {customerEmail(order)}
+                            </button>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">{customerEmail(order)}</p>
+                          )
                         ) : null}
                       </TableCell>
 
