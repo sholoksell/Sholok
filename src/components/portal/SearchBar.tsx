@@ -319,12 +319,14 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
           role="search"
           aria-label={language === "BN" ? "সার্চ" : "Search"}
         >
-          {/* S Logo */}
-          <Link to="/" tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
-            <span className={`${logoSz} rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold select-none`}>
-              S
-            </span>
-          </Link>
+          {/* S Logo — only in hero variant; compact Header already has its own logo */}
+          {isHero && (
+            <Link to="/" tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
+              <span className={`${logoSz} rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold select-none`}>
+                S
+              </span>
+            </Link>
+          )}
 
           {/* Text input — fills all remaining space */}
           <input
@@ -556,10 +558,11 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
         />
       </div>
 
-      {/* ── Mobile action buttons — hidden on sm+ ──────────────────────────
+      {/* ── Mobile action buttons — hero variant only ────────────────────────
           Voice / Image / AI get their own clearly-labelled pill row so the
-          search input can use the full available width on small screens.     */}
-      <div className="flex sm:hidden items-stretch gap-2 mt-2.5">
+          search input can use the full available width on small screens.
+          Hidden in compact/header mode to keep the sticky header a fixed height. */}
+      <div className={`${isHero ? "flex" : "hidden"} sm:hidden items-stretch gap-2 mt-2.5`}>
 
         {/* Voice search */}
         <button
