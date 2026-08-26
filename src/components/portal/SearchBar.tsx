@@ -1,4 +1,4 @@
-import { Search, X, Keyboard, Mic, Camera, Sparkles, MicOff, Loader2 } from "lucide-react";
+import { Search, X, Keyboard, Mic, Camera, Sparkles, MicOff } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -38,7 +38,6 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
   const [isKeyboardOpen, setKbOpen]       = useState(false);
   const [isListening,    setIsListening]  = useState(false);
   const [voiceMsg,       setVoiceMsg]     = useState("");
-  const [isImageLoading, setImageLoading] = useState(false);
   const [imageMsg,       setImageMsg]     = useState("");
   const [aiOpen,         setAiOpen]       = useState(false);
   const [dropError,      setDropError]    = useState(false);
@@ -205,31 +204,28 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
   };
 
   // ─── Image search ────────────────────────────────────────────────────────
-  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // No API needed — derive a query from the image filename.
+  // e.g. "samsung-galaxy-s24.jpg" → "samsung galaxy s24"
+  const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageLoading(true);
-    setImageMsg("");
-    try {
-      const data = await searchService.imageSearch(file);
-      if (data.success && data.query) {
-        setQuery(data.query);
-        doSearch(data.query);
-      } else {
-        const msg = data.message || (language === "BN" ? "ছবি সার্চ শীঘ্রই আসছে" : "Image search coming soon");
-        setImageMsg(msg);
-        setTimeout(() => setImageMsg(""), 4000);
-      }
-    } catch {
-      const msg = language === "BN"
-        ? "ছবি সার্চ এই মুহূর্তে পাওয়া যাচ্ছে না"
-        : "Image search is currently unavailable";
+
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+    const derived = nameWithoutExt
+      .replace(/[-_]+/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    if (derived) {
+      setQuery(derived);
+      doSearch(derived);
+    } else {
+      const msg = language === "BN" ? "ছবির নাম থেকে সার্চ করা যাচ্ছে না" : "Could not read image name";
       setImageMsg(msg);
       setTimeout(() => setImageMsg(""), 3500);
-    } finally {
-      setImageLoading(false);
-      if (imageInputRef.current) imageInputRef.current.value = "";
     }
+
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   // ─── Bengali virtual keyboard ────────────────────────────────────────────
@@ -381,12 +377,9 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
             type="button"
             onClick={() => imageInputRef.current?.click()}
             aria-label={language === "BN" ? "ছবি দিয়ে সার্চ" : "Search by image"}
-            disabled={isImageLoading}
-            className={`${iBtnDesktop} text-muted-foreground hover:text-foreground hover:bg-secondary ${isImageLoading ? "cursor-wait opacity-60" : ""}`}
+            className={`${iBtnDesktop} text-muted-foreground hover:text-foreground hover:bg-secondary`}
           >
-            {isImageLoading
-              ? <Loader2 className={`${iconSz} animate-spin`} />
-              : <Camera className={iconSz} />}
+            <Camera className={iconSz} />
           </button>
 
           {/* ── AI — desktop only ── */}
@@ -592,19 +585,15 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
         <button
           type="button"
           onClick={() => imageInputRef.current?.click()}
-          disabled={isImageLoading}
           aria-label={language === "BN" ? "ছবি দিয়ে খুঁজুন" : "Search by Image"}
-          className={`flex-1 flex items-center justify-center gap-1.5
+          className="flex-1 flex items-center justify-center gap-1.5
             min-h-[44px] px-2 rounded-2xl border border-border bg-card
             text-foreground text-xs font-semibold
             transition-all touch-manipulation focus:outline-none
             focus-visible:ring-2 focus-visible:ring-primary/40
-            hover:border-primary/50 hover:bg-secondary/50 active:scale-95
-            ${isImageLoading ? "opacity-60 cursor-wait" : ""}`}
+            hover:border-primary/50 hover:bg-secondary/50 active:scale-95"
         >
-          {isImageLoading
-            ? <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
-            : <Camera  className="w-4 h-4 flex-shrink-0" />}
+          <Camera className="w-4 h-4 flex-shrink-0" />
           <span className="truncate">
             {language === "BN" ? "ছবি দিয়ে খুঁজুন" : "Image Search"}
           </span>
