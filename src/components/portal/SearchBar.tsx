@@ -1,4 +1,4 @@
-import { Search, X, Keyboard, Mic, Camera, Sparkles, MicOff } from "lucide-react";
+import { Search, X, Keyboard, Mic, Camera, Sparkles, MicOff, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,6 +12,7 @@ import {
 } from "@/services/globalSearch.service";
 import BengaliKeyboard from "@/components/portal/BengaliKeyboard";
 import AISearchDialog from "@/components/portal/AISearchDialog";
+import { useImageClassifier } from "@/hooks/useImageClassifier";
 
 interface SearchBarProps {
   initialQuery?: string;
@@ -38,12 +39,14 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
   const [isKeyboardOpen, setKbOpen]       = useState(false);
   const [isListening,    setIsListening]  = useState(false);
   const [voiceMsg,       setVoiceMsg]     = useState("");
+  const [isImageLoading, setImageLoading] = useState(false);
   const [imageMsg,       setImageMsg]     = useState("");
   const [aiOpen,         setAiOpen]       = useState(false);
   const [dropError,      setDropError]    = useState(false);
 
   const navigate        = useNavigate();
   const { t, language } = useLanguage();
+  const { classify, modelStatus } = useImageClassifier();
 
   const inputRef       = useRef<HTMLInputElement>(null);
   const wrapRef        = useRef<HTMLDivElement>(null);
@@ -204,28 +207,44 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
   };
 
   // ─── Image search ────────────────────────────────────────────────────────
-  // No API needed — derive a query from the image filename.
-  // e.g. "samsung-galaxy-s24.jpg" → "samsung galaxy s24"
-  const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Runs MobileNet (TensorFlow.js) entirely in the browser — no external API.
+  // The model is ~25 MB and downloads once, then lives in the browser cache.
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-    const derived = nameWithoutExt
-      .replace(/[-_]+/g, " ")
-      .replace(/\s{2,}/g, " ")
-      .trim();
+    setImageLoading(true);
+    const loadingMsg = modelStatus !== "ready"
+      ? (language === "BN" ? "AI মডেল লোড হচ্ছে (প্রথমবার একটু সময় লাগবে)…" : "Loading AI model (first time may take a moment)…")
+      : (language === "BN" ? "ছবি স্ক্যান করা হচ্ছে…" : "Scanning image…");
+    setImageMsg(loadingMsg);
 
-    if (derived) {
-      setQuery(derived);
-      doSearch(derived);
-    } else {
-      const msg = language === "BN" ? "ছবির নাম থেকে সার্চ করা যাচ্ছে না" : "Could not read image name";
-      setImageMsg(msg);
+    try {
+      const keywords = await classify(file);
+
+      if (keywords) {
+        setQuery(keywords);
+        setImageMsg("");
+        doSearch(keywords);
+      } else {
+        // Fallback: use the filename as query
+        const fallback = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, " ").trim();
+        if (fallback) {
+          setQuery(fallback);
+          setImageMsg("");
+          doSearch(fallback);
+        } else {
+          setImageMsg(language === "BN" ? "পণ্য চেনা যায়নি, আবার চেষ্টা করুন" : "Could not identify product, try another image");
+          setTimeout(() => setImageMsg(""), 4000);
+        }
+      }
+    } catch {
+      setImageMsg(language === "BN" ? "ছবি বিশ্লেষণ ব্যর্থ হয়েছে" : "Image analysis failed");
       setTimeout(() => setImageMsg(""), 3500);
+    } finally {
+      setImageLoading(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
     }
-
-    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   // ─── Bengali virtual keyboard ────────────────────────────────────────────
@@ -377,9 +396,12 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
             type="button"
             onClick={() => imageInputRef.current?.click()}
             aria-label={language === "BN" ? "ছবি দিয়ে সার্চ" : "Search by image"}
-            className={`${iBtnDesktop} text-muted-foreground hover:text-foreground hover:bg-secondary`}
+            disabled={isImageLoading}
+            className={`${iBtnDesktop} text-muted-foreground hover:text-foreground hover:bg-secondary ${isImageLoading ? "cursor-wait opacity-60" : ""}`}
           >
-            <Camera className={iconSz} />
+            {isImageLoading
+              ? <Loader2 className={`${iconSz} animate-spin`} />
+              : <Camera className={iconSz} />}
           </button>
 
           {/* ── AI — desktop only ── */}
@@ -585,15 +607,19 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
         <button
           type="button"
           onClick={() => imageInputRef.current?.click()}
+          disabled={isImageLoading}
           aria-label={language === "BN" ? "ছবি দিয়ে খুঁজুন" : "Search by Image"}
-          className="flex-1 flex items-center justify-center gap-1.5
+          className={`flex-1 flex items-center justify-center gap-1.5
             min-h-[44px] px-2 rounded-2xl border border-border bg-card
             text-foreground text-xs font-semibold
             transition-all touch-manipulation focus:outline-none
             focus-visible:ring-2 focus-visible:ring-primary/40
-            hover:border-primary/50 hover:bg-secondary/50 active:scale-95"
+            hover:border-primary/50 hover:bg-secondary/50 active:scale-95
+            ${isImageLoading ? "opacity-60 cursor-wait" : ""}`}
         >
-          <Camera className="w-4 h-4 flex-shrink-0" />
+          {isImageLoading
+            ? <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
+            : <Camera  className="w-4 h-4 flex-shrink-0" />}
           <span className="truncate">
             {language === "BN" ? "ছবি দিয়ে খুঁজুন" : "Image Search"}
           </span>

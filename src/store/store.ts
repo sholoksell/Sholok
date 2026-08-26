@@ -4,6 +4,7 @@ import userReducer from './slices/userSlice';
 import searchReducer from './slices/searchSlice';
 import cartReducer from './slices/cartSlice';
 import notificationReducer from './slices/notificationSlice';
+import imageClassifierReducer from './slices/imageClassifierSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     search: searchReducer,
     cart: cartReducer,
     notification: notificationReducer,
+    imageClassifier: imageClassifierReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
