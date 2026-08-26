@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import Header from "@/components/portal/Header";
+import HomeHeader from "@/components/portal/HomeHeader";
 import { searchSite, SEARCH_INDEX, SearchEntry, CATEGORY_BN } from "@/lib/searchIndex";
 import {
   Search, ArrowRight, ExternalLink, Compass, ShoppingBag, Star,
   Briefcase, MapPin, Clock, Building2, FileText, ChevronRight,
-  Loader2, TrendingUp, Play, Store, Eye,
+  TrendingUp, Play, Store, Eye,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -43,6 +43,35 @@ type TabKey = typeof TABS[number]["key"];
 type NavigateTab = Extract<typeof TABS[number], { href: string }>;
 const NAVIGATE_SERVICES = TABS.filter((t): t is NavigateTab => "href" in t);
 
+// ─── Intent detection ─────────────────────────────────────────────────────────
+type SearchIntent = "shopping" | "jobs" | "video" | "blog" | "weather" | "sports" | "store" | "general";
+
+function detectIntent(q: string): SearchIntent {
+  const t = q.toLowerCase();
+  const has = (words: string[]) => words.some(w => t.includes(w));
+  if (has(["price","buy","dam","kena","কেনা","দাম","shop","phone","mobile","৳","taka","টাকা","কিনতে","পণ্য","product","sell","কিনব"])) return "shopping";
+  if (has(["job","career","চাকরি","kazi","kaji","salary","বেতন","নিয়োগ","recruitment","vacancy"])) return "jobs";
+  if (has(["video","watch","movie","নাটক","সিনেমা","ভিডিও","film","series","দেখব","episode"])) return "video";
+  if (has(["store","shop","দোকান","seller","smartstore","স্টোর","business"])) return "store";
+  if (has(["sports","cricket","football","ক্রিকেট","ফুটবল","খেলা","match","score","team","player","tournament"])) return "sports";
+  if (has(["weather","আবহাওয়া","temperature","rain","বৃষ্টি","storm","forecast","ঝড়","শীতকাল"])) return "weather";
+  if (has(["blog","article","post","news","খবর","পোস্ট","review","রিভিউ","লিখেছেন"])) return "blog";
+  return "general";
+}
+
+// Order sections in "All" tab based on detected intent
+function getSectionOrder(intent: SearchIntent): string[] {
+  switch (intent) {
+    case "shopping": return ["products", "mvProducts", "stores", "blogs", "videos", "jobs", "portal"];
+    case "jobs":     return ["jobs", "blogs", "products", "mvProducts", "videos", "stores", "portal"];
+    case "video":    return ["videos", "blogs", "products", "mvProducts", "jobs", "stores", "portal"];
+    case "store":    return ["stores", "mvProducts", "products", "blogs", "jobs", "videos", "portal"];
+    case "sports":   return ["blogs", "videos", "products", "jobs", "mvProducts", "stores", "portal"];
+    case "blog":     return ["blogs", "videos", "products", "mvProducts", "jobs", "stores", "portal"];
+    default:         return ["products", "mvProducts", "stores", "jobs", "videos", "blogs", "portal"];
+  }
+}
+
 // ─── UI primitives ────────────────────────────────────────────────────────────
 const Badge = ({ children }: { children: React.ReactNode }) => (
   <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">
@@ -50,9 +79,39 @@ const Badge = ({ children }: { children: React.ReactNode }) => (
   </span>
 );
 
-const Loader = () => (
-  <div className="flex items-center justify-center py-16">
-    <Loader2 className="w-7 h-7 animate-spin text-primary" />
+// Skeleton loaders — shown while fetching (much better UX than a spinner)
+const SkeletonCard = () => (
+  <div className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
+    <div className="h-36 bg-secondary" />
+    <div className="p-3 space-y-2">
+      <div className="h-2.5 bg-secondary/80 rounded w-1/3" />
+      <div className="h-4 bg-secondary/80 rounded" />
+      <div className="h-4 bg-secondary/80 rounded w-4/5" />
+      <div className="h-3 bg-secondary/80 rounded w-1/4" />
+    </div>
+  </div>
+);
+
+const SkeletonRow = () => (
+  <div className="flex gap-4 p-4 rounded-xl border border-border bg-card animate-pulse">
+    <div className="w-12 h-12 rounded-xl bg-secondary flex-shrink-0" />
+    <div className="flex-1 space-y-2.5">
+      <div className="h-4 bg-secondary/80 rounded w-3/4" />
+      <div className="h-3 bg-secondary/80 rounded w-1/2" />
+      <div className="h-3 bg-secondary/80 rounded w-1/3" />
+    </div>
+  </div>
+);
+
+const GridSkeleton = ({ count = 3 }: { count?: number }) => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    {Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} />)}
+  </div>
+);
+
+const ListSkeleton = ({ count = 3 }: { count?: number }) => (
+  <div className="space-y-3">
+    {Array.from({ length: count }).map((_, i) => <SkeletonRow key={i} />)}
   </div>
 );
 
@@ -74,7 +133,7 @@ const SectionHeader = ({ emoji, title, total, href, btnLabel }: {
   </div>
 );
 
-// ─── Product card (Shopping) ──────────────────────────────────────────────────
+// ─── Content cards ────────────────────────────────────────────────────────────
 const ProductCard = ({ p, lang }: { p: ProductResult; lang: "EN" | "BN" }) => {
   const name  = getLocalizedName({ name: p.name, nameBn: p.nameBn }, lang);
   const cat   = p.categoryId ? getLocalizedName(p.categoryId, lang) : "";
@@ -85,7 +144,7 @@ const ProductCard = ({ p, lang }: { p: ProductResult; lang: "EN" | "BN" }) => {
       className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200">
       <div className="relative h-36 bg-secondary overflow-hidden">
         {p.thumbnail
-          ? <img src={p.thumbnail} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img src={p.thumbnail} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
           : <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 opacity-20" /></div>}
         {disc > 0 && <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">-{disc}%</span>}
       </div>
@@ -107,7 +166,6 @@ const ProductCard = ({ p, lang }: { p: ProductResult; lang: "EN" | "BN" }) => {
   );
 };
 
-// ─── Smart Store product card ─────────────────────────────────────────────────
 const MvProductCard = ({ p, lang }: { p: MultivendorProduct; lang: "EN" | "BN" }) => {
   const name = getLocalizedName({ name: p.name, nameBn: p.nameBn }, lang);
   const disc = (p.originalPrice && p.price < p.originalPrice)
@@ -118,7 +176,7 @@ const MvProductCard = ({ p, lang }: { p: MultivendorProduct; lang: "EN" | "BN" }
       className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200">
       <div className="relative h-36 bg-secondary overflow-hidden">
         {img
-          ? <img src={img} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img src={img} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
           : <div className="w-full h-full flex items-center justify-center"><Store className="w-8 h-8 opacity-20" /></div>}
         {disc > 0 && <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">-{disc}%</span>}
         {p.badge && <span className="absolute top-2 right-2 bg-amber-400 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{p.badge}</span>}
@@ -138,7 +196,6 @@ const MvProductCard = ({ p, lang }: { p: MultivendorProduct; lang: "EN" | "BN" }
   );
 };
 
-// ─── Job card ─────────────────────────────────────────────────────────────────
 const JobCard = ({ job, lang }: { job: JobResult; lang: "EN" | "BN" }) => {
   const title  = (lang === "BN" && job.titleBn) ? job.titleBn : job.title;
   const salary = job.salaryMin && job.salaryMax
@@ -149,7 +206,7 @@ const JobCard = ({ job, lang }: { job: JobResult; lang: "EN" | "BN" }) => {
       className="group flex gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-200">
       <div className="w-12 h-12 rounded-xl bg-secondary flex-shrink-0 overflow-hidden flex items-center justify-center">
         {job.companyLogo
-          ? <img src={job.companyLogo} alt={job.company} className="w-full h-full object-contain p-1" />
+          ? <img src={job.companyLogo} alt={job.company} className="w-full h-full object-contain p-1" loading="lazy" />
           : <Building2 className="w-6 h-6 opacity-30" />}
       </div>
       <div className="flex-1 min-w-0">
@@ -166,7 +223,6 @@ const JobCard = ({ job, lang }: { job: JobResult; lang: "EN" | "BN" }) => {
   );
 };
 
-// ─── Blog card ────────────────────────────────────────────────────────────────
 const BlogCard = ({ post, lang }: { post: BlogPost; lang: "EN" | "BN" }) => {
   const title   = (lang === "BN" && post.titleBn)   ? post.titleBn   : post.title;
   const excerpt = (lang === "BN" && post.excerptBn) ? post.excerptBn : (post.excerpt ?? "");
@@ -176,7 +232,7 @@ const BlogCard = ({ post, lang }: { post: BlogPost; lang: "EN" | "BN" }) => {
       className="group flex gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-200">
       {thumb && (
         <div className="w-20 h-16 rounded-lg bg-secondary flex-shrink-0 overflow-hidden">
-          <img src={thumb} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <img src={thumb} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -193,7 +249,6 @@ const BlogCard = ({ post, lang }: { post: BlogPost; lang: "EN" | "BN" }) => {
   );
 };
 
-// ─── Video card ───────────────────────────────────────────────────────────────
 const VideoCard = ({ video, lang }: { video: VideoResult; lang: "EN" | "BN" }) => {
   const title = (lang === "BN" && (video.titleBn ?? video.titleEn))
     ? (video.titleBn ?? video.titleEn ?? video.title) : video.title;
@@ -203,7 +258,7 @@ const VideoCard = ({ video, lang }: { video: VideoResult; lang: "EN" | "BN" }) =
       className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200">
       <div className="relative h-32 bg-secondary overflow-hidden">
         {video.thumbnailPath
-          ? <img src={video.thumbnailPath} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img src={video.thumbnailPath} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
           : <div className="w-full h-full flex items-center justify-center"><Play className="w-8 h-8 opacity-20" /></div>}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
           <Play className="w-8 h-8 text-white fill-white" />
@@ -224,7 +279,6 @@ const VideoCard = ({ video, lang }: { video: VideoResult; lang: "EN" | "BN" }) =
   );
 };
 
-// ─── Store card ───────────────────────────────────────────────────────────────
 const StoreCard = ({ store, lang }: { store: StoreResult; lang: "EN" | "BN" }) => {
   const name = getLocalizedName({ name: store.name, nameBn: store.nameBn, nameEn: store.nameEn }, lang);
   const desc = (lang === "BN" && store.descriptionBn) ? store.descriptionBn : (store.description ?? "");
@@ -233,7 +287,7 @@ const StoreCard = ({ store, lang }: { store: StoreResult; lang: "EN" | "BN" }) =
       className="group flex gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-200">
       <div className="w-14 h-14 rounded-xl bg-secondary flex-shrink-0 overflow-hidden flex items-center justify-center">
         {store.logo
-          ? <img src={store.logo} alt={name} className="w-full h-full object-contain p-1" />
+          ? <img src={store.logo} alt={name} className="w-full h-full object-contain p-1" loading="lazy" />
           : <Store className="w-7 h-7 opacity-30" />}
       </div>
       <div className="flex-1 min-w-0">
@@ -255,7 +309,6 @@ const StoreCard = ({ store, lang }: { store: StoreResult; lang: "EN" | "BN" }) =
   );
 };
 
-// ─── Portal result card ───────────────────────────────────────────────────────
 const PortalCard = ({ result, lang }: { result: SearchEntry; lang: "EN" | "BN" }) => {
   const title = lang === "BN" ? result.titleBn : result.title;
   const desc  = lang === "BN" ? result.descriptionBn : result.description;
@@ -279,7 +332,6 @@ const PortalCard = ({ result, lang }: { result: SearchEntry; lang: "EN" | "BN" }
     : <Link to={result.path} className={cls}>{inner}</Link>;
 };
 
-// ─── Service routing card (frontend-only services) ────────────────────────────
 const ServiceRouteCard = ({ tab, query, lang }: {
   tab: NavigateTab; query: string; lang: "EN" | "BN";
 }) => {
@@ -299,16 +351,87 @@ const ServiceRouteCard = ({ tab, query, lang }: {
   );
 };
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
-const EmptyState = ({ query, lang }: { query: string; lang: "EN" | "BN" }) => (
-  <div className="text-center py-12">
-    <Compass className="w-12 h-12 mx-auto mb-4 opacity-25" />
-    <h3 className="text-lg font-semibold mb-1">
-      {lang === "BN" ? `"${query}" এর জন্য কোনো ফলাফল নেই` : `No results for "${query}"`}
-    </h3>
-    <p className="text-sm text-muted-foreground">{lang === "BN" ? "ভিন্ন কীওয়ার্ড চেষ্টা করুন" : "Try a different keyword"}</p>
-  </div>
-);
+// ─── Related searches ─────────────────────────────────────────────────────────
+const RELATED_TEMPLATES: Record<SearchIntent, ((q: string, bn: boolean) => string[])> = {
+  shopping: (q, bn) => bn
+    ? [`${q} দাম`, `${q} কিনতে`, `${q} রিভিউ`, `সেরা ${q}`, `সস্তায় ${q}`]
+    : [`${q} price`, `buy ${q}`, `${q} review`, `best ${q}`, `cheap ${q}`],
+  jobs: (q, bn) => bn
+    ? [`${q} চাকরি ঢাকা`, `${q} নিয়োগ ২০২৫`, `${q} বেতন`, `${q} career`]
+    : [`${q} jobs dhaka`, `${q} salary`, `${q} careers`, `apply ${q}`],
+  video: (q, bn) => bn
+    ? [`${q} ভিডিও`, `${q} নাটক`, `${q} সিনেমা`, `${q} online`]
+    : [`${q} video`, `${q} watch online`, `${q} trailer`, `${q} full movie`],
+  blog: (q, bn) => bn
+    ? [`${q} সম্পর্কে`, `${q} রিভিউ`, `${q} তথ্য`, `${q} বাংলা`]
+    : [`${q} review`, `${q} guide`, `${q} tips`, `about ${q}`],
+  store: (q, bn) => bn
+    ? [`${q} স্টোর`, `${q} দোকান`, `${q} seller`]
+    : [`${q} store`, `${q} shop`, `${q} seller`],
+  weather: (q, bn) => bn
+    ? [`${q} আবহাওয়া`, `${q} তাপমাত্রা`, `${q} বৃষ্টি`, `${q} forecast`]
+    : [`${q} weather`, `${q} temperature`, `${q} forecast`, `${q} rain`],
+  sports: (q, bn) => bn
+    ? [`${q} খেলা`, `${q} লাইভ স্কোর`, `${q} টিম`, `${q} ম্যাচ`]
+    : [`${q} live score`, `${q} team`, `${q} match`, `${q} players`],
+  general: (q, bn) => bn
+    ? [`${q} বাংলায়`, `${q} তথ্য`, `সেরা ${q}`, `${q} রিভিউ`]
+    : [`${q} in bangladesh`, `about ${q}`, `${q} guide`, `${q} review`],
+};
+
+const RelatedSearches = ({ query, intent, lang }: { query: string; intent: SearchIntent; lang: "EN" | "BN" }) => {
+  const bn = lang === "BN";
+  const terms = RELATED_TEMPLATES[intent](query, bn).filter(t => t !== query);
+  if (!terms.length) return null;
+  return (
+    <section className="mt-8 border-t border-border/60 pt-6">
+      <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1.5">
+        <Search className="w-3.5 h-3.5" />
+        {bn ? "সম্পর্কিত সার্চ" : "Related Searches"}
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {terms.map(t => (
+          <Link
+            key={t}
+            to={`/search?q=${encodeURIComponent(t)}`}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full text-sm transition-all"
+          >
+            <Search className="w-3 h-3 opacity-50" />
+            {t}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+// ─── No-results state with recommendations ────────────────────────────────────
+const NoResults = ({ query, lang }: { query: string; lang: "EN" | "BN" }) => {
+  const bn = lang === "BN";
+  return (
+    <div className="py-10 text-center">
+      <Compass className="w-12 h-12 mx-auto mb-4 opacity-25" />
+      <h3 className="text-lg font-semibold mb-1">
+        {bn ? `"${query}" এর জন্য কোনো ফলাফল নেই` : `No results for "${query}"`}
+      </h3>
+      <p className="text-sm text-muted-foreground mb-6">
+        {bn ? "ভিন্ন কীওয়ার্ড চেষ্টা করুন অথবা নিচের সার্ভিসে সার্চ করুন" : "Try a different keyword or search directly in a service"}
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto">
+        {NAVIGATE_SERVICES.slice(0, 6).map(tab => (
+          <ServiceRouteCard key={tab.key} tab={tab} query={query} lang={lang} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Per-tab loading state ────────────────────────────────────────────────────
+const PerTabLoader = ({ tab }: { tab: TabKey }) => {
+  if (tab === "products" || tab === "video" || tab === "smartstore") return <GridSkeleton count={6} />;
+  return <ListSkeleton count={4} />;
+};
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const SearchResults = () => {
@@ -318,6 +441,9 @@ const SearchResults = () => {
   const { language } = useLanguage();
   const lang = language as "EN" | "BN";
   const bn   = lang === "BN";
+
+  const intent = useMemo(() => detectIntent(query), [query]);
+  const sectionOrder = useMemo(() => getSectionOrder(intent), [intent]);
 
   type AllResults = Awaited<ReturnType<typeof universalSearchService.search>>;
   const [results, setResults] = useState<AllResults>({
@@ -334,8 +460,8 @@ const SearchResults = () => {
     jobs: JobResult[]; blog: BlogPost[]; products: ProductResult[];
     videos: VideoResult[]; stores: StoreResult[]; mvProducts: MultivendorProduct[];
   }
-  const [more, setMore]             = useState<MoreItems>({ jobs: [], blog: [], products: [], videos: [], stores: [], mvProducts: [] });
-  const [moreTotal, setMoreTotal]   = useState(0);
+  const [more, setMore]               = useState<MoreItems>({ jobs: [], blog: [], products: [], videos: [], stores: [], mvProducts: [] });
+  const [moreTotal, setMoreTotal]     = useState(0);
   const [moreLoading, setMoreLoading] = useState(false);
 
   const portalResults = useMemo(() => searchSite(query, language), [query, language]);
@@ -371,12 +497,12 @@ const SearchResults = () => {
         const r = settled[i];
         if (r.status !== "fulfilled") return;
         const v = r.value;
-        if (k === "jobs")       { out.jobs      = v.jobs     ?? []; total = v.total ?? 0; }
-        if (k === "blog")       { out.blog      = v.posts    ?? []; total = v.total ?? 0; }
-        if (k === "products")   { out.products  = v.products ?? []; total = v.total ?? 0; }
-        if (k === "videos")     { out.videos    = v.videos   ?? []; total = v.total ?? 0; }
-        if (k === "stores")     { out.stores    = v.stores   ?? []; }
-        if (k === "mvProducts") { out.mvProducts = v.products ?? []; total += v.total ?? 0; }
+        if (k === "jobs")       { out.jobs       = v.jobs      ?? []; total  = v.total ?? 0; }
+        if (k === "blog")       { out.blog        = v.posts     ?? []; total  = v.total ?? 0; }
+        if (k === "products")   { out.products    = v.products  ?? []; total  = v.total ?? 0; }
+        if (k === "videos")     { out.videos      = v.videos    ?? []; total  = v.total ?? 0; }
+        if (k === "stores")     { out.stores      = v.stores    ?? []; }
+        if (k === "mvProducts") { out.mvProducts  = v.products  ?? []; total += v.total ?? 0; }
       });
       setMore(out);
       setMoreTotal(total);
@@ -397,103 +523,128 @@ const SearchResults = () => {
   const totalHits = results.totalProducts + results.totalJobs + results.totalBlogPosts
     + results.totalVideos + results.totalStores + results.totalMultivendorProducts;
 
-  // ─── Render sections ────────────────────────────────────────────────────────
+  // ─── Intent-ordered "All" section renderers ──────────────────────────────
   const GridCards = ({ children }: { children: React.ReactNode }) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{children}</div>
   );
 
+  // Map section key → rendered element (only if data exists)
+  const allSections: Record<string, React.ReactNode> = {
+    products: results.products.length > 0 ? (
+      <section key="products">
+        <SectionHeader emoji="🛍️" title={bn ? "কেনাকাটা — পণ্য" : "Shopping Products"}
+          total={results.totalProducts} href={`/shopping/?search=${encodeURIComponent(query)}`}
+          btnLabel={bn ? "সব পণ্য" : "All products"} />
+        <GridCards>{results.products.map(p => <ProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
+      </section>
+    ) : null,
+
+    mvProducts: results.multivendorProducts.length > 0 ? (
+      <section key="mvProducts">
+        <SectionHeader emoji="🏪" title={bn ? "স্মার্ট স্টোর পণ্য" : "Smart Store Products"}
+          total={results.totalMultivendorProducts} href={`/smart-store?q=${encodeURIComponent(query)}`}
+          btnLabel={bn ? "Smart Store এ দেখুন" : "View in Smart Store"} />
+        <GridCards>{results.multivendorProducts.map(p => <MvProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
+      </section>
+    ) : null,
+
+    stores: results.stores.length > 0 ? (
+      <section key="stores">
+        <SectionHeader emoji="🏬" title={bn ? "স্টোর" : "Stores"}
+          total={results.totalStores} href={`/smart-store?q=${encodeURIComponent(query)}`}
+          btnLabel={bn ? "সব স্টোর" : "All stores"} />
+        <div className="space-y-3">{results.stores.map(s => <StoreCard key={s._id} store={s} lang={lang} />)}</div>
+      </section>
+    ) : null,
+
+    jobs: results.jobs.length > 0 ? (
+      <section key="jobs">
+        <SectionHeader emoji="💼" title={bn ? "চাকরি" : "Jobs"}
+          total={results.totalJobs} href={`/job-portal/?search=${encodeURIComponent(query)}`}
+          btnLabel={bn ? "সব চাকরি" : "All jobs"} />
+        <div className="space-y-3">{results.jobs.map(j => <JobCard key={j._id} job={j} lang={lang} />)}</div>
+      </section>
+    ) : null,
+
+    videos: results.videos.length > 0 ? (
+      <section key="videos">
+        <SectionHeader emoji="🎬" title={bn ? "ভিডিও" : "Videos"}
+          total={results.totalVideos} href={`/tv?q=${encodeURIComponent(query)}`}
+          btnLabel={bn ? "সব ভিডিও" : "All videos"} />
+        <GridCards>{results.videos.map(v => <VideoCard key={v._id} video={v} lang={lang} />)}</GridCards>
+      </section>
+    ) : null,
+
+    blogs: results.blogPosts.length > 0 ? (
+      <section key="blogs">
+        <SectionHeader emoji="✍️" title={bn ? "ব্লগ পোস্ট" : "Blog Posts"}
+          total={results.totalBlogPosts} href={`/blog?search=${encodeURIComponent(query)}`}
+          btnLabel={bn ? "সব পোস্ট" : "All posts"} />
+        <div className="space-y-3">{results.blogPosts.map(p => <BlogCard key={p._id} post={p} lang={lang} />)}</div>
+      </section>
+    ) : null,
+
+    portal: portalResults.length > 0 ? (
+      <section key="portal">
+        <SectionHeader emoji="🔍" title={bn ? "শোলক সার্ভিস" : "Sholok Services"} />
+        <div className="space-y-4">{portalResults.map(r => <PortalCard key={r.path} result={r} lang={lang} />)}</div>
+      </section>
+    ) : null,
+  };
+
   const renderAllTab = () => {
-    // Service cards render FIRST — immediately, no waiting for APIs
+    const orderedSections = sectionOrder
+      .map(k => allSections[k])
+      .filter(Boolean) as React.ReactNode[];
+
+    const hasAnyResults = orderedSections.length > 0;
+
     return (
       <div className="space-y-10">
-
-        {/* ── Loading strip (shown while APIs are fetching) ── */}
+        {/* Skeleton while loading */}
         {loading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-4 py-3 rounded-xl">
-            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 text-primary" />
-            <span>{bn ? `"${query}" সব সার্ভিসে খোঁজা হচ্ছে…` : `Searching "${query}" across all services…`}</span>
+          <div className="space-y-10">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-4 py-3 rounded-xl">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              <span>{bn ? `"${query}" সব সার্ভিসে খোঁজা হচ্ছে…` : `Searching "${query}" across all services…`}</span>
+            </div>
+            <GridSkeleton count={3} />
+            <ListSkeleton count={2} />
           </div>
         )}
 
-        {/* ── API results (appear after loading) ── */}
-        {!loading && results.products.length > 0 && (
-          <section>
-            <SectionHeader emoji="🛍️" title={bn ? "কেনাকাটা — পণ্য" : "Shopping Products"}
-              total={results.totalProducts} href={`/shopping/?search=${encodeURIComponent(query)}`}
-              btnLabel={bn ? "সব পণ্য" : "All products"} />
-            <GridCards>{results.products.map(p => <ProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
-          </section>
-        )}
-        {!loading && results.multivendorProducts.length > 0 && (
-          <section>
-            <SectionHeader emoji="🏪" title={bn ? "স্মার্ট স্টোর পণ্য" : "Smart Store Products"}
-              total={results.totalMultivendorProducts} href={`/smart-store?q=${encodeURIComponent(query)}`}
-              btnLabel={bn ? "Smart Store এ দেখুন" : "View in Smart Store"} />
-            <GridCards>{results.multivendorProducts.map(p => <MvProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
-          </section>
-        )}
-        {!loading && results.stores.length > 0 && (
-          <section>
-            <SectionHeader emoji="🏬" title={bn ? "স্টোর" : "Stores"}
-              total={results.totalStores} href={`/smart-store?q=${encodeURIComponent(query)}`}
-              btnLabel={bn ? "সব স্টোর" : "All stores"} />
-            <div className="space-y-3">{results.stores.map(s => <StoreCard key={s._id} store={s} lang={lang} />)}</div>
-          </section>
-        )}
-        {!loading && results.jobs.length > 0 && (
-          <section>
-            <SectionHeader emoji="💼" title={bn ? "চাকরি" : "Jobs"}
-              total={results.totalJobs} href={`/job-portal/?search=${encodeURIComponent(query)}`}
-              btnLabel={bn ? "সব চাকরি" : "All jobs"} />
-            <div className="space-y-3">{results.jobs.map(j => <JobCard key={j._id} job={j} lang={lang} />)}</div>
-          </section>
-        )}
-        {!loading && results.videos.length > 0 && (
-          <section>
-            <SectionHeader emoji="🎬" title={bn ? "ভিডিও" : "Videos"}
-              total={results.totalVideos} href={`/tv?q=${encodeURIComponent(query)}`}
-              btnLabel={bn ? "সব ভিডিও" : "All videos"} />
-            <GridCards>{results.videos.map(v => <VideoCard key={v._id} video={v} lang={lang} />)}</GridCards>
-          </section>
-        )}
-        {!loading && results.blogPosts.length > 0 && (
-          <section>
-            <SectionHeader emoji="✍️" title={bn ? "ব্লগ পোস্ট" : "Blog Posts"}
-              total={results.totalBlogPosts} href={`/blog?search=${encodeURIComponent(query)}`}
-              btnLabel={bn ? "সব পোস্ট" : "All posts"} />
-            <div className="space-y-3">{results.blogPosts.map(p => <BlogCard key={p._id} post={p} lang={lang} />)}</div>
-          </section>
-        )}
-        {!loading && portalResults.length > 0 && (
-          <section>
-            <SectionHeader emoji="🔍" title={bn ? "শোলক সার্ভিস" : "Sholok Services"} />
-            <div className="space-y-4">{portalResults.map(r => <PortalCard key={r.path} result={r} lang={lang} />)}</div>
-          </section>
-        )}
-        {!loading && totalHits === 0 && portalResults.length === 0 && (
-          <div className="text-center py-6 text-muted-foreground">
-            <p className="font-medium">{bn ? `"${query}" — কোনো পণ্য, চাকরি বা পোস্ট পাওয়া যায়নি` : `No products, jobs or posts found for "${query}"`}</p>
-            <p className="text-sm mt-1">{bn ? "নিচের সার্ভিসগুলো থেকে সার্চ করুন" : "Try one of the services below"}</p>
-          </div>
+        {/* Actual results in intent-ordered sequence */}
+        {!loading && orderedSections}
+
+        {/* No API results — show no-results state */}
+        {!loading && !hasAnyResults && portalResults.length === 0 && (
+          <NoResults query={query} lang={lang} />
         )}
 
-        {/* ── Service routing — ALWAYS VISIBLE immediately ── */}
-        <section>
-          <SectionHeader emoji="🌐" title={bn ? "সার্ভিসে সরাসরি সার্চ করুন" : "Search directly in a service"} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {NAVIGATE_SERVICES.map(tab => <ServiceRouteCard key={tab.key} tab={tab} query={query} lang={lang} />)}
-          </div>
-        </section>
+        {/* Service routing — always shown at bottom */}
+        {!loading && (
+          <section>
+            <SectionHeader emoji="🌐" title={bn ? "সার্ভিসে সরাসরি সার্চ করুন" : "Search directly in a service"} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {NAVIGATE_SERVICES.map(tab => <ServiceRouteCard key={tab.key} tab={tab} query={query} lang={lang} />)}
+            </div>
+          </section>
+        )}
+
+        {/* Related searches */}
+        {!loading && query.trim() && (
+          <RelatedSearches query={query} intent={intent} lang={lang} />
+        )}
       </div>
     );
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <HomeHeader initialQuery={query} />
 
       {/* ── Tabs ── */}
-      <div className="border-b border-border bg-card/80 backdrop-blur sticky top-16 z-10">
+      <div className="border-b border-border bg-card/80 backdrop-blur sticky top-14 z-10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide py-1.5">
             {TABS.map(tab => {
@@ -556,16 +707,17 @@ const SearchResults = () => {
             <section>
               <SectionHeader emoji="🛍️" title={bn ? "কেনাকাটা — পণ্য" : "Shopping Products"} total={moreTotal}
                 href={`/shopping/?search=${encodeURIComponent(query)}`} btnLabel={bn ? "Shopping এ দেখুন" : "View in Shopping"} />
-              {moreLoading ? <Loader /> : more.products.length > 0
+              {moreLoading ? <GridSkeleton count={6} /> : more.products.length > 0
                 ? <GridCards>{more.products.map(p => <ProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
-                : <EmptyState query={query} lang={lang} />}
+                : <NoResults query={query} lang={lang} />}
+              {!moreLoading && <RelatedSearches query={query} intent="shopping" lang={lang} />}
             </section>
           )}
 
           {/* Smart Store tab */}
           {query.trim() && activeTab === "smartstore" && (
             <div className="space-y-8">
-              {moreLoading && <Loader />}
+              {moreLoading && <><GridSkeleton count={3} /><ListSkeleton count={2} /></>}
               {!moreLoading && more.stores.length > 0 && (
                 <section>
                   <SectionHeader emoji="🏬" title={bn ? "স্টোর" : "Stores"} total={more.stores.length} />
@@ -578,7 +730,8 @@ const SearchResults = () => {
                   <GridCards>{more.mvProducts.map(p => <MvProductCard key={p._id} p={p} lang={lang} />)}</GridCards>
                 </section>
               )}
-              {!moreLoading && more.stores.length === 0 && more.mvProducts.length === 0 && <EmptyState query={query} lang={lang} />}
+              {!moreLoading && more.stores.length === 0 && more.mvProducts.length === 0 && <NoResults query={query} lang={lang} />}
+              {!moreLoading && <RelatedSearches query={query} intent="store" lang={lang} />}
             </div>
           )}
 
@@ -587,9 +740,10 @@ const SearchResults = () => {
             <section>
               <SectionHeader emoji="💼" title={bn ? "চাকরি" : "Jobs"} total={moreTotal}
                 href={`/job-portal/?search=${encodeURIComponent(query)}`} btnLabel={bn ? "Job Portal এ দেখুন" : "View in Job Portal"} />
-              {moreLoading ? <Loader /> : more.jobs.length > 0
+              {moreLoading ? <ListSkeleton count={4} /> : more.jobs.length > 0
                 ? <div className="space-y-3">{more.jobs.map(j => <JobCard key={j._id} job={j} lang={lang} />)}</div>
-                : <EmptyState query={query} lang={lang} />}
+                : <NoResults query={query} lang={lang} />}
+              {!moreLoading && <RelatedSearches query={query} intent="jobs" lang={lang} />}
             </section>
           )}
 
@@ -598,9 +752,10 @@ const SearchResults = () => {
             <section>
               <SectionHeader emoji="✍️" title={bn ? "ব্লগ পোস্ট" : "Blog Posts"} total={moreTotal}
                 href={`/blog?search=${encodeURIComponent(query)}`} btnLabel={bn ? "Blog এ দেখুন" : "View in Blog"} />
-              {moreLoading ? <Loader /> : more.blog.length > 0
+              {moreLoading ? <ListSkeleton count={4} /> : more.blog.length > 0
                 ? <div className="space-y-3">{more.blog.map(p => <BlogCard key={p._id} post={p} lang={lang} />)}</div>
-                : <EmptyState query={query} lang={lang} />}
+                : <NoResults query={query} lang={lang} />}
+              {!moreLoading && <RelatedSearches query={query} intent="blog" lang={lang} />}
             </section>
           )}
 
@@ -609,15 +764,37 @@ const SearchResults = () => {
             <section>
               <SectionHeader emoji="🎬" title={bn ? "ভিডিও" : "Videos"} total={moreTotal}
                 href={`/tv?q=${encodeURIComponent(query)}`} btnLabel={bn ? "TV Platform এ দেখুন" : "View in TV Platform"} />
-              {moreLoading ? <Loader /> : more.videos.length > 0
+              {moreLoading ? <GridSkeleton count={6} /> : more.videos.length > 0
                 ? <GridCards>{more.videos.map(v => <VideoCard key={v._id} video={v} lang={lang} />)}</GridCards>
-                : <EmptyState query={query} lang={lang} />}
+                : <NoResults query={query} lang={lang} />}
+              {!moreLoading && <RelatedSearches query={query} intent="video" lang={lang} />}
             </section>
           )}
         </div>
 
         {/* ── Sidebar ── */}
         <div className="hidden lg:flex flex-col gap-5">
+
+          {/* Intent badge */}
+          {query.trim() && (
+            <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">{bn ? "সার্চের ধরন" : "Search Intent"}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {intent === "shopping" ? "🛍️" : intent === "jobs" ? "💼" : intent === "video" ? "🎬" :
+                   intent === "blog" ? "✍️" : intent === "sports" ? "⚽" : intent === "weather" ? "🌤️" :
+                   intent === "store" ? "🏪" : "🔍"}
+                </span>
+                <span className="text-sm font-medium capitalize text-foreground">
+                  {bn
+                    ? (intent === "shopping" ? "কেনাকাটা" : intent === "jobs" ? "চাকরি" : intent === "video" ? "ভিডিও" :
+                       intent === "blog" ? "ব্লগ" : intent === "sports" ? "স্পোর্টস" : intent === "weather" ? "আবহাওয়া" :
+                       intent === "store" ? "স্টোর" : "সাধারণ")
+                    : intent}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Top portal result */}
           {portalResults.length > 0 && activeTab === "all" && query.trim() && (
@@ -642,12 +819,12 @@ const SearchResults = () => {
               <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-3">{bn ? "ফলাফলের সংখ্যা" : "Result counts"}</p>
               <div className="space-y-1">
                 {[
-                  { key: "products",   emoji: "🛍️", label: bn ? "শপিং পণ্য" : "Shopping",       n: results.totalProducts },
+                  { key: "products",   emoji: "🛍️", label: bn ? "শপিং পণ্য" : "Shopping",        n: results.totalProducts },
                   { key: "smartstore", emoji: "🏪", label: bn ? "স্মার্ট স্টোর পণ্য" : "Smart Store", n: results.totalMultivendorProducts },
-                  { key: "smartstore", emoji: "🏬", label: bn ? "স্টোর" : "Stores",               n: results.totalStores },
-                  { key: "jobs",       emoji: "💼", label: bn ? "চাকরি" : "Jobs",                 n: results.totalJobs },
-                  { key: "video",      emoji: "🎬", label: bn ? "ভিডিও" : "Videos",               n: results.totalVideos },
-                  { key: "blog",       emoji: "✍️", label: bn ? "ব্লগ পোস্ট" : "Blog Posts",     n: results.totalBlogPosts },
+                  { key: "smartstore", emoji: "🏬", label: bn ? "স্টোর" : "Stores",                n: results.totalStores },
+                  { key: "jobs",       emoji: "💼", label: bn ? "চাকরি" : "Jobs",                  n: results.totalJobs },
+                  { key: "video",      emoji: "🎬", label: bn ? "ভিডিও" : "Videos",                n: results.totalVideos },
+                  { key: "blog",       emoji: "✍️", label: bn ? "ব্লগ পোস্ট" : "Blog Posts",      n: results.totalBlogPosts },
                 ].filter(r => r.n > 0).map((r, i) => (
                   <button key={i} onClick={() => {
                     const t = TABS.find(t => t.key === r.key);
@@ -658,6 +835,19 @@ const SearchResults = () => {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Skeleton for sidebar while loading */}
+          {loading && (
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-sm animate-pulse space-y-3">
+              <div className="h-3 bg-secondary rounded w-1/2" />
+              {[1,2,3].map(i => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="h-3 bg-secondary rounded w-2/3" />
+                  <div className="h-3 bg-secondary rounded w-1/6" />
+                </div>
+              ))}
             </div>
           )}
 

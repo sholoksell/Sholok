@@ -9,7 +9,11 @@ import SearchBar from "@/components/portal/SearchBar";
 import ServiceShortcuts from "@/components/portal/ServiceShortcuts";
 import HamburgerMenu from "@/components/portal/HamburgerMenu";
 
-const HomeHeader = () => {
+interface HomeHeaderProps {
+  initialQuery?: string;
+}
+
+const HomeHeader = ({ initialQuery = "" }: HomeHeaderProps) => {
   const { language, setLanguage, t } = useLanguage();
   const { unreadCount }              = useAppSelector((s) => s.notification);
   const { items: cartItems }         = useAppSelector((s) => s.cart);
@@ -117,7 +121,7 @@ const HomeHeader = () => {
       {/* py-5 on mobile is more compact; expands to py-10/py-12 on larger screens */}
       <div className="w-full bg-background border-b border-border/40 py-5 sm:py-10 lg:py-12">
         <div className="max-w-[750px] mx-auto px-4 sm:px-6">
-          <SearchBar variant="hero" />
+          <SearchBar variant="hero" initialQuery={initialQuery} />
           <ServiceShortcuts />
         </div>
       </div>
