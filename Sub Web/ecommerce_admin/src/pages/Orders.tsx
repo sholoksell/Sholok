@@ -303,7 +303,12 @@ export default function Orders() {
   const customerName = (o: Order) => (o.customerId as any)?.name ?? 'N/A';
   const customerEmail = (o: Order) => (o.customerId as any)?.email ?? '';
   const customerPhone = (o: Order) => (o.customerId as any)?.phone ?? '';
-  const customerId = (o: Order) => (o.customerId as any)?._id ?? '';
+  const customerId = (o: Order) => {
+    const c = o.customerId as any;
+    if (!c) return '';
+    if (typeof c === 'string') return c;
+    return c._id ?? c.id ?? '';
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
