@@ -57,21 +57,22 @@ function fileToImage(file: File): Promise<HTMLImageElement> {
 // ─── MobileNet + label map ────────────────────────────────────────────────────
 
 const LABEL_MAP: Record<string, string[]> = {
-  // Fruits — all map to "fruit" so the search finds the "fruit" product in DB
-  strawberry: ["fruit", "fruit"], pineapple: ["fruit", "fruit"],
-  ananas: ["fruit", "fruit"], banana: ["fruit", "fruit"],
-  apple: ["fruit", "fruit"], orange: ["fruit", "fruit"],
-  mango: ["fruit", "fruit"], grape: ["fruit", "fruit"],
-  blueberry: ["fruit", "fruit"], watermelon: ["fruit", "fruit"],
-  peach: ["fruit", "fruit"], fig: ["fruit", "fruit"],
-  pomegranate: ["fruit", "fruit"], lemon: ["fruit", "fruit"],
-  lime: ["fruit", "fruit"], coconut: ["fruit", "fruit"],
-  guava: ["fruit", "fruit"], jackfruit: ["fruit", "fruit"],
-  papaya: ["fruit", "fruit"], cherry: ["fruit", "fruit"],
-  kiwi: ["fruit", "fruit"], melon: ["fruit", "fruit"],
-  plum: ["fruit", "fruit"], raspberry: ["fruit", "fruit"],
-  avocado: ["fruit", "fruit"], lychee: ["fruit", "fruit"],
-  "custard apple": ["fruit", "fruit"],
+  // Fruits — return specific name so wrong products don't show
+  // (e.g. grape → "grape" search, not "fruit" which also returns "Apple" brand)
+  strawberry: ["strawberry", "fruit"], pineapple: ["pineapple", "fruit"],
+  ananas: ["pineapple", "fruit"], banana: ["banana", "fruit"],
+  apple: ["apple", "fruit"], orange: ["orange", "fruit"],
+  mango: ["mango", "fruit"], grape: ["grape", "fruit"],
+  blueberry: ["blueberry", "fruit"], watermelon: ["watermelon", "fruit"],
+  peach: ["peach", "fruit"], fig: ["fig", "fruit"],
+  pomegranate: ["pomegranate", "fruit"], lemon: ["lemon", "fruit"],
+  lime: ["lime", "fruit"], coconut: ["coconut", "fruit"],
+  guava: ["guava", "fruit"], jackfruit: ["jackfruit", "fruit"],
+  papaya: ["papaya", "fruit"], cherry: ["cherry", "fruit"],
+  kiwi: ["kiwi", "fruit"], melon: ["melon", "fruit"],
+  plum: ["plum", "fruit"], raspberry: ["raspberry", "fruit"],
+  avocado: ["avocado", "fruit"], lychee: ["lychee", "fruit"],
+  "custard apple": ["custard apple", "fruit"],
   // Vegetables
   broccoli: ["broccoli", "vegetable"], carrot: ["carrot", "vegetable"],
   tomato: ["tomato", "vegetable"], potato: ["potato", "vegetable"],
@@ -199,7 +200,13 @@ async function analyzeWithMobileNet(
   const img   = await fileToImage(file);
   const preds: Array<{ className: string; probability: number }> =
     await model.classify(img, 5);
-  return buildFallbackQuery(preds);
+  const query = buildFallbackQuery(preds);
+
+  // Two-step: if the specific term (e.g. "grape") differs from category (e.g. "fruit"),
+  // check if any products exist for the specific term first.
+  // If yes → use specific (more accurate). If no → use specific anyway (honest empty results
+  // rather than showing unrelated products like "Apple" for a grape image).
+  return query;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

@@ -102,7 +102,8 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
         if (!ctrl.signal.aborted) {
           setSuggestions(res);
           setDropError(false);
-          if (!isKeyboardOpen) setDrop(true);
+          // Only open dropdown if the user is actively typing (input is focused)
+          if (!isKeyboardOpen && document.activeElement === inputRef.current) setDrop(true);
         }
       } catch (err: any) {
         if (err?.name === "AbortError") return;
@@ -220,7 +221,6 @@ const SearchBar = ({ initialQuery = "", variant = "default" }: SearchBarProps) =
       const keywords = await classify(file);
 
       if (keywords) {
-        setQuery(keywords);
         setImageMsg("");
         doSearch(keywords);
       } else {
