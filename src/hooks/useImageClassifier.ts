@@ -57,21 +57,21 @@ function fileToImage(file: File): Promise<HTMLImageElement> {
 // ─── MobileNet + label map ────────────────────────────────────────────────────
 
 const LABEL_MAP: Record<string, string[]> = {
-  // Fruits
-  strawberry: ["strawberry", "fruit"], pineapple: ["pineapple", "fruit"],
-  ananas: ["pineapple", "fruit"], banana: ["banana", "fruit"],
-  apple: ["apple", "fruit"], orange: ["orange", "fruit"],
-  mango: ["mango", "fruit"], grape: ["grape", "fruit"],
-  blueberry: ["blueberry", "fruit"], watermelon: ["watermelon", "fruit"],
-  peach: ["peach", "fruit"], fig: ["fig", "fruit"],
-  pomegranate: ["pomegranate", "fruit"], lemon: ["lemon", "fruit"],
-  lime: ["lime", "fruit"], coconut: ["coconut", "fruit"],
-  guava: ["guava", "fruit"], jackfruit: ["jackfruit", "fruit"],
-  papaya: ["papaya", "fruit"], cherry: ["cherry", "fruit"],
-  kiwi: ["kiwi", "fruit"], melon: ["melon", "fruit"],
-  plum: ["plum", "fruit"], raspberry: ["raspberry", "fruit"],
-  avocado: ["avocado", "fruit"], lychee: ["lychee", "fruit"],
-  "custard apple": ["custard apple", "fruit"],
+  // Fruits — all map to "fruit" so the search finds the "fruit" product in DB
+  strawberry: ["fruit", "fruit"], pineapple: ["fruit", "fruit"],
+  ananas: ["fruit", "fruit"], banana: ["fruit", "fruit"],
+  apple: ["fruit", "fruit"], orange: ["fruit", "fruit"],
+  mango: ["fruit", "fruit"], grape: ["fruit", "fruit"],
+  blueberry: ["fruit", "fruit"], watermelon: ["fruit", "fruit"],
+  peach: ["fruit", "fruit"], fig: ["fruit", "fruit"],
+  pomegranate: ["fruit", "fruit"], lemon: ["fruit", "fruit"],
+  lime: ["fruit", "fruit"], coconut: ["fruit", "fruit"],
+  guava: ["fruit", "fruit"], jackfruit: ["fruit", "fruit"],
+  papaya: ["fruit", "fruit"], cherry: ["fruit", "fruit"],
+  kiwi: ["fruit", "fruit"], melon: ["fruit", "fruit"],
+  plum: ["fruit", "fruit"], raspberry: ["fruit", "fruit"],
+  avocado: ["fruit", "fruit"], lychee: ["fruit", "fruit"],
+  "custard apple": ["fruit", "fruit"],
   // Vegetables
   broccoli: ["broccoli", "vegetable"], carrot: ["carrot", "vegetable"],
   tomato: ["tomato", "vegetable"], potato: ["potato", "vegetable"],
@@ -98,7 +98,7 @@ const LABEL_MAP: Record<string, string[]> = {
   earphone: ["earphone", "headphones"], speaker: ["speaker"], charger: ["charger"],
   fan: ["fan"], refrigerator: ["refrigerator", "fridge"],
   "washing machine": ["washing machine"], iron: ["iron"], blender: ["blender"],
-  // Clothing
+  // Clothing - common
   shirt: ["shirt", "clothing"], jersey: ["jersey", "shirt"],
   "t-shirt": ["t-shirt", "shirt"], "tee shirt": ["t-shirt", "shirt"],
   dress: ["dress", "clothing"], jeans: ["jeans", "pants"],
@@ -110,6 +110,26 @@ const LABEL_MAP: Record<string, string[]> = {
   bag: ["bag"], handbag: ["handbag", "bag"], backpack: ["backpack", "bag"],
   wallet: ["wallet"], watch: ["watch"], glasses: ["glasses", "sunglasses"],
   hat: ["hat"], cap: ["cap", "hat"], belt: ["belt"],
+  // Clothing - traditional & international (ImageNet labels MobileNet uses for South Asian garments)
+  // MobileNet classifies sarees/salwar/three-piece as abaya/kimono/sarong/stole
+  abaya: ["saree", "clothing"], kimono: ["saree", "clothing"],
+  sarong: ["saree", "clothing"], sari: ["saree", "clothing"],
+  saree: ["saree", "clothing"], sharee: ["saree", "clothing"],
+  stole: ["saree", "clothing"],
+  gown: ["dress", "clothing"], "academic gown": ["dress", "clothing"],
+  cardigan: ["cardigan", "clothing"],
+  "fur coat": ["coat", "clothing"], "trench coat": ["coat", "clothing"],
+  suit: ["suit", "clothing"], "lab coat": ["coat", "clothing"],
+  skirt: ["skirt", "clothing"], miniskirt: ["skirt", "clothing"],
+  pajama: ["clothing", "clothing"], poncho: ["poncho", "clothing"],
+  cloak: ["clothing", "clothing"], vestment: ["clothing", "clothing"],
+  maillot: ["clothing", "clothing"], sweatshirt: ["sweatshirt", "clothing"],
+  blouse: ["blouse", "clothing"], tunic: ["tunic", "clothing"],
+  coat: ["coat", "clothing"], raincoat: ["raincoat", "clothing"],
+  scarf: ["scarf", "clothing"], bandana: ["clothing", "clothing"],
+  // Textile/pattern labels MobileNet uses for patterned fabric (saree, batik, print)
+  "prayer rug": ["saree", "clothing"], quilt: ["clothing", "clothing"],
+  "quilt, comforter": ["clothing", "clothing"], "prayer mat": ["saree", "clothing"],
   // Beauty
   lipstick: ["lipstick", "cosmetic"], cream: ["cream", "cosmetic"],
   lotion: ["lotion", "cosmetic"], perfume: ["perfume"],
@@ -129,14 +149,18 @@ const LABEL_MAP: Record<string, string[]> = {
 };
 
 function buildFallbackQuery(preds: Array<{ className: string; probability: number }>): string {
-  // Count how many predictions map to each category (last item in LABEL_MAP arrays)
+  // Count votes for both generic category (last item) and specific term (first item)
   const categoryCounts: Record<string, number> = {};
+  const specificForCategory: Record<string, string> = {}; // top specific per category
+
   for (const pred of preds) {
     const parts = pred.className.toLowerCase().split(",").map((p) => p.trim());
     for (const part of parts) {
       const mapResult = LABEL_MAP[part];
       if (mapResult) {
         const cat = mapResult[mapResult.length - 1];
+        const specific = mapResult[0];
+        if (!(cat in categoryCounts)) specificForCategory[cat] = specific;
         categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
         continue;
       }
@@ -144,16 +168,24 @@ function buildFallbackQuery(preds: Array<{ className: string; probability: numbe
         const wResult = LABEL_MAP[w];
         if (wResult) {
           const cat = wResult[wResult.length - 1];
+          const specific = wResult[0];
+          if (!(cat in categoryCounts)) specificForCategory[cat] = specific;
           categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
         }
       }
     }
   }
+
   const entries = Object.entries(categoryCounts);
   if (entries.length > 0) {
     entries.sort((a, b) => b[1] - a[1]);
-    return entries[0][0]; // Return only the top-voted category (e.g. "fruit", "shoe", "mobile")
+    const topCategory = entries[0][0];
+    const specific = specificForCategory[topCategory];
+    // Return the specific term (e.g. "abaya", "saree", "shoe") rather than the generic category
+    // so the search finds the right type of product, not a random match on a generic word
+    return specific !== topCategory ? specific : topCategory;
   }
+
   // No label map match — return first word of top prediction
   return preds[0].className.toLowerCase().split(",")[0].trim().split(/\s+/)[0];
 }
