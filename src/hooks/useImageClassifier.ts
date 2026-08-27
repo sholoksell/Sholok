@@ -2,14 +2,6 @@ import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { modelLoading, modelReady, modelError, modelReset } from "@/store/slices/imageClassifierSlice";
 
-// ─── Gemini config ─────────────────────────────────────────────────────────────
-// Add VITE_GEMINI_API_KEY to your local .env file (gitignored — never committed).
-// Get a free key at: https://aistudio.google.com/app/apikey
-// Restrict the key to sholok.com referrer in Google Cloud Console.
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
-// Auth keys (AQ. prefix) require x-goog-api-key header, not ?key= query param
-const GEMINI_URL =
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
 
 // ─── MobileNet singleton (fallback) ───────────────────────────────────────────
 let _model: any = null;
@@ -62,50 +54,7 @@ function fileToImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-// ─── PRIMARY: Gemini Vision ────────────────────────────────────────────────────
-
-const GEMINI_PROMPT = `You are a product search assistant for an e-commerce website.
-Look at the image and identify what product or item is shown.
-Return ONLY a short product search term (1-4 words in English) that matches how it would be listed in an e-commerce product database.
-Use the most direct, simple product name — no adjectives, no extra words.
-Examples:
-- Mixed fruit bowl → fruit
-- Running shoes → shoe
-- Laptop computer → laptop
-- Red dress → dress
-- Raw fish → fish
-- Chicken pieces → chicken
-- Onion → onion
-- Tomato → tomato
-- Smartphone → mobile phone
-Respond with ONLY the search term. No explanation. No punctuation. English only.`;
-
-async function analyzeWithGemini(file: File): Promise<string> {
-  const base64 = await fileToBase64(file);
-  const mime   = file.type || "image/jpeg";
-
-  const res = await fetch(GEMINI_URL, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: mime, data: base64 } },
-          { text: GEMINI_PROMPT },
-        ],
-      }],
-      generationConfig: { maxOutputTokens: 500, temperature: 0.1 },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini ${res.status}`);
-  const json = await res.json();
-  const text = (json.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim().toLowerCase();
-  // Strip any accidental quotes or periods
-  return text.replace(/["'.]/g, "").trim();
-}
-
-// ─── FALLBACK: MobileNet + label map ─────────────────────────────────────────
+// ─── MobileNet + label map ────────────────────────────────────────────────────
 
 const LABEL_MAP: Record<string, string[]> = {
   // Fruits
@@ -180,23 +129,33 @@ const LABEL_MAP: Record<string, string[]> = {
 };
 
 function buildFallbackQuery(preds: Array<{ className: string; probability: number }>): string {
-  const seen  = new Set<string>();
-  const terms: string[] = [];
-  const add = (t: string) => {
-    const k = t.toLowerCase();
-    if (!seen.has(k) && k.length > 1) { seen.add(k); terms.push(k); }
-  };
+  // Count how many predictions map to each category (last item in LABEL_MAP arrays)
+  const categoryCounts: Record<string, number> = {};
   for (const pred of preds) {
     const parts = pred.className.toLowerCase().split(",").map((p) => p.trim());
     for (const part of parts) {
-      if (LABEL_MAP[part]) { LABEL_MAP[part].forEach(add); continue; }
-      const words = part.split(/\s+/);
-      let hit = false;
-      for (const w of words) { if (LABEL_MAP[w]) { LABEL_MAP[w].forEach(add); hit = true; } }
-      if (!hit) words.filter((w) => w.length > 2).forEach(add);
+      const mapResult = LABEL_MAP[part];
+      if (mapResult) {
+        const cat = mapResult[mapResult.length - 1];
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        continue;
+      }
+      for (const w of part.split(/\s+/)) {
+        const wResult = LABEL_MAP[w];
+        if (wResult) {
+          const cat = wResult[wResult.length - 1];
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        }
+      }
     }
   }
-  return terms.slice(0, 5).join(" ");
+  const entries = Object.entries(categoryCounts);
+  if (entries.length > 0) {
+    entries.sort((a, b) => b[1] - a[1]);
+    return entries[0][0]; // Return only the top-voted category (e.g. "fruit", "shoe", "mobile")
+  }
+  // No label map match — return first word of top prediction
+  return preds[0].className.toLowerCase().split(",")[0].trim().split(/\s+/)[0];
 }
 
 async function analyzeWithMobileNet(
@@ -217,17 +176,6 @@ export function useImageClassifier() {
   const modelStatus = useAppSelector((s) => s.imageClassifier.status);
 
   const classify = useCallback(async (file: File): Promise<string> => {
-    // 1. Try Gemini (best accuracy, free online AI)
-    if (GEMINI_KEY) {
-      try {
-        const result = await analyzeWithGemini(file);
-        if (result) return result;
-      } catch {
-        // Gemini failed → fall through to MobileNet
-      }
-    }
-
-    // 2. Fallback: MobileNet + label map (runs offline in browser)
     return analyzeWithMobileNet(file, dispatch);
   }, [dispatch]);
 
