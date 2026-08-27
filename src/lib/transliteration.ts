@@ -694,7 +694,6 @@ const WORD_DICT: Record<string, string> = {
   second:         'দ্বিতীয়',
   secondhand:     'সেকেন্ডহ্যান্ড',
   refurbished:    'রিফার্বিশড',
-  brand:          'ব্র্যান্ড',
   cheap:          'সস্তা',
   affordable:     'সাশ্রয়ী',
   expensive:      'দামি',
