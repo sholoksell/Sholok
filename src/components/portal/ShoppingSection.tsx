@@ -141,7 +141,7 @@ export default function ShoppingSection() {
               return (
                 <a
                   key={p.id}
-                  href={`${SHOPPING_BASE}/products/${p.slug}`}
+                  href={`${SHOPPING_BASE}/product/${p.slug}`}
                   className="group flex flex-col bg-background rounded-lg border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all overflow-hidden"
                 >
                   <div className="relative w-full aspect-square bg-secondary/30 overflow-hidden">
