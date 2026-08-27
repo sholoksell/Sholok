@@ -9,7 +9,7 @@ import { modelLoading, modelReady, modelError, modelReset } from "@/store/slices
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
 // Auth keys (AQ. prefix) require x-goog-api-key header, not ?key= query param
 const GEMINI_URL =
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
 
 // ─── MobileNet singleton (fallback) ───────────────────────────────────────────
 let _model: any = null;
@@ -94,7 +94,7 @@ async function analyzeWithGemini(file: File): Promise<string> {
           { text: GEMINI_PROMPT },
         ],
       }],
-      generationConfig: { maxOutputTokens: 20, temperature: 0.1 },
+      generationConfig: { maxOutputTokens: 500, temperature: 0.1 },
     }),
   });
 
