@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sholok-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/server.js"],
+      "port": 5050,
+      "url": "http://localhost:5050"
+    },
+    {
+      "name": "sholok-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:only", "--prefix", "frontend"],
+      "port": 5180,
+      "url": "http://localhost:5180"
+    }
+  ]
+}
