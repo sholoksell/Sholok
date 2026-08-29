@@ -16,15 +16,14 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
-// Shopping redirect component - redirects to sub-app at /shopping/
+// Shopping redirect component - redirects to shopping subdomain
 const ShoppingRedirect = () => {
-  window.location.replace('/shopping/');
+  window.location.replace('https://shopping.sholok.com');
   return null;
 };
 
-// Blog redirect component - redirects to Blog sub-app at /blog/
 const BlogRedirect = () => {
-  window.location.replace('/blog/');
+  window.location.replace('https://blog.sholok.com');
   return null;
 };
 

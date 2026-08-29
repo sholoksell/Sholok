@@ -8,7 +8,7 @@ const NavigationStrip = () => {
     const navItems = [
         { icon: Mail, label: "mail", path: "/mail" },
         { icon: Coffee, label: "cafe", path: "/cafe" },
-        { icon: FileText, label: "blog", path: "/blog" },
+        { icon: FileText, label: "blog", path: "https://blog.sholok.com", external: true },
         { icon: ShoppingCart, label: "shopping", path: "/shopping/", external: true },
         { icon: Newspaper, label: "news", path: "/news" },
         { icon: MapPin, label: "maps", path: "/maps" },
