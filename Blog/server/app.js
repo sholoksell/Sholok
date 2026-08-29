@@ -136,9 +136,22 @@ app.use((err, req, res, _next) => {
   });
 });
 
-// Verify DB connection on startup
-connectDB().catch((err) => {
-  console.error('❌ Could not connect to MySQL on startup:', err.message);
-});
+// On startup: fix any emoji icons corrupted by charset mismatch at first seed
+const { pool: _pool } = require('./config/db');
+const _iconFixes = [
+  { slug: 'entertainment',  icon: '🎨' }, // 🎨
+  { slug: 'lifestyle',      icon: '🛍️' }, // 🛍️
+  { slug: 'hobbies-travel', icon: '🧭' }, // 🧭
+  { slug: 'knowledge',      icon: '🧠' }, // 🧠
+];
+connectDB()
+  .then(async () => {
+    for (const { slug, icon } of _iconFixes) {
+      await _pool.execute('UPDATE categories SET icon = ? WHERE slug = ?', [icon, slug]);
+    }
+  })
+  .catch((err) => {
+    console.error('❌ Could not connect to MySQL on startup:', err.message);
+  });
 
 module.exports = app;
