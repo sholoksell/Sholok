@@ -32,6 +32,8 @@ dist-ssr
 *.sw?
 
 # Sub-app builds committed for Vercel deployment
+!Sub Web/dist
+!Sub Web/dist/**
 !public/vite-project/dist
 !public/vite-project/dist/**
 !public/ecommerce_admin/dist
