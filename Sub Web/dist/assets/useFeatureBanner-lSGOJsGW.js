@@ -1,0 +1,1 @@
+import{r as e}from"./react-vendor-Bx_5uxtl.js";import{a as t}from"./index-DmAKrdrN.js";function a(a){const[r,n]=e.useState(null);return e.useEffect(()=>{t.get(`/megamenu-features/by-key/${a}`).then(e=>n(e.data)).catch(()=>{})},[a]),r}export{a as u};

@@ -4,6 +4,7 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 import { categoryService } from '@/services/categoryService';
 import CategoryIcon from '@/components/CategoryIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
+import api from '@/lib/axios';
 
 // Recursive renderer for depth 3+ (L4, L5, ...)
 const RecursiveSubItems = ({ items, depth, getCatName }) => (
