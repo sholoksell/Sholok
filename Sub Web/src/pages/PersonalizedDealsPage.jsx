@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Gift, Star, Tag, TrendingUp, Store, Zap, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 function DealCard({ product, badge, badgeColor = 'bg-red-500' }) {
   const price = product.sale_price || product.flash_price || product.regular_price;
@@ -69,6 +70,7 @@ function SectionHeader({ icon: Icon, title, subtitle, color = 'text-primary', bg
 }
 
 export default function PersonalizedDealsPage() {
+  const featureBanner = useFeatureBanner('great_deals');
   const { customer, isAuthenticated } = useAuth();
   const [deals, setDeals] = useState({
     recentlyViewed: [],
@@ -124,7 +126,13 @@ export default function PersonalizedDealsPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="min-h-screen">
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-6 mb-8 text-white">
         <div className="flex items-center gap-3">
@@ -275,6 +283,7 @@ export default function PersonalizedDealsPage() {
           </Link>
         </div>
       )}
+      </div>
     </div>
   );
 }

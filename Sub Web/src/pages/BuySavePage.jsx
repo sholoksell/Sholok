@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Loader2, TrendingDown } from 'lucide-react';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 function computeTierDiscount(price, qty, tiers) {
   if (!tiers || !tiers.length) return { price, label: null, pct: 0 };
@@ -75,6 +76,7 @@ function ProductCard({ product, tiers }) {
 }
 
 export default function BuySavePage() {
+  const featureBanner = useFeatureBanner('buy_save');
   const [campaign, setCampaign] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +108,12 @@ export default function BuySavePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+      {/* Feature Banner (Place 2 — admin managed) */}
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
       {/* Hero */}
       <div className="bg-gradient-to-r from-green-600 to-teal-500 text-white py-14">
         <div className="container mx-auto px-4 text-center">

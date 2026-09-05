@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Tag, Loader2 } from 'lucide-react';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 function BrandCard({ brand }) {
   return (
@@ -113,6 +114,7 @@ function BrandDetail({ slug }) {
 }
 
 export default function BrandsPage() {
+  const featureBanner = useFeatureBanner('our_brands');
   const { slug } = useParams();
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,10 +134,15 @@ export default function BrandsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
       <div className="bg-white border-b py-10">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl font-extrabold text-gray-800 mb-2">🏪 Our Brands</h1>
-          <p className="text-gray-500">Explore top brands available on Sholok</p>
+          <h1 className="text-3xl font-extrabold text-gray-800 mb-2">🏪 {featureBanner?.name || 'Our Brands'}</h1>
+          <p className="text-gray-500">{featureBanner?.description || 'Explore top brands available on Sholok'}</p>
         </div>
       </div>
 

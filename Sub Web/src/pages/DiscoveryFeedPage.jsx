@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Sparkles, Clock, Star } from 'lucide-react';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 function ProductRow({ title, icon: Icon, products, loading, color = 'text-primary', bgColor = 'bg-primary/10' }) {
   if (loading) {
@@ -118,11 +119,18 @@ export default function DiscoveryFeedPage() {
       .catch(() => setLoading((l) => ({ ...l, forYou: false })));
   }, [customerId]);
 
+  const featureBanner = useFeatureBanner('discover');
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen">
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
+      <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Discover</h1>
-        <p className="text-gray-500 text-sm mt-1">Personalized picks just for you</p>
+        <h1 className="text-2xl font-bold text-gray-800">{featureBanner?.name || 'Discover'}</h1>
+        <p className="text-gray-500 text-sm mt-1">{featureBanner?.description || 'Personalized picks just for you'}</p>
       </div>
 
       <ProductRow
@@ -157,6 +165,7 @@ export default function DiscoveryFeedPage() {
         color="text-yellow-500"
         bgColor="bg-yellow-50"
       />
+      </div>
     </div>
   );
 }

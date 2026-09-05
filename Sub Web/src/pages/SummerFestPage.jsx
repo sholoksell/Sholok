@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sun, Tag, Clock, Loader2 } from 'lucide-react';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 function CountdownTimer({ endDate }) {
   const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 });
@@ -69,6 +70,7 @@ function ProductCard({ product, discountType, discountValue }) {
 }
 
 export default function SummerFestPage() {
+  const featureBanner = useFeatureBanner('summer_fest');
   const [campaign, setCampaign] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +113,12 @@ export default function SummerFestPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
+      {/* Feature Banner (Place 2 — admin managed) */}
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
       {/* Hero Banner */}
       <div className="relative bg-gradient-to-r from-orange-500 to-yellow-400 overflow-hidden">
         {campaign.image && (

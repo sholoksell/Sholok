@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getImageUrl, formatPrice } from '@/lib/utils';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 const API_BASE = '/api';
 
@@ -158,6 +159,7 @@ const BundleCard = ({ offer }) => {
 };
 
 const BundleOffersPage = () => {
+  const featureBanner = useFeatureBanner('bundles');
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -187,15 +189,21 @@ const BundleOffersPage = () => {
     : offers.filter(o => o.offer_type === filter);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen">
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
+      <div className="container mx-auto px-4 py-8">
       {/* Page header */}
       <div className="mb-8 text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <span className="text-3xl">🎁</span>
-          <h1 className="text-3xl font-bold">Bundle & BOGO Offers</h1>
+          <h1 className="text-3xl font-bold">{featureBanner?.name || 'Bundle & BOGO Offers'}</h1>
         </div>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Save more with our exclusive bundle deals and Buy-One-Get-One promotions.
+          {featureBanner?.description || 'Save more with our exclusive bundle deals and Buy-One-Get-One promotions.'}
         </p>
       </div>
 
@@ -257,6 +265,7 @@ const BundleOffersPage = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };

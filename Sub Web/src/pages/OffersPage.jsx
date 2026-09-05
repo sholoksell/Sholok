@@ -5,8 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tag, Clock, TrendingUp, Zap, Loader2 } from 'lucide-react';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 const OffersPage = () => {
+  const featureBanner = useFeatureBanner('offers');
   const [coupons, setCoupons] = useState([]);
   const [flashSales, setFlashSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,12 +37,17 @@ const OffersPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Special Offers &amp; Deals</h1>
+          <h1 className="text-3xl font-bold mb-2">{featureBanner?.name || 'Special Offers & Deals'}</h1>
           <p className="text-muted-foreground">
-            Grab the best deals and save more on your shopping
+            {featureBanner?.description || 'Grab the best deals and save more on your shopping'}
           </p>
         </div>
 

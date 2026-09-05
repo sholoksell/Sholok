@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, Clock } from 'lucide-react';
 import api from '@/lib/axios';
+import { useFeatureBanner } from '@/hooks/useFeatureBanner';
 
 function CountdownTimer({ endDate }) {
   const [time, setTime] = useState({ h: 0, m: 0, s: 0 });
@@ -38,6 +39,7 @@ function CountdownTimer({ endDate }) {
 }
 
 export default function FlashSalePage() {
+  const featureBanner = useFeatureBanner('flash_sales');
   const [sales, setSales] = useState([]);
   const [products, setProducts] = useState([]);
   const [activeSale, setActiveSale] = useState(null);
@@ -59,7 +61,13 @@ export default function FlashSalePage() {
   }, []);
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen">
+      {featureBanner?.image && (
+        <div className="w-full h-44 sm:h-56 overflow-hidden">
+          <img src={featureBanner.image} alt={featureBanner.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+        </div>
+      )}
+      <div className="container mx-auto px-4 py-6">
       {/* Hero */}
       <div className="bg-gradient-to-r from-red-600 to-orange-500 rounded-2xl p-6 mb-6 text-white">
         <div className="flex items-center gap-3 mb-2">
@@ -146,6 +154,7 @@ export default function FlashSalePage() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

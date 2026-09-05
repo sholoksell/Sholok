@@ -22,6 +22,7 @@ const translations = {
     reports: 'Reports',
     marketing: 'Marketing',
     campaigns: 'Campaigns',
+    megaMenuFeatures: 'MegaMenu Features',
     reviews: 'Reviews',
     searchAnalytics: 'Search Analytics',
     liveSessions: 'Live Sessions',
