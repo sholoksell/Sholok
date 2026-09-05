@@ -30,6 +30,9 @@ const DiscoveryFeedPage = lazy(() => import('./pages/DiscoveryFeedPage'));
 const PersonalizedDealsPage = lazy(() => import('./pages/PersonalizedDealsPage'));
 const LiveShopPage = lazy(() => import('./pages/LiveShopPage'));
 const BundleOffersPage = lazy(() => import('./pages/BundleOffersPage'));
+const SummerFestPage = lazy(() => import('./pages/SummerFestPage'));
+const BuySavePage = lazy(() => import('./pages/BuySavePage'));
+const BrandsPage = lazy(() => import('./pages/BrandsPage'));
 
 // Optimized loading component with animation
 const LoadingFallback = () => (
@@ -85,10 +88,14 @@ function App() {
                       <Route path="deals" element={<PersonalizedDealsPage />} />
                       <Route path="live" element={<LiveShopPage />} />
                       <Route path="bundles" element={<BundleOffersPage />} />
+                      <Route path="summer-fest" element={<SummerFestPage />} />
+                      <Route path="buy-save" element={<BuySavePage />} />
+                      <Route path="brands" element={<BrandsPage />} />
+                      <Route path="brands/:slug" element={<BrandsPage />} />
                     </Route>
                 </Routes>
               </Suspense>
-              <Toaster position="top-right" richColors duration={3000} />
+              <Toaster position="top-right" richColors duration={3000} toastOptions={{ style: { zIndex: 99999 } }} />
             </BrowserRouter>
           </CategoryProvider>
         </LanguageProvider>

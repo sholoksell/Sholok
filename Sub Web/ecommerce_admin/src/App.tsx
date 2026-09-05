@@ -34,6 +34,7 @@ import Returns from "@/pages/Returns";
 import SearchAnalytics from "@/pages/SearchAnalytics";
 import LiveSessions from "@/pages/LiveSessions";
 import VendorReviews from "@/pages/VendorReviews";
+import Campaigns from "@/pages/Campaigns";
 import NotFound from "@/pages/NotFound";
 
 // Vendor Panel Pages
@@ -61,7 +62,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter basename="/admin">
+            <BrowserRouter>
               <Routes>
                 {/* Admin auth */}
                 <Route path="/login" element={<Login />} />
@@ -93,6 +94,7 @@ const App = () => (
                   <Route path="/search-analytics" element={<SearchAnalytics />} />
                   <Route path="/live-sessions" element={<LiveSessions />} />
                   <Route path="/vendor-reviews" element={<VendorReviews />} />
+                  <Route path="/campaigns" element={<Campaigns />} />
                 </Route>
 
                 {/* Vendor Panel — public auth routes */}

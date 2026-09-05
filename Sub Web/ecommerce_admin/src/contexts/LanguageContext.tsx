@@ -21,6 +21,7 @@ const translations = {
     returns: 'Returns',
     reports: 'Reports',
     marketing: 'Marketing',
+    campaigns: 'Campaigns',
     reviews: 'Reviews',
     searchAnalytics: 'Search Analytics',
     liveSessions: 'Live Sessions',

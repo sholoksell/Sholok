@@ -56,6 +56,7 @@ export default function Sidebar() {
     { icon: ArrowLeftRight,  labelKey: 'returns',          path: '/returns' },
     { icon: BarChart3,       labelKey: 'reports',          path: '/reports' },
     { icon: Megaphone,       labelKey: 'marketing',        path: '/marketing' },
+    { icon: TrendingUp,      labelKey: 'campaigns',        path: '/campaigns' },
     { icon: Star,            labelKey: 'reviews',          path: '/reviews' },
     { icon: TrendingUp,      labelKey: 'searchAnalytics',  path: '/search-analytics' },
     { icon: Video,           labelKey: 'liveSessions',     path: '/live-sessions' },

@@ -63,6 +63,7 @@ const priceComparisonRouter = require('./routes/priceComparison');
 const liveShopRouter = require('./routes/liveShop');
 const questionsRouter = require('./routes/questions');
 const bundleOffersRouter = require('./routes/bundleOffers');
+const campaignsRouter = require('./routes/campaigns');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -100,6 +101,7 @@ app.use('/api/price-comparison', priceComparisonRouter);
 app.use('/api/live-shop', liveShopRouter);
 app.use('/api/questions', questionsRouter);
 app.use('/api/bundle-offers', bundleOffersRouter);
+app.use('/api/campaigns', campaignsRouter);
 
 // Health Check
 app.get('/api/health', (req, res) => {
