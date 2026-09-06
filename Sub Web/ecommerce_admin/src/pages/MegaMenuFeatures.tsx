@@ -20,6 +20,20 @@ interface Feature {
   sort_order: number;
 }
 
+const EMOJI_MAP: Record<string, string> = {
+  flash_sales: '⚡',
+  discover: '✨',
+  offers: '🏷️',
+  bundles: '🎁',
+  summer_fest: '☀️',
+  great_deals: '🔥',
+  buy_save: '💰',
+  our_brands: '🏪',
+};
+
+const getEmoji = (f: Feature) =>
+  f.emoji && !f.emoji.includes('?') ? f.emoji : (EMOJI_MAP[f.feature_key] ?? '');
+
 const emptyForm = (f?: Feature) => ({
   name: f?.name || '',
   emoji: f?.emoji || '',
@@ -100,7 +114,7 @@ export default function MegaMenuFeatures() {
               {f.image ? (
                 <img src={f.image} alt={f.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
               ) : (
-                <div className="flex items-center justify-center h-full text-4xl">{f.emoji}</div>
+                <div className="flex items-center justify-center h-full text-4xl">{getEmoji(f)}</div>
               )}
               {/* Icon image overlay */}
               {f.icon_image && (
@@ -122,7 +136,7 @@ export default function MegaMenuFeatures() {
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-sm">{f.emoji} {f.name}</p>
+                  <p className="font-semibold text-sm">{getEmoji(f)} {f.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{f.link}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => openEdit(f)}>
@@ -142,7 +156,7 @@ export default function MegaMenuFeatures() {
       <Dialog open={!!editing} onOpenChange={open => !open && setEditing(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit — {editing?.emoji} {editing?.name}</DialogTitle>
+            <DialogTitle>Edit — {editing && getEmoji(editing)} {editing?.name}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
