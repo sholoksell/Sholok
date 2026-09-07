@@ -28,7 +28,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('sholok_blog_token');
       localStorage.removeItem('sholok_blog_user');
-      window.location.href = '/blog/login';
+      window.location.href = '/blogger/login';
     }
     return Promise.reject(error);
   }

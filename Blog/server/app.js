@@ -30,6 +30,8 @@ const allowedOrigins = [
   'http://localhost:5180',
   'http://localhost:8080',
   'https://sholok.vercel.app',
+  'https://blog.sholok.com',
+  'https://studio.blog.sholok.com',
 ].filter(Boolean);
 
 // Stub socket.io so routes that call req.app.get('io').emit(...) don't crash
@@ -112,10 +114,10 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Sholok Blog API is running (MySQL)', timestamp: new Date() });
 });
 
-// Serve frontend build at /blog (for cPanel — run: npm run build inside frontend)
+// Serve frontend build at /blogger
 const frontendDist = path.join(__dirname, '../frontend/dist');
-app.use('/blog', express.static(frontendDist));
-app.get('/blog/*', (req, res) => {
+app.use('/blogger', express.static(frontendDist));
+app.get('/blogger/*', (req, res) => {
   const idx = path.join(frontendDist, 'index.html');
   res.sendFile(idx, (err) => {
     if (err) res.status(404).json({ success: false, message: 'Frontend not built yet.' });
