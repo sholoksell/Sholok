@@ -21,7 +21,7 @@ const DEFAULT_FEATURES = [
         id INT PRIMARY KEY AUTO_INCREMENT,
         feature_key VARCHAR(50) NOT NULL UNIQUE,
         name VARCHAR(100) NOT NULL,
-        emoji VARCHAR(20) DEFAULT '',
+        emoji VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
         image VARCHAR(500) DEFAULT '',
         icon_image VARCHAR(500) DEFAULT '',
         description TEXT,
@@ -31,10 +31,15 @@ const DEFAULT_FEATURES = [
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+    // Fix column charset if table already existed with wrong charset
+    await pool.query(
+      "ALTER TABLE megamenu_features MODIFY emoji VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT ''"
+    );
     for (const f of DEFAULT_FEATURES) {
       await pool.query(
-        `INSERT IGNORE INTO megamenu_features (feature_key, name, emoji, link, sort_order)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO megamenu_features (feature_key, name, emoji, link, sort_order)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE name=VALUES(name), emoji=VALUES(emoji), link=VALUES(link), sort_order=VALUES(sort_order)`,
         [f.key, f.name, f.emoji, f.link, f.sort_order]
       );
     }
