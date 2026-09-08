@@ -189,7 +189,7 @@ export default function Shipping() {
                     <TableRow key={order._id}>
                       <TableCell className="font-medium">#{order.orderNumber}</TableCell>
                       <TableCell>{customerName}</TableCell>
-                      <TableCell>৳{order.total?.toFixed(2)}</TableCell>
+                      <TableCell>৳{Number(order.total || 0).toFixed(2)}</TableCell>
                       <TableCell><Badge className={cfg.className}>{cfg.label}</Badge></TableCell>
                       <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>

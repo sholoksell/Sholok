@@ -91,7 +91,7 @@ function fmtShippingOrder(row) {
     orderNumber: row.order_number,
     customerId:  { _id: row.customer_id, name: row.customer_name, email: row.customer_email, phone: row.customer_phone },
     status:      row.status,
-    total:       row.total,
+    total:       Number(row.total) || 0,
     shippingAddress: {
       name:    row.shipping_name,
       phone:   row.shipping_phone,
