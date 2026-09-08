@@ -3,6 +3,52 @@ const router = express.Router();
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
+/* ─────────────────────── auto-create tables ─────────────────────── */
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS delivery_areas (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(200) NOT NULL,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100) DEFAULT 'Bangladesh',
+        delivery_charge DECIMAL(10,2) DEFAULT 0,
+        free_delivery_threshold DECIMAL(10,2) DEFAULT 0,
+        estimated_delivery_days INT DEFAULT 3,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS delivery_area_postal_codes (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        delivery_area_id INT NOT NULL,
+        postal_code VARCHAR(20) NOT NULL,
+        FOREIGN KEY (delivery_area_id) REFERENCES delivery_areas(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_dapc (delivery_area_id, postal_code)
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS shipping_methods (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(200) NOT NULL,
+        type ENUM('flat','weight','free','cod','express') DEFAULT 'flat',
+        price DECIMAL(10,2) DEFAULT 0,
+        description TEXT,
+        icon VARCHAR(200),
+        delivery_days INT DEFAULT 3,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (e) {
+    console.error('shipping table init:', e.message);
+  }
+})();
+
 /* ─────────────────────────── formatters ─────────────────────────── */
 
 function fmtArea(row, postalCodes = []) {
@@ -348,8 +394,8 @@ router.get('/stats', authMiddleware, async (req, res) => {
     const [[{ outForDelivery }]]   = await pool.query("SELECT COUNT(*) AS outForDelivery FROM orders WHERE status = 'out_for_delivery'");
     const [[{ pendingShipment }]]  = await pool.query("SELECT COUNT(*) AS pendingShipment FROM orders WHERE status IN ('pending','confirmed','processing')");
     const [[{ totalShippingRevenue }]] = await pool.query(
-      "SELECT COALESCE(SUM(shipping + delivery_charge), 0) AS totalShippingRevenue FROM orders WHERE status = 'delivered'"
-    );
+      "SELECT COALESCE(SUM(COALESCE(shipping,0) + COALESCE(delivery_charge,0)), 0) AS totalShippingRevenue FROM orders WHERE status = 'delivered'"
+    ).catch(() => [[{ totalShippingRevenue: 0 }]]);
 
     res.json({
       totalAreas:           Number(totalAreas),
