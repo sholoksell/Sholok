@@ -36,6 +36,7 @@ import LiveSessions from "@/pages/LiveSessions";
 import VendorReviews from "@/pages/VendorReviews";
 import Campaigns from "@/pages/Campaigns";
 import MegaMenuFeatures from "@/pages/MegaMenuFeatures";
+import VendorDashboardAdmin from "@/pages/VendorDashboardAdmin";
 import NotFound from "@/pages/NotFound";
 
 // Vendor Panel Pages
@@ -97,6 +98,7 @@ const App = () => (
                   <Route path="/vendor-reviews" element={<VendorReviews />} />
                   <Route path="/campaigns" element={<Campaigns />} />
                   <Route path="/megamenu-features" element={<MegaMenuFeatures />} />
+                  <Route path="/vendor-dashboard" element={<VendorDashboardAdmin />} />
                 </Route>
 
                 {/* Vendor Panel — public auth routes */}

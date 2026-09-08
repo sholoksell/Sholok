@@ -47,6 +47,7 @@ export default function Sidebar() {
     { icon: Truck,           labelKey: 'shipping',         path: '/shipping' },
     { icon: PackageCheck,    labelKey: 'shipments',        path: '/shipments' },
     { icon: Store,           labelKey: 'vendors',          path: '/vendors' },
+    { icon: LayoutDashboard, labelKey: 'vendorDashboard',  path: '/vendor-dashboard' },
     { icon: Warehouse,       labelKey: 'warehouses',       path: '/warehouses' },
     { icon: Truck,           labelKey: 'couriers',         path: '/couriers' },
     { icon: MapPin,          labelKey: 'deliveryCoverage', path: '/delivery-coverage' },

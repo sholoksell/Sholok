@@ -33,6 +33,30 @@ router.get('/', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+// GET /api/vendors/stats
+router.get('/stats', authMiddleware, async (req, res) => {
+  try {
+    const [[counts]] = await pool.query(`
+      SELECT COUNT(*) as total,
+        COALESCE(SUM(status='active'),0) as active,
+        COALESCE(SUM(status='pending'),0) as pending,
+        COALESCE(SUM(status='suspended'),0) as suspended,
+        COALESCE(SUM(status='rejected'),0) as rejected,
+        COALESCE(SUM(status='inactive'),0) as inactive,
+        COALESCE(SUM(total_orders),0) as totalOrders,
+        COALESCE(SUM(total_sales),0) as totalSales
+      FROM vendors`);
+    const [[pc]] = await pool.query(`SELECT COUNT(*) as cnt FROM products WHERE vendor_id IS NOT NULL`);
+    const [[wt]] = await pool.query(`SELECT COALESCE(SUM(total_deposit),0) as totalDeposit FROM vendor_wallets`);
+    res.json({
+      total: Number(counts.total), active: Number(counts.active), pending: Number(counts.pending),
+      suspended: Number(counts.suspended), rejected: Number(counts.rejected), inactive: Number(counts.inactive),
+      totalOrders: Number(counts.totalOrders), totalSales: Number(counts.totalSales),
+      totalProducts: Number(pc.cnt), totalDeposit: Number(wt.totalDeposit),
+    });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 // GET /api/vendors/:id
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
@@ -111,6 +135,84 @@ router.get('/:id/wallet/transactions', authMiddleware, async (req, res) => {
       [req.params.id]
     );
     res.json(rows);
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// GET /api/vendors/:id/products
+router.get('/:id/products', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 15, search } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+    let where = 'p.vendor_id = ?';
+    const params = [req.params.id];
+    if (search) { where += ' AND p.name LIKE ?'; params.push(`%${search}%`); }
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM products p WHERE ${where}`, params);
+    const [rows] = await pool.query(
+      `SELECT p.id, p.name, p.sku, p.price, p.compare_price, p.stock, p.status,
+              p.created_at, c.name as categoryName,
+              (SELECT COUNT(*) FROM order_items oi WHERE oi.product_id = p.id) as salesCount
+       FROM products p LEFT JOIN categories c ON c.id = p.category_id
+       WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+      [...params, Number(limit), offset]
+    );
+    res.json({ products: rows, total, page: Number(page), limit: Number(limit) });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// GET /api/vendors/:id/orders
+router.get('/:id/orders', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 15 } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+    const [[{ total }]] = await pool.query(
+      `SELECT COUNT(DISTINCT o.id) as total FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE oi.vendor_id = ?`,
+      [req.params.id]
+    );
+    const [rows] = await pool.query(
+      `SELECT o.id, o.order_number, o.customer_name, o.customer_email,
+              o.total_amount, o.payment_status, o.order_status, o.created_at,
+              COALESCE(SUM(oi.subtotal),0) as vendorAmount, COUNT(oi.id) as itemCount
+       FROM orders o JOIN order_items oi ON oi.order_id = o.id
+       WHERE oi.vendor_id = ?
+       GROUP BY o.id ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
+      [req.params.id, Number(limit), offset]
+    );
+    res.json({ orders: rows, total, page: Number(page), limit: Number(limit) });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// GET /api/vendors/:id/reviews
+router.get('/:id/reviews', authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT vr.*, c.name as customerName, c.email as customerEmail
+       FROM vendor_reviews vr LEFT JOIN customers c ON c.id = vr.customer_id
+       WHERE vr.vendor_id = ? ORDER BY vr.created_at DESC LIMIT 50`,
+      [req.params.id]
+    );
+    const [[{ avgRating }]] = await pool.query(
+      `SELECT COALESCE(AVG(rating),0) as avgRating FROM vendor_reviews WHERE vendor_id = ? AND status='approved'`,
+      [req.params.id]
+    );
+    res.json({ reviews: rows, avgRating: Number(avgRating).toFixed(1) });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// GET /api/vendors/:id/earnings
+router.get('/:id/earnings', authMiddleware, async (req, res) => {
+  try {
+    const [[wallet]] = await pool.query('SELECT * FROM vendor_wallets WHERE vendor_id = ?', [req.params.id]);
+    const [transactions] = await pool.query(
+      'SELECT * FROM vendor_wallet_transactions WHERE vendor_id = ? ORDER BY created_at DESC LIMIT 50',
+      [req.params.id]
+    );
+    const [[v]] = await pool.query('SELECT total_sales, total_orders FROM vendors WHERE id = ?', [req.params.id]);
+    res.json({
+      wallet: wallet || {},
+      transactions,
+      totalSales: Number(v?.total_sales || 0),
+      totalOrders: Number(v?.total_orders || 0),
+    });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
