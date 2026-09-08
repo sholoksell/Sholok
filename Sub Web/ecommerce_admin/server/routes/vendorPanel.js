@@ -6,6 +6,71 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const vendorAuth = require('../middleware/vendorAuth');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+
+/* ── Upload helpers ── */
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const slugifyFilename = (text) => {
+  if (!text) return '';
+  return String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').substring(0, 80);
+};
+
+const vendorStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    const base = slugifyFilename(req.body.name) || slugifyFilename(path.basename(file.originalname, ext)) || 'image';
+    let candidate = `${base}${ext}`;
+    let n = 2;
+    while (fs.existsSync(path.join(uploadDir, candidate))) { candidate = `${base}-${n++}${ext}`; }
+    cb(null, candidate);
+  },
+});
+const vendorUpload = multer({ storage: vendorStorage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (req, file, cb) => {
+  /jpeg|jpg|png|gif|webp/.test(path.extname(file.originalname).toLowerCase()) && /image/.test(file.mimetype)
+    ? cb(null, true) : cb(new Error('Only image files are allowed'));
+}});
+
+/* ── Product image/tag helpers ── */
+async function saveImages(conn, productId, images) {
+  await conn.query('DELETE FROM product_images WHERE product_id = ?', [productId]);
+  if (images && images.length) {
+    const vals = images.map((url, i) => [productId, url, i]);
+    await conn.query('INSERT INTO product_images (product_id, image_url, sort_order) VALUES ?', [vals]);
+  }
+}
+
+async function saveTags(conn, productId, tags) {
+  await conn.query('DELETE FROM product_tags WHERE product_id = ?', [productId]);
+  if (tags && tags.length) {
+    const vals = [...new Set(tags)].map(t => [productId, t]);
+    await conn.query('INSERT INTO product_tags (product_id, tag) VALUES ?', [vals]);
+  }
+}
+
+function fmtProduct(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    images: row.images_list ? row.images_list.split('|||').filter(Boolean) : (row.thumbnail ? [row.thumbnail] : []),
+    tags:   row.tags_list   ? row.tags_list.split('|||').filter(Boolean)   : [],
+    images_list: undefined,
+    tags_list:   undefined,
+  };
+}
+
+/* ── Upload ── */
+router.post('/upload/multiple', vendorAuth, vendorUpload.array('images', 10), (req, res) => {
+  try {
+    if (!req.files || !req.files.length) return res.status(400).json({ message: 'No files uploaded' });
+    const urls = req.files.map(f => `/uploads/${f.filename}`);
+    res.json({ urls });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
 
 /* ── Dashboard ── */
 router.get('/dashboard', vendorAuth, async (req, res) => {
@@ -55,32 +120,64 @@ router.get('/products', vendorAuth, async (req, res) => {
     if (search) { where += ' AND (p.name LIKE ? OR p.sku LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
     const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM products p WHERE ${where}`, params);
     const [rows] = await pool.query(
-      `SELECT p.*, c.name as category_name, b.name as brand_name
+      `SELECT p.*, c.name as category_name, b.name as brand_name,
+       GROUP_CONCAT(DISTINCT pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') as images_list,
+       GROUP_CONCAT(DISTINCT pt.tag SEPARATOR '|||') as tags_list
        FROM products p
        LEFT JOIN categories c ON c.id=p.category_id
        LEFT JOIN brands b ON b.id=p.brand_id
-       WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+       LEFT JOIN product_images pi ON pi.product_id=p.id
+       LEFT JOIN product_tags pt ON pt.product_id=p.id
+       WHERE ${where} GROUP BY p.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
       [...params, Number(limit), offset]
     );
-    res.json({ products: rows, total, page: Number(page), limit: Number(limit) });
+    res.json({ products: rows.map(fmtProduct), total, page: Number(page), limit: Number(limit) });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
 router.post('/products', vendorAuth, async (req, res) => {
   try {
-    const { name, slug, description, short_description, category_id, brand_id, product_type = 'non_perishable',
-      regular_price, sale_price, compare_price, sku, barcode, stock, weight_kg = 0.5, status = 'draft', thumbnail } = req.body;
+    let { name, nameBn = '', slug, description = '', descriptionBn = '', shortDescription = '', shortDescriptionBn = '',
+      category_id, brand_id, product_type = 'non_perishable', regular_price, sale_price, compare_price,
+      sku, barcode, stock = 0, weight_kg = 0, status = 'draft', thumbnail = '', images = [], tags = [],
+      featured = false, is_new = false, on_sale = false, visibility = 'visible',
+      low_stock_threshold = 10, shipping_class = 'standard', shipping_charge = 0,
+      meta_title = '', meta_description = '',
+      scheduled_publish_date = null, availability_date = null } = req.body;
     if (!name || !regular_price) return res.status(400).json({ message: 'name and regular_price required' });
-    const finalSlug = slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-    const [r] = await pool.query(
-      `INSERT INTO products (name, slug, description, short_description, category_id, brand_id, vendor_id, ownership_type, product_type,
-       regular_price, sale_price, compare_price, sku, barcode, stock, weight_kg, status, thumbnail)
-       VALUES (?,?,?,?,?,?,?,'vendor',?,?,?,?,?,?,?,?,?,?)`,
-      [name, finalSlug, description || null, short_description || null, category_id || null, brand_id || null, req.vendor.id,
-       product_type, regular_price, sale_price || null, compare_price || null, sku || null, barcode || null, stock || 0, weight_kg, status, thumbnail || null]
-    );
-    const [[created]] = await pool.query('SELECT * FROM products WHERE id=?', [r.insertId]);
-    res.status(201).json(created);
+    if (!slug) slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (!thumbnail && images.length) thumbnail = images[0];
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [r] = await conn.query(
+        `INSERT INTO products (name, name_bn, slug, description, description_bn, short_description, short_description_bn,
+         category_id, brand_id, vendor_id, ownership_type, product_type, regular_price, sale_price, compare_price,
+         sku, barcode, stock, weight_kg, status, thumbnail, featured, is_new, on_sale, visibility,
+         low_stock_threshold, shipping_class, shipping_charge, meta_title, meta_description,
+         scheduled_publish_date, availability_date)
+         VALUES (?,?,?,?,?,?,?,?,?,?,'vendor',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [name, nameBn || null, slug, description, descriptionBn || null, shortDescription, shortDescriptionBn || null,
+         category_id || null, brand_id || null, req.vendor.id, product_type,
+         regular_price, sale_price || null, compare_price || null,
+         sku || null, barcode || null, stock, weight_kg, status, thumbnail,
+         featured ? 1 : 0, is_new ? 1 : 0, on_sale ? 1 : 0, visibility,
+         low_stock_threshold, shipping_class, shipping_charge,
+         meta_title || null, meta_description || null,
+         scheduled_publish_date || null, availability_date || null]
+      );
+      await saveImages(conn, r.insertId, images);
+      await saveTags(conn, r.insertId, tags);
+      await conn.commit();
+      const [[created]] = await pool.query(
+        `SELECT p.*, GROUP_CONCAT(DISTINCT pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') as images_list,
+         GROUP_CONCAT(DISTINCT pt.tag SEPARATOR '|||') as tags_list
+         FROM products p
+         LEFT JOIN product_images pi ON pi.product_id = p.id
+         LEFT JOIN product_tags pt ON pt.product_id = p.id
+         WHERE p.id=? GROUP BY p.id`, [r.insertId]);
+      res.status(201).json(fmtProduct(created));
+    } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -88,19 +185,67 @@ router.put('/products/:id', vendorAuth, async (req, res) => {
   try {
     const [[prod]] = await pool.query('SELECT id FROM products WHERE id=? AND vendor_id=?', [req.params.id, req.vendor.id]);
     if (!prod) return res.status(404).json({ message: 'Product not found or not yours' });
-    const { name, description, short_description, category_id, brand_id, regular_price, sale_price,
-      compare_price, sku, barcode, stock, weight_kg, status, thumbnail, product_type } = req.body;
-    await pool.query(
-      `UPDATE products SET name=COALESCE(?,name), description=COALESCE(?,description), short_description=COALESCE(?,short_description),
-       category_id=COALESCE(?,category_id), brand_id=COALESCE(?,brand_id), regular_price=COALESCE(?,regular_price),
-       sale_price=COALESCE(?,sale_price), compare_price=COALESCE(?,compare_price), sku=COALESCE(?,sku), barcode=COALESCE(?,barcode),
-       stock=COALESCE(?,stock), weight_kg=COALESCE(?,weight_kg), status=COALESCE(?,status), thumbnail=COALESCE(?,thumbnail),
-       product_type=COALESCE(?,product_type) WHERE id=?`,
-      [name, description, short_description, category_id, brand_id, regular_price, sale_price, compare_price,
-       sku, barcode, stock, weight_kg, status, thumbnail, product_type, req.params.id]
-    );
-    const [[updated]] = await pool.query('SELECT * FROM products WHERE id=?', [req.params.id]);
-    res.json(updated);
+    const { name, nameBn, slug, description, descriptionBn, shortDescription, shortDescriptionBn,
+      category_id, brand_id, product_type, regular_price, sale_price, compare_price,
+      sku, barcode, stock, weight_kg, status, thumbnail, images, tags,
+      featured, is_new, on_sale, visibility, low_stock_threshold,
+      shipping_class, shipping_charge, meta_title, meta_description,
+      scheduled_publish_date, availability_date } = req.body;
+    const fields = {};
+    if (name !== undefined)                  fields.name                   = name;
+    if (nameBn !== undefined)                fields.name_bn                = nameBn || null;
+    if (slug !== undefined)                  fields.slug                   = slug;
+    if (description !== undefined)           fields.description            = description;
+    if (descriptionBn !== undefined)         fields.description_bn         = descriptionBn || null;
+    if (shortDescription !== undefined)      fields.short_description      = shortDescription;
+    if (shortDescriptionBn !== undefined)    fields.short_description_bn   = shortDescriptionBn || null;
+    if (category_id !== undefined)           fields.category_id            = category_id || null;
+    if (brand_id !== undefined)              fields.brand_id               = brand_id || null;
+    if (product_type !== undefined)          fields.product_type           = product_type;
+    if (regular_price !== undefined)         fields.regular_price          = regular_price;
+    if (sale_price !== undefined)            fields.sale_price             = sale_price || null;
+    if (compare_price !== undefined)         fields.compare_price          = compare_price || null;
+    if (sku !== undefined)                   fields.sku                    = sku;
+    if (barcode !== undefined)               fields.barcode                = barcode || null;
+    if (stock !== undefined)                 fields.stock                  = stock;
+    if (weight_kg !== undefined)             fields.weight_kg              = weight_kg;
+    if (status !== undefined)                fields.status                 = status;
+    if (thumbnail !== undefined)             fields.thumbnail              = thumbnail || null;
+    if (featured !== undefined)              fields.featured               = featured ? 1 : 0;
+    if (is_new !== undefined)                fields.is_new                 = is_new ? 1 : 0;
+    if (on_sale !== undefined)               fields.on_sale                = on_sale ? 1 : 0;
+    if (visibility !== undefined)            fields.visibility             = visibility;
+    if (low_stock_threshold !== undefined)   fields.low_stock_threshold    = low_stock_threshold;
+    if (shipping_class !== undefined)        fields.shipping_class         = shipping_class;
+    if (shipping_charge !== undefined)       fields.shipping_charge        = shipping_charge;
+    if (meta_title !== undefined)            fields.meta_title             = meta_title || null;
+    if (meta_description !== undefined)      fields.meta_description       = meta_description || null;
+    if (scheduled_publish_date !== undefined) fields.scheduled_publish_date = scheduled_publish_date || null;
+    if (availability_date !== undefined)     fields.availability_date      = availability_date || null;
+
+    if (!thumbnail && Array.isArray(images) && images.length) fields.thumbnail = images[0];
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      if (Object.keys(fields).length) {
+        const setClauses = Object.keys(fields).map(k => `${k} = ?`).join(', ');
+        await conn.query(`UPDATE products SET ${setClauses} WHERE id=?`, [...Object.values(fields), req.params.id]);
+      }
+      if (Array.isArray(images)) await saveImages(conn, req.params.id, images);
+      if (Array.isArray(tags))   await saveTags(conn, req.params.id, tags);
+      await conn.commit();
+    } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
+
+    const [[updated]] = await pool.query(
+      `SELECT p.*, GROUP_CONCAT(DISTINCT pi.image_url ORDER BY pi.sort_order SEPARATOR '|||') as images_list,
+       GROUP_CONCAT(DISTINCT pt.tag SEPARATOR '|||') as tags_list
+       FROM products p
+       LEFT JOIN product_images pi ON pi.product_id = p.id
+       LEFT JOIN product_tags pt ON pt.product_id = p.id
+       WHERE p.id=? GROUP BY p.id`, [req.params.id]);
+
+    res.json(fmtProduct(updated));
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

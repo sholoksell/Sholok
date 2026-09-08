@@ -20,6 +20,8 @@ interface ImageUploadProps {
   placeholder?: string;
   /** Optional product/asset name. Used to build SEO-friendly filenames on the server. */
   productName?: string;
+  /** Custom upload function — receives FormData, returns array of uploaded URLs. Overrides the default admin upload. */
+  uploadFn?: (formData: FormData) => Promise<string[]>;
 }
 
 export default function ImageUpload({
@@ -29,6 +31,7 @@ export default function ImageUpload({
   label = 'Product Images',
   placeholder = 'product images',
   productName,
+  uploadFn,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [showUrlDialog, setShowUrlDialog] = useState(false);
@@ -60,13 +63,17 @@ export default function ImageUpload({
         formData.append('images', file);
       });
 
-      const response = await axios.post('/upload/multiple', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      let uploadedUrls: string[];
+      if (uploadFn) {
+        uploadedUrls = await uploadFn(formData);
+      } else {
+        const response = await axios.post('/upload/multiple', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        uploadedUrls = response.data.urls;
+      }
 
-      const newImages = [...images, ...response.data.urls];
+      const newImages = [...images, ...uploadedUrls];
       onChange(newImages);
       toast.success('Images uploaded successfully');
     } catch (error: any) {
