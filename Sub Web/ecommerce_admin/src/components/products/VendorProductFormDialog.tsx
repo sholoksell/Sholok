@@ -129,31 +129,36 @@ export default function VendorProductFormDialog({ open, onOpenChange, product, o
 
   // Fetch categories and brands once
   useEffect(() => {
+    // Flatten nested tree (API returns children[] structure)
+    const flatten = (nodes: any[]): any[] =>
+      nodes.flatMap(n => [n, ...flatten(n.children || [])]);
+
     fetch('/admin-api/categories/public/all')
       .then(r => r.json())
       .then((data: any[]) => {
-        const cats: Category[] = data.map(c => ({
-          id: String(c.id),
-          name: c.name,
-          nameBn: c.name_bn || '',
+        const flat = flatten(data);
+        const cats: Category[] = flat.map(c => ({
+          id: String(c._id || c.id),
+          name: c.name || '',
+          nameBn: c.nameBn || c.name_bn || '',
           slug: c.slug || '',
-          description: '',
-          parentId: c.parent_id ? String(c.parent_id) : null,
+          description: c.description || '',
+          parentId: c.parentId ? String(c.parentId) : (c.parent_id ? String(c.parent_id) : null),
           image: c.image || null,
-          banner: null,
+          banner: c.banner || null,
           icon: c.icon || null,
           level: c.level || 1,
-          keywords: '',
-          metaTitle: '',
-          metaDescription: '',
-          status: (c.is_active ? 'active' : 'inactive') as 'active' | 'inactive',
-          featured: false,
-          position: c.sort_order || 0,
-          showOnMenu: false,
-          showOnHomepage: false,
-          showInSearch: true,
-          productCount: 0,
-          deletedAt: null,
+          keywords: c.keywords || '',
+          metaTitle: c.metaTitle || '',
+          metaDescription: c.metaDescription || '',
+          status: (c.isActive ?? c.is_active ?? true) ? 'active' : 'inactive' as 'active' | 'inactive',
+          featured: !!c.featured,
+          position: c.order ?? c.sort_order ?? 0,
+          showOnMenu: !!c.showOnMenu,
+          showOnHomepage: !!c.showOnHomepage,
+          showInSearch: c.showInSearch !== false,
+          productCount: c.productCount || 0,
+          deletedAt: c.deletedAt || null,
         }));
         setCategories(cats);
       })
