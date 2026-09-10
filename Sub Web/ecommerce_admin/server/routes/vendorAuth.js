@@ -16,7 +16,13 @@ function fmtVendor(v) {
     _id: v.id, name: v.name, businessName: v.business_name, email: v.email,
     phone: v.phone, slug: v.slug, storeName: v.store_name, storeLogo: v.store_logo,
     storeBanner: v.store_banner, storeDescription: v.store_description,
+    storePolicies: v.store_policies,
     division: v.division, district: v.district, upazila: v.upazila, address: v.address,
+    city: v.city, postalCode: v.postal_code, country: v.country || 'Bangladesh',
+    businessType: v.business_type, ownerName: v.owner_name,
+    bankName: v.bank_name, bankAccount: v.bank_account ? '****' + String(v.bank_account).slice(-4) : null,
+    bankRouting: v.bank_routing,
+    commissionRate: Number(v.commission_rate || 10),
     status: v.status, isVerified: !!v.is_verified, codEnabled: !!v.cod_enabled,
     rating: v.rating ? Number(v.rating) : null, ratingCount: v.rating_count,
     totalOrders: v.total_orders, totalSales: Number(v.total_sales || 0),
@@ -103,18 +109,50 @@ router.put('/profile', async (req, res) => {
     const token = header.replace('Bearer ', '');
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const { name, business_name, phone, store_name, store_description, store_policies, store_logo, store_banner, division, district, upazila, address, bank_name, bank_account, bank_routing } = req.body;
+    const { name, business_name, business_type, owner_name, phone,
+      store_name, store_description, store_policies, store_logo, store_banner,
+      division, district, upazila, address, city, postal_code, country,
+      bank_name, bank_account, bank_routing } = req.body;
     await pool.query(
-      `UPDATE vendors SET name=COALESCE(?,name), business_name=COALESCE(?,business_name), phone=COALESCE(?,phone),
-       store_name=COALESCE(?,store_name), store_description=COALESCE(?,store_description), store_policies=COALESCE(?,store_policies),
+      `UPDATE vendors SET
+       name=COALESCE(?,name), business_name=COALESCE(?,business_name),
+       business_type=COALESCE(?,business_type), owner_name=COALESCE(?,owner_name),
+       phone=COALESCE(?,phone),
+       store_name=COALESCE(?,store_name), store_description=COALESCE(?,store_description),
+       store_policies=COALESCE(?,store_policies),
        store_logo=COALESCE(?,store_logo), store_banner=COALESCE(?,store_banner),
-       division=COALESCE(?,division), district=COALESCE(?,district), upazila=COALESCE(?,upazila), address=COALESCE(?,address),
-       bank_name=COALESCE(?,bank_name), bank_account=COALESCE(?,bank_account), bank_routing=COALESCE(?,bank_routing) WHERE id=?`,
-      [name, business_name, phone, store_name, store_description, store_policies, store_logo, store_banner, division, district, upazila, address, bank_name, bank_account, bank_routing, decoded.id]
+       division=COALESCE(?,division), district=COALESCE(?,district),
+       upazila=COALESCE(?,upazila), address=COALESCE(?,address),
+       city=COALESCE(?,city), postal_code=COALESCE(?,postal_code), country=COALESCE(?,country),
+       bank_name=COALESCE(?,bank_name), bank_account=COALESCE(?,bank_account),
+       bank_routing=COALESCE(?,bank_routing)
+       WHERE id=?`,
+      [name, business_name, business_type, owner_name, phone,
+       store_name, store_description, store_policies, store_logo, store_banner,
+       division, district, upazila, address, city, postal_code, country,
+       bank_name, bank_account, bank_routing, decoded.id]
     );
     const [[updated]] = await pool.query('SELECT * FROM vendors WHERE id=?', [decoded.id]);
     res.json(fmtVendor(updated));
   } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// PUT /api/vendor-auth/change-password
+router.put('/change-password', async (req, res) => {
+  try {
+    const header = req.headers.authorization;
+    if (!header) return res.status(401).json({ message: 'No token' });
+    const decoded = jwt.verify(header.replace('Bearer ', ''), JWT_SECRET);
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Both passwords required' });
+    if (newPassword.length < 6) return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    const [[vendor]] = await pool.query('SELECT * FROM vendors WHERE id=?', [decoded.id]);
+    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+    const valid = await bcrypt.compare(currentPassword, vendor.password_hash);
+    if (!valid) return res.status(401).json({ message: 'Current password is incorrect' });
+    await pool.query('UPDATE vendors SET password_hash=? WHERE id=?', [await bcrypt.hash(newPassword, 10), decoded.id]);
+    res.json({ message: 'Password changed successfully' });
+  } catch (e) { res.status(401).json({ message: 'Invalid token' }); }
 });
 
 module.exports = router;

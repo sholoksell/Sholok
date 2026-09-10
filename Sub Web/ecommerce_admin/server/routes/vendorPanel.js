@@ -401,4 +401,119 @@ router.get('/analytics', vendorAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+/* ── Vendor Settings tables init ── */
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS vendor_settings (
+        vendor_id INT PRIMARY KEY,
+        notif_order TINYINT(1) DEFAULT 1,
+        notif_product TINYINT(1) DEFAULT 1,
+        notif_payment TINYINT(1) DEFAULT 1,
+        notif_review TINYINT(1) DEFAULT 1,
+        notif_chat TINYINT(1) DEFAULT 1,
+        auto_reply_enabled TINYINT(1) DEFAULT 0,
+        auto_reply_message TEXT,
+        business_hours_start VARCHAR(5) DEFAULT '09:00',
+        business_hours_end VARCHAR(5) DEFAULT '18:00',
+        handling_time INT DEFAULT 1,
+        default_shipping VARCHAR(100) DEFAULT 'standard',
+        invoice_prefix VARCHAR(20) DEFAULT 'INV',
+        invoice_start INT DEFAULT 1001,
+        invoice_current INT DEFAULT 1001,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS vendor_quick_replies (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        vendor_id INT NOT NULL,
+        title VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE
+      )
+    `);
+    const alterCols = [
+      "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS business_type VARCHAR(100) NULL",
+      "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS owner_name VARCHAR(191) NULL",
+      "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS city VARCHAR(100) NULL",
+      "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20) NULL",
+      "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS country VARCHAR(100) NULL DEFAULT 'Bangladesh'",
+      "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00",
+    ];
+    for (const sql of alterCols) { await pool.query(sql).catch(() => {}); }
+  } catch (err) { console.error('vendor_settings init:', err.message); }
+})();
+
+/* ── Settings ── */
+router.get('/settings', vendorAuth, async (req, res) => {
+  try {
+    const vid = req.vendor.id;
+    await pool.query('INSERT IGNORE INTO vendor_settings (vendor_id) VALUES (?)', [vid]);
+    const [[settings]] = await pool.query('SELECT * FROM vendor_settings WHERE vendor_id=?', [vid]);
+    const [quickReplies] = await pool.query('SELECT * FROM vendor_quick_replies WHERE vendor_id=? ORDER BY id DESC', [vid]);
+    res.json({ settings, quickReplies });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.put('/settings', vendorAuth, async (req, res) => {
+  try {
+    const vid = req.vendor.id;
+    const { notif_order, notif_product, notif_payment, notif_review, notif_chat,
+      auto_reply_enabled, auto_reply_message, business_hours_start, business_hours_end,
+      handling_time, default_shipping, invoice_prefix, invoice_start } = req.body;
+    await pool.query('INSERT IGNORE INTO vendor_settings (vendor_id) VALUES (?)', [vid]);
+    const fields = {}, vals = [];
+    const add = (col, val) => { if (val !== undefined) { fields[col] = val; vals.push(val); } };
+    add('notif_order', notif_order !== undefined ? (notif_order ? 1 : 0) : undefined);
+    add('notif_product', notif_product !== undefined ? (notif_product ? 1 : 0) : undefined);
+    add('notif_payment', notif_payment !== undefined ? (notif_payment ? 1 : 0) : undefined);
+    add('notif_review', notif_review !== undefined ? (notif_review ? 1 : 0) : undefined);
+    add('notif_chat', notif_chat !== undefined ? (notif_chat ? 1 : 0) : undefined);
+    add('auto_reply_enabled', auto_reply_enabled !== undefined ? (auto_reply_enabled ? 1 : 0) : undefined);
+    add('auto_reply_message', auto_reply_message);
+    add('business_hours_start', business_hours_start);
+    add('business_hours_end', business_hours_end);
+    add('handling_time', handling_time !== undefined ? Number(handling_time) : undefined);
+    add('default_shipping', default_shipping);
+    add('invoice_prefix', invoice_prefix);
+    add('invoice_start', invoice_start !== undefined ? Number(invoice_start) : undefined);
+    if (Object.keys(fields).length) {
+      const set = Object.keys(fields).map(k => `${k}=?`).join(', ');
+      await pool.query(`UPDATE vendor_settings SET ${set} WHERE vendor_id=?`, [...vals, vid]);
+    }
+    const [[updated]] = await pool.query('SELECT * FROM vendor_settings WHERE vendor_id=?', [vid]);
+    res.json(updated);
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* ── Quick Replies ── */
+router.get('/quick-replies', vendorAuth, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM vendor_quick_replies WHERE vendor_id=? ORDER BY id DESC', [req.vendor.id]);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.post('/quick-replies', vendorAuth, async (req, res) => {
+  try {
+    const { title, message } = req.body;
+    if (!title || !message) return res.status(400).json({ message: 'Title and message required' });
+    const [r] = await pool.query('INSERT INTO vendor_quick_replies (vendor_id, title, message) VALUES (?,?,?)', [req.vendor.id, title, message]);
+    res.status(201).json({ id: r.insertId, vendor_id: req.vendor.id, title, message, created_at: new Date() });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.delete('/quick-replies/:id', vendorAuth, async (req, res) => {
+  try {
+    const [[qr]] = await pool.query('SELECT id FROM vendor_quick_replies WHERE id=? AND vendor_id=?', [req.params.id, req.vendor.id]);
+    if (!qr) return res.status(404).json({ message: 'Not found' });
+    await pool.query('DELETE FROM vendor_quick_replies WHERE id=?', [req.params.id]);
+    res.json({ message: 'Deleted' });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 module.exports = router;

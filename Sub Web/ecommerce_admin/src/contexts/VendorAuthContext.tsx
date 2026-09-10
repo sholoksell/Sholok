@@ -4,6 +4,8 @@ interface Vendor {
   _id: number;
   name: string;
   businessName: string;
+  businessType?: string;
+  ownerName?: string;
   email: string;
   phone: string;
   slug: string;
@@ -11,12 +13,25 @@ interface Vendor {
   storeLogo: string;
   storeBanner: string;
   storeDescription: string;
+  storePolicies?: string;
+  division?: string;
+  district?: string;
+  upazila?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  bankName?: string;
+  bankAccount?: string;
+  bankRouting?: string;
+  commissionRate?: number;
   status: string;
   isVerified: boolean;
   rating: number | null;
   ratingCount: number;
   totalOrders: number;
   totalSales: number;
+  createdAt?: string;
   wallet?: { currentBalance: number; pendingSettlement: number; holdAmount: number };
 }
 
