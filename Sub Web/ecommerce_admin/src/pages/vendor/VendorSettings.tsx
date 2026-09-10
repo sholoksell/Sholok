@@ -86,7 +86,7 @@ function ToastBanner({ toast }: { toast: Toast | null }) {
 
 /* ─── Form field helpers ─── */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-1.5"><Label className="text-sm font-medium text-gray-700">{label}</Label>{children}</div>;
+  return <div className="space-y-1.5"><Label className="text-sm font-medium text-black">{label}</Label>{children}</div>;
 }
 
 function SaveRow({ saving, onSave, onCancel }: { saving: boolean; onSave: () => void; onCancel: () => void }) {
