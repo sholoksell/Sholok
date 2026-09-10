@@ -3,10 +3,9 @@
   "configurations": [
     {
       "name": "home-page",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 8080,
-      "autoPort": false
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--force"],
+      "port": 8080
     }
   ]
 }
