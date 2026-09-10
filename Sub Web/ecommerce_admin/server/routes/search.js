@@ -158,7 +158,7 @@ router.get('/suggestions', async (req, res) => {
         c.name AS category_name, c.name_bn AS category_name_bn, c.slug AS category_slug
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.status = 'active' AND p.visibility = 1 AND p.stock > 0
+      WHERE p.status = 'active' AND p.visibility = 1
         AND (${pConds.join(' OR ')})
       ORDER BY p.featured DESC, p.is_new DESC, p.stock DESC
       LIMIT ?
@@ -383,6 +383,20 @@ router.get('/', async (req, res) => {
     console.error('[/api/search]', e.message);
     res.status(500).json({ message: e.message });
   }
+});
+
+// ─── GET /api/search/diag ─────────────────────────────────────────────────────
+router.get('/diag', async (req, res) => {
+  try {
+    const [[dbRow]] = await pool.query('SELECT DATABASE() AS db');
+    const [[row]] = await pool.query(`SELECT COUNT(*) tot,
+      SUM(status='active') act,
+      SUM(status='active' AND visibility=1) vis,
+      SUM(status='active' AND visibility=1 AND stock>0) stk
+      FROM products`);
+    const [sample] = await pool.query(`SELECT id,name,status,visibility,stock FROM products LIMIT 5`);
+    res.json({ db: dbRow.db, counts: row, sample });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── GET /api/search/popular ──────────────────────────────────────────────────
