@@ -145,6 +145,7 @@ router.post('/products', vendorAuth, async (req, res) => {
       meta_title = '', meta_description = '',
       scheduled_publish_date = null, availability_date = null } = req.body;
     if (!name || !regular_price) return res.status(400).json({ message: 'name and regular_price required' });
+    if (!sku) sku = 'VND-' + req.vendor.id + '-' + Date.now();
     if (!slug) slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     if (!thumbnail && images.length) thumbnail = images[0];
     const conn = await pool.getConnection();
