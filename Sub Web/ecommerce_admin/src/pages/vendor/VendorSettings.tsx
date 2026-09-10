@@ -834,7 +834,7 @@ export default function VendorSettings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <SettingCard icon={Bell} color="bg-slate-500" title="Notifications" desc="Order, payment, review alerts" onClick={() => go('notifications')} />
           <SettingCard icon={Package} color="bg-gray-500" title="My Products" desc="Go to product management" onClick={() => navigate('/vendor/products')} />
-          <SettingCard icon={ExternalLink} color="bg-emerald-600" title="My Store" desc="View your store on Sholok" onClick={() => window.open(`https://sholok.com/shopping`, '_blank')} />
+          <SettingCard icon={ExternalLink} color="bg-emerald-600" title="My Store" desc="View your store on Sholok" onClick={() => window.open(`https://sholok.com/shopping/store/${vendor?.slug}`, '_blank')} />
         </div>
       </div>
     </div>
