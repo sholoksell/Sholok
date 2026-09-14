@@ -9,7 +9,34 @@ try {
   ({ sendMail, renderOrderConfirmationHtml } = require('../lib/mailer'));
 } catch { /* mailer not configured */ }
 
+let OAuth2Client;
+try { ({ OAuth2Client } = require('google-auth-library')); } catch { /* installed later */ }
+
 const CUSTOMER_JWT_SECRET = process.env.CUSTOMER_JWT_SECRET || 'sholok_customer_secret_key_2024';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_VERIFY_SECRET = process.env.GOOGLE_VERIFY_SECRET || 'sholok_gv_secret_2024';
+
+// ── One-time DB migration for Google auth ─────────────────────────────────────
+;(async () => {
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS customer_otps (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      email VARCHAR(255) NOT NULL,
+      otp_hash VARCHAR(255) NOT NULL,
+      purpose VARCHAR(50) DEFAULT 'google_login',
+      attempts INT DEFAULT 0,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_otp_email (email)
+    )`);
+    // ADD COLUMN IF NOT EXISTS workaround for MySQL < 8
+    const [[cols]] = await pool.query(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='customers' AND COLUMN_NAME='google_id'`);
+    if (!cols) {
+      await pool.query(`ALTER TABLE customers ADD COLUMN google_id VARCHAR(100) DEFAULT NULL`);
+      await pool.query(`ALTER TABLE customers ADD COLUMN google_email VARCHAR(255) DEFAULT NULL`);
+    }
+  } catch (e) { console.error('[customerAuth] migration:', e.message); }
+})();
 
 const customerAuthMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -597,6 +624,213 @@ router.get('/rewards', customerAuthMiddleware, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// ── Google Sign-In: verify ID token → send OTP ───────────────────────────────
+router.post('/google/verify', async (req, res) => {
+  try {
+    if (!GOOGLE_CLIENT_ID) return res.status(503).json({ message: 'Google Sign-In is not configured on this server.' });
+    if (!OAuth2Client) return res.status(503).json({ message: 'google-auth-library not installed. Run: npm install google-auth-library' });
+
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ message: 'Missing Google credential' });
+
+    const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ message: 'Invalid or expired Google token. Please try again.' });
+    }
+
+    const { email, name, sub: googleId } = payload;
+    if (!email) return res.status(400).json({ message: 'Google account has no email address.' });
+
+    // Rate limit: max 5 OTP requests per email in 10 min
+    const [recent] = await pool.query(
+      'SELECT COUNT(*) AS cnt FROM customer_otps WHERE email = ? AND purpose = ? AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)',
+      [email, 'google_login']
+    );
+    if (recent[0].cnt >= 5) return res.status(429).json({ message: 'Too many OTP requests. Please wait 10 minutes.' });
+
+    // Generate 6-digit OTP, hash it
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 8);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await pool.query('DELETE FROM customer_otps WHERE email = ? AND purpose = ?', [email, 'google_login']);
+    await pool.query(
+      'INSERT INTO customer_otps (email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
+      [email, otpHash, 'google_login', expiresAt]
+    );
+
+    // Send OTP via email
+    const maskedEmail = email.replace(/^(.{2})(.+)(@.+)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
+    if (sendMail) {
+      await sendMail({
+        to: email,
+        subject: 'Sholok - Your Verification Code',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#E31E24">Sholok Verification</h2>
+          <p>Hi${name ? ' ' + name : ''},</p>
+          <p>Your Sholok verification code is:</p>
+          <div style="font-size:40px;font-weight:bold;letter-spacing:10px;text-align:center;padding:20px;background:#f7f7f7;border-radius:8px;margin:20px 0;color:#222">${otp}</div>
+          <p style="color:#666;font-size:13px">This code expires in <strong>5 minutes</strong>. Never share it with anyone.</p>
+          <p style="color:#888;font-size:12px">— The Sholok Team</p>
+        </div>`,
+      });
+    }
+
+    // Short-lived verification token (10 min) — contains identity, never OTP
+    const verificationToken = jwt.sign(
+      { email, googleId, googleName: name || '', purpose: 'google_otp' },
+      GOOGLE_VERIFY_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    res.json({ success: true, maskedEmail, verificationToken });
+  } catch (err) {
+    console.error('[google/verify]', err.message);
+    res.status(500).json({ message: 'Server error. Please try again.' });
+  }
+});
+
+// ── Google Sign-In: verify OTP → issue customer JWT ──────────────────────────
+router.post('/google/otp-verify', async (req, res) => {
+  try {
+    const { verificationToken, otp } = req.body;
+    if (!verificationToken || !otp) return res.status(400).json({ message: 'Missing fields' });
+
+    let tp;
+    try {
+      tp = jwt.verify(verificationToken, GOOGLE_VERIFY_SECRET);
+      if (tp.purpose !== 'google_otp') throw new Error('bad purpose');
+    } catch {
+      return res.status(401).json({ message: 'Session expired. Please sign in with Google again.' });
+    }
+
+    const { email, googleId, googleName } = tp;
+
+    const [[otpRow]] = await pool.query(
+      'SELECT * FROM customer_otps WHERE email = ? AND purpose = ? AND expires_at > NOW() LIMIT 1',
+      [email, 'google_login']
+    );
+    if (!otpRow) return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
+
+    if (otpRow.attempts >= 5) {
+      await pool.query('DELETE FROM customer_otps WHERE id = ?', [otpRow.id]);
+      return res.status(429).json({ message: 'Too many wrong attempts. Please request a new OTP.' });
+    }
+
+    const match = await bcrypt.compare(String(otp).trim(), otpRow.otp_hash);
+    if (!match) {
+      await pool.query('UPDATE customer_otps SET attempts = attempts + 1 WHERE id = ?', [otpRow.id]);
+      const left = 4 - otpRow.attempts;
+      return res.status(400).json({ message: `Incorrect OTP.${left > 0 ? ` ${left} attempt${left !== 1 ? 's' : ''} left.` : ' Please request a new OTP.'}` });
+    }
+
+    // Single-use: delete OTP
+    await pool.query('DELETE FROM customer_otps WHERE id = ?', [otpRow.id]);
+
+    // Find or create customer
+    const [rows] = await pool.query('SELECT * FROM customers WHERE email = ? LIMIT 1', [email]);
+    let customer;
+    if (rows.length) {
+      customer = rows[0];
+      // Link google_id if first Google login
+      if (!customer.google_id) {
+        await pool.query('UPDATE customers SET google_id = ?, last_login_date = NOW() WHERE id = ?', [googleId, customer.id]);
+      } else {
+        await pool.query('UPDATE customers SET last_login_date = NOW() WHERE id = ?', [customer.id]);
+      }
+    } else {
+      const dispName = googleName || email.split('@')[0];
+      const [ins] = await pool.query(
+        'INSERT INTO customers (name, email, google_id, google_email, status) VALUES (?, ?, ?, ?, ?)',
+        [dispName, email, googleId, email, 'active']
+      );
+      [[customer]] = await pool.query('SELECT * FROM customers WHERE id = ?', [ins.insertId]);
+    }
+
+    if (customer.status === 'blocked') return res.status(403).json({ message: 'Your account has been blocked.' });
+
+    const token = jwt.sign(
+      { id: customer.id, email: customer.email, type: 'customer' },
+      CUSTOMER_JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({ token, customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone || '' } });
+  } catch (err) {
+    console.error('[google/otp-verify]', err.message);
+    res.status(500).json({ message: 'Server error. Please try again.' });
+  }
+});
+
+// ── Resend OTP (60-second cooldown) ──────────────────────────────────────────
+router.post('/google/resend-otp', async (req, res) => {
+  try {
+    const { verificationToken } = req.body;
+    if (!verificationToken) return res.status(400).json({ message: 'Missing token' });
+
+    let tp;
+    try {
+      tp = jwt.verify(verificationToken, GOOGLE_VERIFY_SECRET);
+      if (tp.purpose !== 'google_otp') throw new Error('bad purpose');
+    } catch {
+      return res.status(401).json({ message: 'Session expired. Please sign in with Google again.' });
+    }
+
+    const { email, googleName } = tp;
+
+    // Rate limit: max 5 in 10 min
+    const [recent] = await pool.query(
+      'SELECT COUNT(*) AS cnt FROM customer_otps WHERE email = ? AND purpose = ? AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)',
+      [email, 'google_login']
+    );
+    if (recent[0].cnt >= 5) return res.status(429).json({ message: 'Too many OTP requests. Please wait 10 minutes.' });
+
+    // 60-second cooldown
+    const [[last]] = await pool.query(
+      'SELECT created_at FROM customer_otps WHERE email = ? AND purpose = ? ORDER BY created_at DESC LIMIT 1',
+      [email, 'google_login']
+    );
+    if (last) {
+      const secs = (Date.now() - new Date(last.created_at).getTime()) / 1000;
+      if (secs < 60) return res.status(429).json({ message: `Please wait ${Math.ceil(60 - secs)} seconds.` });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 8);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await pool.query('DELETE FROM customer_otps WHERE email = ? AND purpose = ?', [email, 'google_login']);
+    await pool.query(
+      'INSERT INTO customer_otps (email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
+      [email, otpHash, 'google_login', expiresAt]
+    );
+
+    if (sendMail) {
+      await sendMail({
+        to: email,
+        subject: 'Sholok - New Verification Code',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#E31E24">Sholok Verification</h2>
+          <p>Hi${googleName ? ' ' + googleName : ''},</p>
+          <p>Your new verification code is:</p>
+          <div style="font-size:40px;font-weight:bold;letter-spacing:10px;text-align:center;padding:20px;background:#f7f7f7;border-radius:8px;margin:20px 0;color:#222">${otp}</div>
+          <p style="color:#666;font-size:13px">This code expires in <strong>5 minutes</strong>.</p>
+          <p style="color:#888;font-size:12px">— The Sholok Team</p>
+        </div>`,
+      });
+    }
+
+    res.json({ success: true, message: 'New OTP sent' });
+  } catch (err) {
+    console.error('[google/resend-otp]', err.message);
+    res.status(500).json({ message: 'Server error. Please try again.' });
   }
 });
 
