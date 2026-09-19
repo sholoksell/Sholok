@@ -38,10 +38,14 @@ const AccountPage = () => {
   const [loadingNotifs, setLoadingNotifs] = React.useState(false);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Profile edit
+  // Profile edit (settings tab)
   const [editingProfile, setEditingProfile] = React.useState(false);
   const [profileForm, setProfileForm] = React.useState({ name: '', phone: '' });
   const [savingProfile, setSavingProfile] = React.useState(false);
+
+  // My Profile tab — full form
+  const [fullProfile, setFullProfile] = React.useState({ firstName: '', lastName: '', phone: '', email: '', gender: 'Unknown', dateOfBirth: '' });
+  const [savingFullProfile, setSavingFullProfile] = React.useState(false);
 
   // Address book
   const [addresses, setAddresses] = React.useState([]);
@@ -63,6 +67,9 @@ const AccountPage = () => {
   const [savingPw, setSavingPw] = React.useState(false);
 
   const handlePrintInvoice = (order) => {
+    window.open(`https://api.sholok.com/api/orders/invoice/${order.orderNumber}`, '_blank');
+  };
+  const _oldHandlePrintInvoice = (order) => {
     const win = window.open('', '_blank');
     const items = (order.items || []).map(item => `
       <tr style="border-bottom:1px solid #eee">
@@ -150,6 +157,17 @@ const AccountPage = () => {
         .then((data) => setNotifications(data || []))
         .catch(() => toast.error(t('failedToLoadNotifications')))
         .finally(() => setLoadingNotifs(false));
+    }
+    if (activeTab === 'profile' && customer) {
+      const parts = (customer.name || '').split(' ');
+      setFullProfile({
+        firstName: parts[0] || '',
+        lastName: parts.slice(1).join(' ') || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+        gender: customer.gender || 'Unknown',
+        dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.split('T')[0] : '',
+      });
     }
     if (activeTab === 'settings' && customer) {
       setProfileForm({ name: customer.name || '', phone: customer.phone || '' });
@@ -246,6 +264,24 @@ const AccountPage = () => {
       setEditingProfile(false);
     } else {
       toast.error(result.message || t('failedToUpdateProfile'));
+    }
+  };
+
+  const handleSaveFullProfile = async (e) => {
+    e.preventDefault();
+    setSavingFullProfile(true);
+    const name = `${fullProfile.firstName} ${fullProfile.lastName}`.trim();
+    const result = await updateProfile({
+      name,
+      phone: fullProfile.phone,
+      gender: fullProfile.gender,
+      dateOfBirth: fullProfile.dateOfBirth || undefined,
+    });
+    setSavingFullProfile(false);
+    if (result.success) {
+      toast.success('Profile updated successfully');
+    } else {
+      toast.error(result.message || 'Failed to update profile');
     }
   };
 
@@ -1004,6 +1040,133 @@ const AccountPage = () => {
             </Card>
           </div>
         );
+      case 'profile':
+        return (
+          <div className="max-w-sm mx-auto">
+            <Card className="overflow-hidden border-0 shadow-none">
+              <CardHeader className="pb-2 text-center">
+                <CardTitle className="text-xl">My Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveFullProfile} className="space-y-4">
+                  {/* Avatar */}
+                  <div className="flex justify-center mb-2">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full border-4 border-[#E31E24] bg-gray-100 flex items-center justify-center overflow-hidden">
+                        <span className="text-3xl font-bold text-[#E31E24]">
+                          {(fullProfile.firstName || customer.name || 'U')[0].toUpperCase()}
+                        </span>
+                      </div>
+                      <button type="button" className="absolute bottom-0 right-0 w-7 h-7 bg-gray-800 rounded-full flex items-center justify-center border-2 border-white">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zm6.4-10.4h-1.68L15.2 3H8.8L7.28 4.8H5.6A2.4 2.4 0 0 0 3.2 7.2v10.4a2.4 2.4 0 0 0 2.4 2.4h12.8a2.4 2.4 0 0 0 2.4-2.4V7.2a2.4 2.4 0 0 0-2.4-2.4z"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* First / Last Name */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">First Name <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={fullProfile.firstName}
+                        onChange={e => setFullProfile({ ...fullProfile, firstName: e.target.value })}
+                        placeholder="First Name"
+                        required
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#E31E24] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Last Name</label>
+                      <input
+                        type="text"
+                        value={fullProfile.lastName}
+                        onChange={e => setFullProfile({ ...fullProfile, lastName: e.target.value })}
+                        placeholder="Last Name"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#E31E24] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Phone</label>
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#E31E24] transition-colors">
+                      <div className="flex items-center gap-1 px-3 py-2.5 border-r border-gray-200 bg-gray-50 flex-shrink-0">
+                        <span className="text-base">🇧🇩</span>
+                        <span className="text-xs text-gray-500 font-medium">+880</span>
+                      </div>
+                      <input
+                        type="tel"
+                        value={fullProfile.phone}
+                        onChange={e => setFullProfile({ ...fullProfile, phone: e.target.value })}
+                        placeholder="1XXXXXXXXX"
+                        className="flex-1 px-3 py-2.5 text-sm outline-none bg-white"
+                      />
+                      {fullProfile.phone && (
+                        <div className="pr-3">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Email</label>
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                      <input
+                        type="email"
+                        value={fullProfile.email}
+                        readOnly
+                        placeholder="Email"
+                        className="flex-1 px-3 py-2.5 text-sm outline-none bg-transparent text-gray-500"
+                      />
+                      <div className="pr-2">
+                        <span className="bg-gray-700 text-white text-xs px-3 py-1 rounded-md">Verify</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gender */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Gender</label>
+                    <select
+                      value={fullProfile.gender}
+                      onChange={e => setFullProfile({ ...fullProfile, gender: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#E31E24] transition-colors bg-white"
+                    >
+                      <option value="Unknown">Unknown</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={fullProfile.dateOfBirth}
+                      onChange={e => setFullProfile({ ...fullProfile, dateOfBirth: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#E31E24] transition-colors"
+                    />
+                  </div>
+
+                  {/* Update Button */}
+                  <button
+                    type="submit"
+                    disabled={savingFullProfile}
+                    className="w-full bg-[#fec400] hover:bg-[#f0b800] text-black font-bold py-3.5 rounded-full text-sm transition-colors disabled:opacity-60 mt-2"
+                  >
+                    {savingFullProfile ? 'Updating…' : 'Update Profile'}
+                  </button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        );
       case 'dashboard':
       default:
         return (
@@ -1036,7 +1199,15 @@ const AccountPage = () => {
               <CardContent>
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-semibold mb-2">Personal Information</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold">Personal Information</h3>
+                      <button
+                        onClick={() => setActiveTab('profile')}
+                        className="flex items-center gap-1 text-xs text-[#E31E24] hover:underline"
+                      >
+                        <Edit2 className="w-3 h-3" /> Edit
+                      </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Name</p>
@@ -1117,6 +1288,10 @@ const AccountPage = () => {
                 <Button variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('dashboard')}>
                   <User className="w-4 h-4 mr-2" />
                   Dashboard
+                </Button>
+                <Button variant={activeTab === 'profile' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('profile')}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  My Profile
                 </Button>
                 <Button variant={activeTab === 'orders' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('orders')}>
                   <ShoppingBag className="w-4 h-4 mr-2" />
