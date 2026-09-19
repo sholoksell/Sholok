@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { orderApi, Order } from '@/services/orderService';
-import { customerApi, CustomerDetails } from '@/services/customerService';
+import { customerApi, Customer } from '@/services/customerService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -21,65 +20,55 @@ import { toast } from 'sonner';
 import {
   Search, MoreVertical, Eye, Edit, Trash2, Package, Clock, CheckCircle,
   ShoppingCart, Download, Truck, FileText, StickyNote,
-  ChevronDown, X, Printer, RefreshCw, Star, Shield, ShoppingBag, User,
+  ChevronDown, X, Printer, RefreshCw, MapPin, Phone, Mail, User,
+  CreditCard, CalendarDays, ExternalLink,
 } from 'lucide-react';
 import TakaIcon from '@/components/TakaIcon';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  pending:            { label: 'Pending',            className: 'bg-warning/20 text-warning' },
-  confirmed:          { label: 'Confirmed',           className: 'bg-chart-2/20 text-chart-2' },
-  processing:         { label: 'Processing',          className: 'bg-chart-1/20 text-chart-1' },
-  packed:             { label: 'Packed',              className: 'bg-blue-500/20 text-blue-600' },
-  ready_for_delivery: { label: 'Ready for Delivery',  className: 'bg-purple-500/20 text-purple-600' },
-  shipped:            { label: 'Shipped',             className: 'bg-chart-3/20 text-chart-3' },
-  out_for_delivery:   { label: 'Out for Delivery',    className: 'bg-chart-5/20 text-chart-5' },
-  delivered:          { label: 'Delivered',           className: 'bg-success/20 text-success' },
-  cancelled:          { label: 'Cancelled',           className: 'bg-muted text-muted-foreground' },
-  returned:           { label: 'Returned',            className: 'bg-orange-500/20 text-orange-600' },
-  refunded:           { label: 'Refunded',            className: 'bg-destructive/20 text-destructive' },
+  pending:          { label: 'Pending',          className: 'bg-warning/20 text-warning' },
+  confirmed:        { label: 'Confirmed',         className: 'bg-chart-2/20 text-chart-2' },
+  processing:       { label: 'Processing',        className: 'bg-chart-1/20 text-chart-1' },
+  shipped:          { label: 'Shipped',           className: 'bg-chart-3/20 text-chart-3' },
+  out_for_delivery: { label: 'Out for Delivery',  className: 'bg-chart-5/20 text-chart-5' },
+  delivered:        { label: 'Delivered',         className: 'bg-success/20 text-success' },
+  cancelled:        { label: 'Cancelled',         className: 'bg-muted text-muted-foreground' },
+  refunded:         { label: 'Refunded',          className: 'bg-destructive/20 text-destructive' },
 };
 
 const paymentStatusConfig: Record<string, { label: string; className: string }> = {
-  pending:            { label: 'Pending',             className: 'bg-warning/20 text-warning' },
-  paid:               { label: 'Paid',                className: 'bg-success/20 text-success' },
-  failed:             { label: 'Failed',              className: 'bg-destructive/20 text-destructive' },
-  refunded:           { label: 'Refunded',            className: 'bg-muted text-muted-foreground' },
-  partially_refunded: { label: 'Partially Refunded',  className: 'bg-orange-500/20 text-orange-600' },
-};
-
-const shipmentConfig: Record<string, { label: string; className: string }> = {
-  not_created:      { label: 'Not Created',      className: 'bg-muted text-muted-foreground' },
-  preparing:        { label: 'Preparing',        className: 'bg-chart-1/20 text-chart-1' },
-  shipped:          { label: 'Shipped',          className: 'bg-chart-3/20 text-chart-3' },
-  out_for_delivery: { label: 'Out for Delivery', className: 'bg-chart-5/20 text-chart-5' },
-  delivered:        { label: 'Delivered',        className: 'bg-success/20 text-success' },
+  pending:  { label: 'Pending',  className: 'bg-warning/20 text-warning' },
+  paid:     { label: 'Paid',     className: 'bg-success/20 text-success' },
+  failed:   { label: 'Failed',   className: 'bg-destructive/20 text-destructive' },
+  refunded: { label: 'Refunded', className: 'bg-muted text-muted-foreground' },
 };
 
 const defaultCfg = { label: 'Unknown', className: 'bg-muted text-muted-foreground' };
+const ALL_STATUSES = ['pending','confirmed','processing','shipped','out_for_delivery','delivered','cancelled','refunded'];
+const PAYMENT_STATUSES = ['pending','paid','failed','refunded'];
+const SHIPMENT_STATUSES = ['Pending','Confirmed','Processing','Ready for Pickup','Picked Up','In Transit','Out for Delivery','Delivered','Failed Delivery','Returned','Cancelled','Completed','Refunded'];
 
-const custStatusConfig: Record<string, { label: string; className: string }> = {
-  active:   { label: 'Active',   className: 'bg-success/20 text-success' },
-  inactive: { label: 'Inactive', className: 'bg-muted text-muted-foreground' },
-  blocked:  { label: 'Blocked',  className: 'bg-destructive/20 text-destructive' },
+const shipmentStatusColor: Record<string, string> = {
+  'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Confirmed': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  'Processing': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  'Ready for Pickup': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  'Picked Up': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  'In Transit': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  'Out for Delivery': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  'Delivered': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  'Failed Delivery': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  'Returned': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  'Cancelled': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  'Refunded': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 };
-const custGroupConfig: Record<string, { label: string; className: string }> = {
-  regular:   { label: 'Regular',   className: 'bg-blue-500/20 text-blue-600' },
-  wholesale: { label: 'Wholesale', className: 'bg-purple-500/20 text-purple-600' },
-  vip:       { label: 'VIP',       className: 'bg-yellow-500/20 text-yellow-700' },
-  dealer:    { label: 'Dealer',    className: 'bg-emerald-500/20 text-emerald-600' },
-};
-const ALL_STATUSES = ['pending','confirmed','processing','packed','ready_for_delivery','shipped','out_for_delivery','delivered','cancelled','returned','refunded'];
-const PAYMENT_STATUSES = ['pending','paid','failed','refunded','partially_refunded'];
 
-function getShipmentStatus(order: Order) {
-  const o = order as any;
-  if (order.status === 'delivered')        return shipmentConfig.delivered;
-  if (order.status === 'out_for_delivery') return shipmentConfig.out_for_delivery;
-  if (order.status === 'shipped')          return shipmentConfig.shipped;
-  if (o.trackingNumber)                    return shipmentConfig.shipped;
-  if (o.courierName)                       return shipmentConfig.preparing;
-  return shipmentConfig.not_created;
-}
+const imgSrc = (url?: string) => {
+  if (!url) return '';
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  return url.startsWith('/') ? url : `/${url}`;
+};
 
 export default function Orders() {
   const { t } = useLanguage();
@@ -104,9 +93,23 @@ export default function Orders() {
   const [exportLoading, setExportLoading] = useState(false);
   const invoicePrintRef = useRef<HTMLDivElement>(null);
 
-  const [custDetailOpen, setCustDetailOpen] = useState(false);
-  const [custDetailData, setCustDetailData] = useState<CustomerDetails | null>(null);
-  const [custDetailLoading, setCustDetailLoading] = useState(false);
+  // Shipment state
+  interface Shipment {
+    id: string; type: string; status: string; warehouse?: string;
+    vendor?: string; courier: string; trackingNumber: string;
+    weight?: string; packages?: number; deliveryCharge?: number;
+    dispatchDate?: string; eta?: string; destination?: string;
+    products: { name: string; qty: number }[];
+  }
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [shipStatusOpen, setShipStatusOpen] = useState(false);
+  const [activeShipIdx, setActiveShipIdx] = useState<number>(0);
+  const [shipStatusVal, setShipStatusVal] = useState('');
+
+  // Customer details
+  const [custOpen, setCustOpen] = useState(false);
+  const [custData, setCustData] = useState<Customer | null>(null);
+  const [custLoading, setCustLoading] = useState(false);
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -144,6 +147,8 @@ export default function Orders() {
   const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
   const paidOrders = orders.filter(o => o.paymentStatus === 'paid').length;
 
+  // ── Existing action handlers (unchanged) ────────────────────────────────────
+
   const handleUpdateStatus = async (orderId: string, status: string) => {
     try {
       await orderApi.updateStatus(orderId, status as Order['status']);
@@ -174,6 +179,26 @@ export default function Orders() {
     try {
       const full = await orderApi.getById(order._id);
       setViewOrder(full);
+      // Derive shipments from order tracking data
+      const ex = full as any;
+      if (ex.trackingNumber) {
+        const smap: Record<string, string> = {
+          delivered: 'Delivered', shipped: 'In Transit', out_for_delivery: 'Out for Delivery',
+          processing: 'Processing', confirmed: 'Confirmed', pending: 'Pending',
+          cancelled: 'Cancelled', refunded: 'Refunded',
+        };
+        setShipments([{
+          id: 'SHP-001', type: 'Sholok Fulfillment',
+          status: smap[full.status] || 'Pending',
+          courier: ex.courierName || '—', trackingNumber: ex.trackingNumber,
+          dispatchDate: new Date(full.updatedAt).toLocaleDateString('en-BD'),
+          eta: ex.estimatedDeliveryDate ? new Date(ex.estimatedDeliveryDate).toLocaleDateString('en-BD') : '—',
+          destination: [full.shippingAddress?.city, full.shippingAddress?.state].filter(Boolean).join(', ') || '—',
+          products: full.items.map(i => ({ name: i.productName, qty: i.quantity })),
+        }]);
+      } else {
+        setShipments([]);
+      }
       setViewOpen(true);
     } catch { toast.error('Failed to load order details'); }
   };
@@ -215,12 +240,8 @@ export default function Orders() {
     } catch { toast.error('Failed to save note'); }
   };
 
-  const openInvoice = async (order: Order) => {
-    try {
-      const full = await orderApi.getById(order._id);
-      setInvoiceOrder(full);
-      setInvoiceOpen(true);
-    } catch { toast.error('Failed to load invoice'); }
+  const openInvoice = (order: Order) => {
+    window.open(`https://api.sholok.com/api/orders/invoice/${order.orderNumber}`, '_blank');
   };
 
   const handlePrintInvoice = () => {
@@ -286,33 +307,56 @@ export default function Orders() {
     finally { setExportLoading(false); }
   };
 
-  const openCustomerDetail = async (id: string) => {
-    setCustDetailLoading(true);
-    setCustDetailOpen(true);
-    setCustDetailData(null);
+  // ── Customer details ─────────────────────────────────────────────────────────
+
+  const openCustomerDetail = async (customerId: string) => {
+    if (!customerId) return;
+    setCustLoading(true);
+    setCustOpen(true);
+    setCustData(null);
     try {
-      const data = await customerApi.getDetails(id);
-      setCustDetailData(data);
-    } catch {
-      toast.error('Failed to load customer details');
-    } finally {
-      setCustDetailLoading(false);
-    }
+      const c = await customerApi.getById(customerId);
+      setCustData(c);
+    } catch { toast.error('Failed to load customer'); }
+    finally { setCustLoading(false); }
   };
 
   const customerName = (o: Order) => (o.customerId as any)?.name ?? 'N/A';
-  const customerEmail = (o: Order) => (o.customerId as any)?.email ?? '';
-  const customerPhone = (o: Order) => (o.customerId as any)?.phone ?? '';
-  const customerId = (o: Order) => {
-    const c = o.customerId as any;
-    if (!c) return '';
-    if (typeof c === 'string') return c;
-    return c._id ?? c.id ?? '';
-  };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  const StatusDropdown = ({ orderId, status }: { orderId: string; status: string }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="focus:outline-none">
+          <Badge className={`${(statusConfig[status] ?? defaultCfg).className} border-0 cursor-pointer`}>
+            {(statusConfig[status] ?? defaultCfg).label} <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline" />
+          </Badge>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {ALL_STATUSES.map(s => <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(orderId, s)}>{statusConfig[s].label}</DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const PaymentDropdown = ({ orderId, paymentStatus }: { orderId: string; paymentStatus: string }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="focus:outline-none">
+          <Badge className={`${(paymentStatusConfig[paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer`}>
+            {(paymentStatusConfig[paymentStatus] ?? defaultCfg).label} <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline" />
+          </Badge>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {PAYMENT_STATUSES.map(s => <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(orderId, s)}>{paymentStatusConfig[s].label}</DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t('orders')}</h1>
@@ -369,7 +413,7 @@ export default function Orders() {
         </div>
       </CardContent></Card>
 
-      {/* Bulk actions bar */}
+      {/* Bulk actions */}
       {selected.length > 0 && (
         <Card className="border-primary/40 bg-primary/5"><CardContent className="p-3 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium">{selected.length} selected</span>
@@ -390,322 +434,703 @@ export default function Orders() {
         </CardContent></Card>
       )}
 
-      {/* Orders Table */}
+      {/* Orders table */}
       <Card className="glass-card border-border">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base">Orders ({filteredOrders.length})</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Orders ({filteredOrders.length})</CardTitle>
           <Button variant="ghost" size="sm" onClick={fetchOrders}><RefreshCw className="w-4 h-4" /></Button>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-secondary/40 hover:bg-secondary/40">
-                  <TableHead className="w-8 pl-4">
+                <TableRow>
+                  <TableHead className="w-10">
                     <Checkbox checked={filteredOrders.length > 0 && selected.length === filteredOrders.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
-                  <TableHead className="min-w-[130px] font-semibold">Order ID</TableHead>
-                  <TableHead className="min-w-[110px] font-semibold">Date &amp; Time</TableHead>
-                  <TableHead className="min-w-[160px] font-semibold">Customer</TableHead>
-                  <TableHead className="min-w-[80px] font-semibold">Items</TableHead>
-                  <TableHead className="min-w-[90px] font-semibold">Total</TableHead>
-                  <TableHead className="min-w-[140px] font-semibold">Payment</TableHead>
-                  <TableHead className="min-w-[155px] font-semibold">Order Status</TableHead>
-                  <TableHead className="min-w-[140px] font-semibold">Shipment</TableHead>
-                  <TableHead className="min-w-[60px] font-semibold text-right pr-4">Actions</TableHead>
+                  <TableHead>{t('orderNumber')}</TableHead>
+                  <TableHead>{t('customer')}</TableHead>
+                  <TableHead>{t('items')}</TableHead>
+                  <TableHead>{t('total')}</TableHead>
+                  <TableHead>{t('status')}</TableHead>
+                  <TableHead>{t('paymentStatus')}</TableHead>
+                  <TableHead>{t('tracking')}</TableHead>
+                  <TableHead>{t('date')}</TableHead>
+                  <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">{t('loadingOrders')}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8">{t('loadingOrders')}</TableCell></TableRow>
                 ) : filteredOrders.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">{t('noOrdersFound')}</TableCell></TableRow>
-                ) : filteredOrders.map((order) => {
-                  const shipment = getShipmentStatus(order);
-                  const cId = customerId(order);
-                  return (
-                    <TableRow key={order._id} className={`border-b border-border/50 hover:bg-secondary/20 transition-colors ${selected.includes(order._id) ? 'bg-primary/5' : ''}`}>
-
-                      {/* Checkbox */}
-                      <TableCell className="pl-4">
-                        <Checkbox checked={selected.includes(order._id)} onCheckedChange={() => toggleSelect(order._id)} />
-                      </TableCell>
-
-                      {/* Order ID — clickable → order details */}
-                      <TableCell>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">{t('noOrdersFound')}</TableCell></TableRow>
+                ) : filteredOrders.map((order) => (
+                  <TableRow
+                    key={order._id}
+                    className={`cursor-pointer hover:bg-muted/40 transition-colors ${selected.includes(order._id) ? 'bg-primary/5' : ''}`}
+                    onClick={(e) => {
+                      const tag = (e.target as HTMLElement).tagName;
+                      const closest = (e.target as HTMLElement).closest('button,input,[role="combobox"],[role="option"]');
+                      if (!closest && tag !== 'BUTTON' && tag !== 'INPUT') handleViewOrder(order);
+                    }}
+                  >
+                    <TableCell onClick={e => e.stopPropagation()}>
+                      <Checkbox checked={selected.includes(order._id)} onCheckedChange={() => toggleSelect(order._id)} />
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono font-medium text-primary">
+                        {order.orderNumber}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {(order.customerId as any)?._id ? (
                         <button
-                          onClick={() => handleViewOrder(order)}
-                          className="font-mono text-sm font-semibold text-primary hover:underline focus:outline-none text-left"
+                          className="text-left hover:text-primary transition-colors group"
+                          onClick={() => openCustomerDetail((order.customerId as any)._id)}
                         >
-                          {order.orderNumber}
+                          <p className="font-medium group-hover:underline">{customerName(order)}</p>
+                          {(order.customerId as any)?.email && (
+                            <p className="text-xs text-muted-foreground">{(order.customerId as any)?.email}</p>
+                          )}
                         </button>
-                      </TableCell>
-
-                      {/* Date & Time */}
-                      <TableCell>
-                        <p className="text-xs font-medium text-foreground whitespace-nowrap">
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </TableCell>
-
-                      {/* Customer — name clickable → customer detail dialog */}
-                      <TableCell>
-                        {cId ? (
-                          <button onClick={() => openCustomerDetail(cId)} className="text-sm font-medium text-primary hover:underline leading-snug block text-left focus:outline-none">
-                            {customerName(order)}
-                          </button>
-                        ) : (
-                          <p className="text-sm font-medium leading-snug">{customerName(order)}</p>
-                        )}
-                        {customerPhone(order) ? (
-                          <p className="text-[11px] text-muted-foreground">{customerPhone(order)}</p>
-                        ) : null}
-                        {customerEmail(order) ? (
-                          cId ? (
-                            <button onClick={() => openCustomerDetail(cId)} className="text-[11px] text-primary hover:underline truncate max-w-[150px] block text-left focus:outline-none">
-                              {customerEmail(order)}
-                            </button>
-                          ) : (
-                            <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">{customerEmail(order)}</p>
-                          )
-                        ) : null}
-                      </TableCell>
-
-                      {/* Items */}
-                      <TableCell>
-                        <span className="text-sm font-medium">{order.items.length} {order.items.length === 1 ? 'item' : 'items'}</span>
-                      </TableCell>
-
-                      {/* Total */}
-                      <TableCell>
-                        <span className="text-sm font-bold whitespace-nowrap">৳{(order.total || 0).toLocaleString()}</span>
-                      </TableCell>
-
-                      {/* Payment Status — clickable dropdown */}
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="focus:outline-none">
-                                <Badge className={`${(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer text-[11px] px-2 py-0.5 whitespace-nowrap`}>
-                                  {(paymentStatusConfig[order.paymentStatus] ?? defaultCfg).label}
-                                  <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline-block" />
-                                </Badge>
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              {PAYMENT_STATUSES.map(s => (
-                                <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(order._id, s)}>
-                                  {paymentStatusConfig[s].label}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          {order.paymentMethod && (
-                            <p className="text-[10px] text-muted-foreground capitalize">{order.paymentMethod.replace(/_/g, ' ')}</p>
+                      ) : (
+                        <div>
+                          <p className="font-medium">{customerName(order)}</p>
+                          {(order.customerId as any)?.email && (
+                            <p className="text-xs text-muted-foreground">{(order.customerId as any)?.email}</p>
                           )}
                         </div>
-                      </TableCell>
-
-                      {/* Order Status — clickable dropdown */}
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none">
-                              <Badge className={`${(statusConfig[order.status] ?? defaultCfg).className} border-0 cursor-pointer text-[11px] px-2 py-0.5 whitespace-nowrap`}>
-                                {(statusConfig[order.status] ?? defaultCfg).label}
-                                <ChevronDown className="w-2.5 h-2.5 ml-0.5 inline-block" />
-                              </Badge>
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {ALL_STATUSES.map(s => (
-                              <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(order._id, s)}>
-                                {statusConfig[s].label}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-
-                      {/* Shipment Status */}
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <Badge className={`${shipment.className} border-0 text-[11px] px-2 py-0.5 whitespace-nowrap`}>
-                            {shipment.label}
-                          </Badge>
-                          {(order as any).courierName && (
-                            <p className="text-[10px] text-muted-foreground">{(order as any).courierName}</p>
-                          )}
-                          {(order as any).trackingNumber && (
-                            <p className="text-[10px] font-mono text-muted-foreground">{(order as any).trackingNumber}</p>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* Actions — unchanged */}
-                      <TableCell className="text-right pr-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewOrder(order)}><Eye className="w-4 h-4 mr-2" />{t('view')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openInvoice(order)}><FileText className="w-4 h-4 mr-2" />{t('invoice')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openTrackingDialog(order)}><Truck className="w-4 h-4 mr-2" />{t('setTracking')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openNoteDialog(order)}><StickyNote className="w-4 h-4 mr-2" />{t('addNote')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'processing')}><Package className="w-4 h-4 mr-2" />{t('markProcessing')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'delivered')}><CheckCircle className="w-4 h-4 mr-2" />{t('markDelivered')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(order._id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />{t('delete')}</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{order.items.length} {order.items.length === 1 ? 'item' : 'items'}</span>
+                    </TableCell>
+                    <TableCell><span className="font-semibold">৳{(order.total || 0).toLocaleString()}</span></TableCell>
+                    <TableCell><StatusDropdown orderId={order._id} status={order.status} /></TableCell>
+                    <TableCell><PaymentDropdown orderId={order._id} paymentStatus={order.paymentStatus} /></TableCell>
+                    <TableCell>
+                      <span className="text-xs">
+                        {(order as any).trackingNumber
+                          ? <span className="font-mono text-foreground">{(order as any).trackingNumber}</span>
+                          : <span className="text-muted-foreground">—</span>}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{new Date(order.createdAt).toLocaleDateString()}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="sm"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewOrder(order)}><Eye className="w-4 h-4 mr-2" />{t('view')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openInvoice(order)}><FileText className="w-4 h-4 mr-2" />{t('invoice')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openTrackingDialog(order)}><Truck className="w-4 h-4 mr-2" />{t('setTracking')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openNoteDialog(order)}><StickyNote className="w-4 h-4 mr-2" />{t('addNote')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'processing')}><Package className="w-4 h-4 mr-2" />{t('markProcessing')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateStatus(order._id, 'delivered')}><CheckCircle className="w-4 h-4 mr-2" />{t('markDelivered')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(order._id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />{t('delete')}</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{t('orderDetails')} — {viewOrder?.orderNumber}</DialogTitle></DialogHeader>
-          {viewOrder && (
-            <div className="space-y-5 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">{t('orderStatus')}</p>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button><Badge className={`${(statusConfig[viewOrder.status] ?? defaultCfg).className} border-0 cursor-pointer`}>{(statusConfig[viewOrder.status] ?? defaultCfg).label} <ChevronDown className="w-3 h-3 ml-1" /></Badge></button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {ALL_STATUSES.map(s => <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(viewOrder._id, s)}>{statusConfig[s].label}</DropdownMenuItem>)}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">{t('paymentStatus')}</p>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button><Badge className={`${(paymentStatusConfig[viewOrder.paymentStatus] ?? defaultCfg).className} border-0 cursor-pointer`}>{(paymentStatusConfig[viewOrder.paymentStatus] ?? defaultCfg).label} <ChevronDown className="w-3 h-3 ml-1" /></Badge></button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {PAYMENT_STATUSES.map(s => <DropdownMenuItem key={s} onClick={() => handleUpdatePaymentStatus(viewOrder._id, s)}>{paymentStatusConfig[s].label}</DropdownMenuItem>)}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+      {/* ── Full-screen Order Details ────────────────────────────────────────────── */}
+      {viewOpen && viewOrder && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f6f8fb] dark:bg-background">
+          <div className="min-h-full p-4 md:p-6">
+            <div className="max-w-[1400px] mx-auto">
+
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+                <button onClick={() => setViewOpen(false)} className="hover:text-primary transition-colors font-medium">Orders</button>
+                <span>/</span>
+                <span className="font-bold text-foreground">Order Details</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-muted-foreground">{t('customer')}</p>
-                  <p className="font-medium">{(viewOrder.customerId as any)?.name ?? 'N/A'}</p>
-                  <p>{(viewOrder.customerId as any)?.email ?? ''}</p>
+
+              {/* ── ORDER HEADER ─────────────────────────────────────────────────────── */}
+              <section className="bg-card border border-border rounded-2xl shadow-sm p-5 mb-5">
+                <div className="flex justify-between items-start gap-5 flex-wrap">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">
+                      Order <span className="text-primary">{viewOrder.orderNumber}</span>
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      <strong className="text-foreground">Order Date:</strong>{' '}
+                      {new Date(viewOrder.createdAt).toLocaleString('en-BD', { dateStyle: 'long', timeStyle: 'short' })}
+                    </p>
+                    <div className="flex items-center flex-wrap gap-2 mt-3">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Order Status:</span>
+                      <StatusDropdown orderId={viewOrder._id} status={viewOrder.status} />
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Payment:</span>
+                      <PaymentDropdown orderId={viewOrder._id} paymentStatus={viewOrder.paymentStatus} />
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                        Fulfillment: {(viewOrder as any).trackingNumber ? 'Shipped' : viewOrder.status === 'processing' ? 'Processing' : 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
+                      🖨 Print
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
+                      📄 Invoice
+                    </Button>
+                    <Button size="sm" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
+                      + Create Shipment
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setViewOpen(false); openNoteDialog(viewOrder); }}>
+                      <StickyNote className="w-3.5 h-3.5 mr-1" />Add Note
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => {
+                      if (confirm('Cancel this order?')) { handleUpdateStatus(viewOrder._id, 'cancelled'); setViewOpen(false); }
+                    }}>Cancel Order</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setViewOpen(false)}><X className="w-4 h-4" /></Button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">{t('orderDate')}</p>
-                  <p className="font-medium">{new Date(viewOrder.createdAt).toLocaleString()}</p>
-                  <p className="text-muted-foreground mt-2">{t('paymentMethod')}</p>
-                  <p className="capitalize">{viewOrder.paymentMethod?.replace(/_/g,' ') || '—'}</p>
-                </div>
-              </div>
-              <div className="bg-secondary/50 p-3 rounded-lg space-y-1">
-                <p className="font-semibold">{t('shippingTracking')}</p>
-                <p>Courier: {(viewOrder as any).courierName || '—'}</p>
-                <p>Tracking #: {(viewOrder as any).trackingNumber || '—'}</p>
-                {(viewOrder as any).estimatedDeliveryDate && <p>Est. Delivery: {new Date((viewOrder as any).estimatedDeliveryDate).toLocaleDateString()}</p>}
-                <Button size="sm" variant="outline" className="mt-1" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
-                  <Truck className="w-3 h-3 mr-1" />Update Tracking
-                </Button>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">{t('shippingAddress')}</h3>
-                <div className="bg-secondary/50 p-3 rounded-lg space-y-0.5">
-                  <p>{viewOrder.shippingAddress?.name}</p>
-                  <p>{viewOrder.shippingAddress?.phone}</p>
-                  <p>{viewOrder.shippingAddress?.street}</p>
-                  <p>{[viewOrder.shippingAddress?.city,viewOrder.shippingAddress?.state,viewOrder.shippingAddress?.zipCode].filter(Boolean).join(', ')}</p>
-                  <p>{viewOrder.shippingAddress?.country}</p>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">{t('orderItems')}</h3>
-                <div className="space-y-2">
-                  {viewOrder.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-secondary/50 p-3 rounded-lg">
-                      <div>
-                        <p className="font-medium">{item.productName || 'Unknown'}</p>
-                        {item.variantName && <p className="text-xs text-muted-foreground">{item.variantName}</p>}
-                        <p className="text-xs">Qty: {item.quantity} × ৳{(item.price||0).toLocaleString()}</p>
-                      </div>
-                      <p className="font-semibold">৳{(item.total||item.price*item.quantity||0).toLocaleString()}</p>
+
+                {/* Meta row — 5 cols */}
+                <div className="grid grid-cols-2 md:grid-cols-5 mt-5 pt-5 border-t border-border divide-x divide-border">
+                  {[
+                    { label: 'Customer', value: (viewOrder.customerId as any)?.name ?? 'N/A' },
+                    { label: 'Total Products', value: `${viewOrder.items.length} Products` },
+                    { label: 'Total Shipments', value: `${shipments.length} Shipment${shipments.length !== 1 ? 's' : ''}` },
+                    { label: 'Payment Method', value: viewOrder.paymentMethod?.replace(/_/g, ' ') || '—' },
+                    { label: 'Grand Total', value: `৳${viewOrder.total.toLocaleString()}` },
+                  ].map((m, i) => (
+                    <div key={i} className={`px-4 py-1 ${i === 0 ? 'pl-0' : ''}`}>
+                      <span className="block text-xs text-muted-foreground mb-1">{m.label}</span>
+                      <span className="text-sm font-bold capitalize">{m.value}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-              <div className="border-t pt-3 space-y-1.5">
-                <div className="flex justify-between"><span>{t('subtotal')}</span><span>৳{(viewOrder.subtotal||0).toLocaleString()}</span></div>
-                {(viewOrder.tax||0)>0 && <div className="flex justify-between"><span>{t('tax')}</span><span>৳{(viewOrder.tax||0).toLocaleString()}</span></div>}
-                <div className="flex justify-between"><span>{t('shipping')}</span><span>৳{(viewOrder.shipping||viewOrder.deliveryCharge||0).toLocaleString()}</span></div>
-                {(viewOrder.discount||0)>0 && <div className="flex justify-between text-success"><span>{t('discount')}</span><span>-৳{(viewOrder.discount||0).toLocaleString()}</span></div>}
-                <div className="flex justify-between font-bold text-base border-t pt-2"><span>{t('total')}</span><span>৳{viewOrder.total.toLocaleString()}</span></div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-semibold">{t('adminNotes')}</h3>
-                  <Button size="sm" variant="ghost" onClick={() => { setViewOpen(false); openNoteDialog(viewOrder); }}><Edit className="w-3 h-3 mr-1" />Edit</Button>
-                </div>
-                <p className="bg-secondary/50 p-3 rounded-lg min-h-[36px]">
-                  {viewOrder.notes || <span className="text-muted-foreground">{t('noNotes')}</span>}
-                </p>
-              </div>
-              {(viewOrder as any).statusHistory?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">{t('orderTimeline')}</h3>
-                  <div className="space-y-2">
-                    {(viewOrder as any).statusHistory.map((h: any, i: number) => (
-                      <div key={i} className="flex items-start gap-3 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1 shrink-0" />
-                        <div>
-                          <span className="font-medium capitalize">{h.status?.replace(/_/g,' ')}</span>
-                          <span className="text-muted-foreground ml-2">{new Date(h.updatedAt).toLocaleString()}</span>
-                          {h.note && <p className="text-muted-foreground">{h.note}</p>}
+              </section>
+
+              {/* ── MAIN GRID ────────────────────────────────────────────────────────── */}
+              <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0,1fr) 350px' }}>
+
+                {/* ═══ LEFT COLUMN ══════════════════════════════════════════════════ */}
+                <div className="space-y-5">
+
+                  {/* Customer Info + Delivery Address side by side */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                    {/* Customer Information */}
+                    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                      <div className="px-5 py-4 border-b border-border">
+                        <h3 className="font-bold text-sm">Customer Information</h3>
+                      </div>
+                      <div className="p-5 space-y-4">
+                        {[
+                          {
+                            icon: '👤', label: 'Customer Name',
+                            content: (viewOrder.customerId as any)?._id
+                              ? <button className="font-bold text-sm hover:text-primary hover:underline text-left" onClick={() => openCustomerDetail((viewOrder.customerId as any)._id)}>
+                                  {(viewOrder.customerId as any)?.name ?? 'N/A'} <span className="text-xs opacity-40">↗</span>
+                                </button>
+                              : <span className="font-bold text-sm">{(viewOrder.customerId as any)?.name ?? 'N/A'}</span>,
+                          },
+                          { icon: '📞', label: 'Mobile Number', content: <span className="font-bold text-sm">{(viewOrder.customerId as any)?.phone ?? '—'}</span> },
+                          { icon: '✉', label: 'Email', content: <span className="font-bold text-sm break-all">{(viewOrder.customerId as any)?.email ?? '—'}</span> },
+                          { icon: '#', label: 'Customer ID', content: <span className="font-bold text-sm font-mono">{(viewOrder.customerId as any)?._id ? `CUS-${String((viewOrder.customerId as any)._id).slice(-6).toUpperCase()}` : '—'}</span> },
+                        ].map((row, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 text-base">{row.icon}</div>
+                            <div>
+                              <span className="block text-xs text-muted-foreground mb-0.5">{row.label}</span>
+                              {row.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Delivery Address */}
+                    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                        <h3 className="font-bold text-sm">Delivery Address</h3>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground">✏ Change Address</Button>
+                      </div>
+                      <div className="p-5 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 text-base">📍</div>
+                          <div>
+                            <span className="block text-xs text-muted-foreground mb-0.5">Recipient</span>
+                            <span className="font-bold text-sm">{viewOrder.shippingAddress?.name || (viewOrder.customerId as any)?.name || '—'}</span>
+                          </div>
+                        </div>
+                        {viewOrder.shippingAddress ? (
+                          <p className="text-sm text-muted-foreground leading-relaxed pl-0">
+                            {viewOrder.shippingAddress.phone && <>{viewOrder.shippingAddress.phone}<br /></>}
+                            {viewOrder.shippingAddress.street && <>{viewOrder.shippingAddress.street}<br /></>}
+                            {viewOrder.shippingAddress.city && <>District: {viewOrder.shippingAddress.city}<br /></>}
+                            {viewOrder.shippingAddress.state && <>Area: {viewOrder.shippingAddress.state}<br /></>}
+                            {viewOrder.shippingAddress.zipCode && <>Postcode: {viewOrder.shippingAddress.zipCode}</>}
+                          </p>
+                        ) : <p className="text-sm text-muted-foreground">No address on file</p>}
+                        <span className="inline-flex px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-bold">✓ Delivery Area Covered</span>
+                        <div className="pt-1">
+                          <Button size="sm" variant="outline" className="w-full text-xs h-8">✏ Edit Delivery Address</Button>
                         </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
+
+                  {/* ── Order Items ─────────────────────────────────────────────────── */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                      <div>
+                        <h3 className="font-bold text-sm">Order Items</h3>
+                        <p className="text-xs text-muted-foreground">{viewOrder.items.length} Products in this Order</p>
+                      </div>
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-bold">{viewOrder.items.length} Items</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[780px]">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30">
+                            {['#','Product','SKU','Ownership','Vendor / Warehouse','Qty','Unit Price','Total'].map((h, i) => (
+                              <th key={i} className={`text-xs font-bold text-muted-foreground px-4 py-3 ${i >= 5 ? 'text-center' : 'text-left'} ${i === 7 ? 'text-right pr-5' : ''}`}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewOrder.items.map((item, idx) => (
+                            <tr key={idx} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
+                              <td className="px-4 py-3 text-sm text-muted-foreground">{String(idx + 1).padStart(2, '0')}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  {item.productImage
+                                    ? <img src={imgSrc(item.productImage)} alt={item.productName} className="w-10 h-10 rounded-lg object-cover border border-border bg-muted flex-shrink-0" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                    : <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0"><Package className="w-4 h-4 text-muted-foreground" /></div>}
+                                  <div>
+                                    <p className="font-bold text-sm">{item.productName || '—'}</p>
+                                    {item.variantName && <p className="text-xs text-muted-foreground">{item.variantName}</p>}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{(item as any).sku || '—'}</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${(item as any).vendorId ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-primary/10 text-primary'}`}>
+                                  {(item as any).vendorId ? 'Vendor' : 'Sholok Owned'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-muted-foreground">
+                                {(item as any).vendorName || (item as any).warehouseName || 'Sholok Warehouse #01'}
+                              </td>
+                              <td className="px-4 py-3 text-center text-sm font-bold">{item.quantity}</td>
+                              <td className="px-4 py-3 text-center text-sm">৳{(item.price || 0).toLocaleString()}</td>
+                              <td className="px-5 py-3 text-right font-bold text-sm">৳{(item.total || (item.price * item.quantity) || 0).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* ── Shipments ────────────────────────────────────────────────────── */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                      <div>
+                        <h3 className="font-bold text-sm">Shipments</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {shipments.length} Shipment{shipments.length !== 1 ? 's' : ''} created for this Order
+                        </p>
+                      </div>
+                      <Button size="sm" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
+                        + Create Shipment
+                      </Button>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      {shipments.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Truck className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">No shipments created yet</p>
+                          <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
+                            + Create First Shipment
+                          </Button>
+                        </div>
+                      ) : shipments.map((shp, idx) => (
+                        <div key={idx} className="border border-border rounded-xl overflow-hidden">
+                          {/* Shipment header */}
+                          <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border flex-wrap gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm">Shipment #{shp.id}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold">{shp.type}</span>
+                              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 ${shipmentStatusColor[shp.status] || 'bg-muted text-muted-foreground'}`}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
+                                {shp.status}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Shipment body */}
+                          <div className="p-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                              {[
+                                { label: 'Courier', val: shp.courier },
+                                { label: 'Tracking #', val: <span className="font-mono font-bold text-primary text-xs">{shp.trackingNumber || '—'}</span> },
+                                { label: 'Dispatch Date', val: shp.dispatchDate || '—' },
+                                { label: 'ETA', val: shp.eta || '—' },
+                              ].map((r, i) => (
+                                <div key={i} className="p-2.5 rounded-lg bg-muted/30">
+                                  <span className="block text-xs text-muted-foreground mb-1">{r.label}</span>
+                                  <span className="font-semibold text-xs">{r.val}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="border-t border-border pt-3">
+                              <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wide">Products in this Shipment</p>
+                              <div className="space-y-1.5">
+                                {shp.products.map((p, i) => (
+                                  <div key={i} className="flex justify-between items-center p-2 rounded-lg border border-border/50 text-sm">
+                                    <span className="text-muted-foreground">{p.name}</span>
+                                    <span className="font-semibold text-xs">Qty: {p.qty}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Shipment footer */}
+                          <div className="flex items-center justify-between px-4 py-3 bg-muted/20 border-t border-border flex-wrap gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              Destination: {shp.destination || '—'}
+                            </span>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="ghost" className="h-7 text-xs">View Details</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                setActiveShipIdx(idx);
+                                setShipStatusVal(shp.status);
+                                setShipStatusOpen(true);
+                              }}>Change Status</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>Tracking</Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Order Timeline ───────────────────────────────────────────────── */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border">
+                      <h3 className="font-bold text-sm">Order Timeline</h3>
+                      <p className="text-xs text-muted-foreground">Complete order activity history</p>
+                    </div>
+                    <div className="p-5">
+                      <div className="relative pl-5">
+                        <div className="absolute left-1.5 top-2 bottom-2 w-px bg-border" />
+                        {[
+                          { status: 'Order Created', date: viewOrder.createdAt, note: 'Customer placed the order.' },
+                          ...((viewOrder as any).statusHistory || []),
+                        ].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                          .map((h: any, i: number, arr: any[]) => (
+                            <div key={i} className={`relative ${i < arr.length - 1 ? 'pb-5' : ''}`}>
+                              <div className="absolute left-[-14px] top-1 w-3 h-3 rounded-full border-2 border-primary bg-card" />
+                              <p className="text-sm font-bold capitalize">{h.status?.replace(/_/g, ' ')}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{new Date(h.date).toLocaleString()}</p>
+                              {h.note && <p className="text-xs text-muted-foreground italic mt-0.5">{h.note}</p>}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Order Notes ──────────────────────────────────────────────────── */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border">
+                      <h3 className="font-bold text-sm">Order Notes</h3>
+                      <p className="text-xs text-muted-foreground">Visible only to Admin</p>
+                    </div>
+                    <div className="p-5">
+                      <textarea
+                        className="w-full border border-border rounded-lg p-3 bg-background text-foreground text-sm min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        defaultValue={viewOrder.notes || ''}
+                        placeholder="Write an order note..."
+                        id="viewOrderNoteTA"
+                      />
+                      <div className="flex justify-end mt-3">
+                        <Button size="sm" onClick={async () => {
+                          const el = document.getElementById('viewOrderNoteTA') as HTMLTextAreaElement;
+                          if (!el) return;
+                          try {
+                            await orderApi.updateNote(viewOrder._id, el.value);
+                            toast.success('Note saved');
+                            setOrders(prev => prev.map(o => o._id === viewOrder._id ? { ...o, notes: el.value } : o));
+                          } catch { toast.error('Failed to save note'); }
+                        }}>
+                          Add order Note
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Notification History ─────────────────────────────────────────── */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border">
+                      <h3 className="font-bold text-sm">Delivery Address Change Notification History</h3>
+                      <p className="text-xs text-muted-foreground">Delivery address change notifications sent to the customer</p>
+                    </div>
+                    <div className="p-5">
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[500px] text-sm">
+                          <thead>
+                            <tr className="border-b border-border bg-muted/30">
+                              {['Notification Type','Channel','Message','Status','Date & Time'].map(h => (
+                                <th key={h} className="text-left text-xs font-bold text-muted-foreground px-4 py-2.5">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td colSpan={5} className="text-center py-8 text-muted-foreground text-sm">
+                                No notification history found.
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
-              )}
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}><Printer className="w-4 h-4 mr-2" />{t('viewInvoice')}</Button>
-                <Button onClick={() => setViewOpen(false)}>{t('close')}</Button>
-              </DialogFooter>
+
+                {/* ═══ RIGHT SIDEBAR ════════════════════════════════════════════════ */}
+                <div className="space-y-5">
+
+                  {/* Order Summary */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border"><h3 className="font-bold text-sm">Order Summary</h3></div>
+                    <div className="p-5 space-y-3 text-sm">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Subtotal</span><strong className="text-foreground">৳{(viewOrder.subtotal || 0).toLocaleString()}</strong>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Delivery Charge</span><strong className="text-foreground">৳{(viewOrder.shipping || viewOrder.deliveryCharge || 0).toLocaleString()}</strong>
+                      </div>
+                      {(viewOrder.discount || 0) > 0 && (
+                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                          <span>Discount</span><strong>-৳{(viewOrder.discount || 0).toLocaleString()}</strong>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold text-base border-t border-border pt-3 mt-1">
+                        <span>Grand Total</span>
+                        <span className="text-primary">৳{viewOrder.total.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border"><h3 className="font-bold text-sm">Payment Information</h3></div>
+                    <div className="p-5">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-lg">💵</div>
+                        <div>
+                          <p className="font-bold text-sm capitalize">{viewOrder.paymentMethod?.replace(/_/g, ' ') || '—'}</p>
+                          <p className="text-xs text-muted-foreground">Customer pays after delivery is completed</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2.5 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Payment Status</span>
+                          <PaymentDropdown orderId={viewOrder._id} paymentStatus={viewOrder.paymentStatus} />
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Paid Amount</span>
+                          <strong>৳{viewOrder.paymentStatus === 'paid' ? viewOrder.total.toLocaleString() : '0'}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Due Amount</span>
+                          <strong>৳{viewOrder.paymentStatus === 'paid' ? '0' : viewOrder.total.toLocaleString()}</strong>
+                        </div>
+                      </div>
+                      {viewOrder.paymentMethod?.toLowerCase().includes('cash') && (
+                        <p className="text-xs text-muted-foreground mt-3 p-2.5 rounded-lg bg-muted/40 leading-relaxed">
+                          Cash on Delivery: Payment remains Pending until delivery is completed.
+                        </p>
+                      )}
+                      <Button size="sm" variant="outline" className="w-full mt-3 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
+                        ✎ Update Payment Status
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Fulfillment */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border"><h3 className="font-bold text-sm">Fulfillment</h3></div>
+                    <div className="p-5">
+                      <span className="inline-flex px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold mb-3">
+                        Sholok Fulfillment
+                      </span>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
+                          <span className="font-semibold">Sholok</span>
+                          <span className="text-xs text-muted-foreground">Warehouse #01</span>
+                        </div>
+                        {(viewOrder as any).trackingNumber && (
+                          <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
+                            <span className="font-semibold capitalize">{(viewOrder as any).courierName || 'Courier'}</span>
+                            <span className="text-xs text-muted-foreground">In Transit</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tracking Summary */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border"><h3 className="font-bold text-sm">Tracking Summary</h3></div>
+                    <div className="p-5 space-y-3">
+                      {(() => {
+                        const groups: Record<string, string[]> = {
+                          'Delivered': ['Delivered','Completed'],
+                          'In Transit': ['In Transit','Out for Delivery','Picked Up'],
+                          'Processing': ['Processing','Confirmed','Ready for Pickup'],
+                          'Pending': ['Pending'],
+                          'Returned': ['Returned','Failed Delivery','Refunded'],
+                          'Cancelled': ['Cancelled'],
+                        };
+                        const colors: Record<string, string> = {
+                          'Delivered': 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
+                          'In Transit': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+                          'Processing': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
+                          'Pending': 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
+                          'Returned': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
+                          'Cancelled': 'bg-gray-100 dark:bg-gray-800 text-gray-500',
+                        };
+                        return Object.entries(groups).map(([label, statuses]) => {
+                          const count = shipments.filter(s => statuses.includes(s.status)).length;
+                          if (count === 0) return null;
+                          return (
+                            <div key={label} className="flex items-center justify-between">
+                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors[label]}`}>{label}</span>
+                              <span className="text-sm font-bold">{count} Shipment{count !== 1 ? 's' : ''}</span>
+                            </div>
+                          );
+                        }).filter(Boolean);
+                      })()}
+                      {shipments.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">No shipments</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Return & Refund */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border"><h3 className="font-bold text-sm">Return &amp; Refund</h3></div>
+                    <div className="p-5">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="p-3 rounded-lg border border-border">
+                          <p className="text-xs text-muted-foreground mb-1">Return Status</p>
+                          <p className="font-bold">None</p>
+                        </div>
+                        <div className="p-3 rounded-lg border border-border">
+                          <p className="text-xs text-muted-foreground mb-1">Refund Amount</p>
+                          <p className="font-bold">৳0</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Documents */}
+                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border">
+                      <h3 className="font-bold text-sm">Order Documents</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Shipment-level packing slips &amp; shipping labels; order-level payment receipt</p>
+                    </div>
+                    <div className="p-5 space-y-3">
+                      {[
+                        { icon: '📦', name: 'Packing Slips', desc: '1 Packing Slip — 1 per Shipment' },
+                        { icon: '🚚', name: 'Shipping Labels', desc: '1 Shipping Label — 1 per Shipment' },
+                        { icon: '💳', name: 'Payment Receipt', desc: '1 Receipt — Order-level' },
+                      ].map((doc, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base">{doc.icon}</span>
+                            <div>
+                              <p className="text-sm font-semibold">{doc.name}</p>
+                              <p className="text-xs text-muted-foreground">{doc.desc}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); handlePrintInvoice(); }}>
+                              ↓
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                        Document Rule: Each Packing Slip and Shipping Label contains only its own Shipment's products/details. Payment Receipt remains 1 per Order.
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Shipment Change Status Modal ──────────────────────────────────────── */}
+      <Dialog open={shipStatusOpen} onOpenChange={setShipStatusOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Shipment Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Shipment #{shipments[activeShipIdx]?.id}</p>
+            <div>
+              <label className="text-sm font-medium block mb-1.5">New Status</label>
+              <select
+                value={shipStatusVal}
+                onChange={e => setShipStatusVal(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                {SHIPMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            {shipStatusVal && (
+              <div className="p-3 rounded-lg bg-muted/40 text-xs text-muted-foreground">
+                New status: <span className={`font-bold px-2 py-0.5 rounded-full ${shipmentStatusColor[shipStatusVal] || ''}`}>{shipStatusVal}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShipStatusOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              setShipments(prev => prev.map((s, i) => i === activeShipIdx ? { ...s, status: shipStatusVal } : s));
+              toast.success(`Shipment status updated to "${shipStatusVal}"`);
+              setShipStatusOpen(false);
+            }}>Update Status</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Tracking Dialog */}
+      {/* ── Tracking Dialog (unchanged) ───────────────────────────────────────── */}
       <Dialog open={trackingOpen} onOpenChange={setTrackingOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t('setTracking')} — {trackingOrder?.orderNumber}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><label className="text-sm font-medium">{t('courierName')}</label>
-              <Input value={trackingForm.courierName} onChange={e => setTrackingForm(f=>({...f,courierName:e.target.value}))} placeholder="e.g. Pathao, RedX, Steadfast…" />
+              <Input value={trackingForm.courierName} onChange={e => setTrackingForm(f => ({ ...f, courierName: e.target.value }))} placeholder="e.g. Pathao, RedX, Steadfast…" />
             </div>
             <div><label className="text-sm font-medium">{t('trackingNumber')}</label>
-              <Input value={trackingForm.trackingNumber} onChange={e => setTrackingForm(f=>({...f,trackingNumber:e.target.value}))} placeholder="Tracking ID" />
+              <Input value={trackingForm.trackingNumber} onChange={e => setTrackingForm(f => ({ ...f, trackingNumber: e.target.value }))} placeholder="Tracking ID" />
             </div>
             <div><label className="text-sm font-medium">{t('estDelivery')}</label>
-              <Input type="date" value={trackingForm.estimatedDeliveryDate} onChange={e => setTrackingForm(f=>({...f,estimatedDeliveryDate:e.target.value}))} />
+              <Input type="date" value={trackingForm.estimatedDeliveryDate} onChange={e => setTrackingForm(f => ({ ...f, estimatedDeliveryDate: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
@@ -715,12 +1140,16 @@ export default function Orders() {
         </DialogContent>
       </Dialog>
 
-      {/* Note Dialog */}
+      {/* ── Note Dialog (unchanged) ───────────────────────────────────────────── */}
       <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t('adminNotes')} — {noteOrder?.orderNumber}</DialogTitle></DialogHeader>
-          <textarea className="w-full border border-border rounded-lg p-3 bg-background text-foreground text-sm min-h-[120px] resize-y"
-            value={noteText} onChange={e => setNoteText(e.target.value)} placeholder={t('internalNote')} />
+          <textarea
+            className="w-full border border-border rounded-lg p-3 bg-background text-foreground text-sm min-h-[120px] resize-y"
+            value={noteText}
+            onChange={e => setNoteText(e.target.value)}
+            placeholder={t('internalNote')}
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setNoteOpen(false)}>{t('cancel')}</Button>
             <Button onClick={handleSaveNote}><StickyNote className="w-4 h-4 mr-2" />{t('saveNote')}</Button>
@@ -728,140 +1157,7 @@ export default function Orders() {
         </DialogContent>
       </Dialog>
 
-      {/* Customer Detail Dialog */}
-      <Dialog open={custDetailOpen} onOpenChange={setCustDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Customer Details</DialogTitle></DialogHeader>
-          {custDetailLoading ? (
-            <div className="text-center py-10 text-muted-foreground">Loading…</div>
-          ) : custDetailData ? (
-            <Tabs defaultValue="profile">
-              <TabsList className="grid w-full grid-cols-3 text-xs">
-                <TabsTrigger value="profile"><User className="w-3 h-3 mr-1 inline" />Profile</TabsTrigger>
-                <TabsTrigger value="orders"><ShoppingCart className="w-3 h-3 mr-1 inline" />Orders ({custDetailData.orders.length})</TabsTrigger>
-                <TabsTrigger value="reviews"><Star className="w-3 h-3 mr-1 inline" />Reviews ({custDetailData.reviews.length})</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="profile" className="space-y-4 mt-4">
-                <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
-                    {custDetailData.customer.name?.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-lg">{custDetailData.customer.name}</p>
-                    <p className="text-sm text-muted-foreground">{custDetailData.customer.email}</p>
-                    {custDetailData.customer.phone && <p className="text-sm text-muted-foreground">{custDetailData.customer.phone}</p>}
-                  </div>
-                  <div className="ml-auto flex flex-col items-end gap-1">
-                    <Badge className={`${(custStatusConfig[custDetailData.customer.status] ?? defaultCfg).className} border-0`}>
-                      {(custStatusConfig[custDetailData.customer.status] ?? defaultCfg).label}
-                    </Badge>
-                    <Badge className={`${(custGroupConfig[custDetailData.customer.group || 'regular'] ?? defaultCfg).className} border-0`}>
-                      {(custGroupConfig[custDetailData.customer.group || 'regular'] ?? defaultCfg).label}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Total Orders</p>
-                    <p className="font-bold text-lg">{custDetailData.customer.totalOrders}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Total Spent</p>
-                    <p className="font-bold text-lg">৳{custDetailData.customer.totalSpent?.toLocaleString()}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Reward Points</p>
-                    <p className="font-bold text-lg text-yellow-600">{custDetailData.customer.rewardPoints || 0}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Last Login</p>
-                    <p className="font-medium text-sm">{custDetailData.customer.lastLoginDate ? new Date(custDetailData.customer.lastLoginDate).toLocaleString() : 'Never'}</p>
-                  </div>
-                </div>
-                {custDetailData.customer.address && (custDetailData.customer.address.street || custDetailData.customer.address.city) && (
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Address</p>
-                    <p className="text-sm">{[custDetailData.customer.address.street, custDetailData.customer.address.city, custDetailData.customer.address.state, custDetailData.customer.address.zipCode, custDetailData.customer.address.country].filter(Boolean).join(', ')}</p>
-                  </div>
-                )}
-                {custDetailData.customer.loginHistory && custDetailData.customer.loginHistory.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold mb-2 flex items-center gap-1"><Shield className="w-3 h-3" />Login Activity</p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {custDetailData.customer.loginHistory.slice(0, 5).map((h, i) => (
-                        <div key={i} className="flex justify-between text-xs p-2 bg-muted rounded">
-                          <span>{h.ip || 'Unknown IP'}</span>
-                          <span className="text-muted-foreground">{h.device || 'Unknown'}</span>
-                          <span className="text-muted-foreground">{new Date(h.date).toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="orders" className="space-y-3 mt-4">
-                {custDetailData.orders.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No orders yet</p>
-                ) : custDetailData.orders.map((order: any) => (
-                  <div key={order._id} className="border rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between p-3 bg-muted/30">
-                      <div>
-                        <p className="font-medium text-sm">#{order.orderNumber}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-sm">৳{order.total?.toLocaleString()}</p>
-                        <Badge variant="outline" className="capitalize text-xs">{order.status}</Badge>
-                      </div>
-                    </div>
-                    {order.items && order.items.slice(0, 3).map((item: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs px-3 py-1.5 border-t">
-                        {item.image || item.thumbnail ? (
-                          <img src={item.image || item.thumbnail} alt={item.name} className="w-7 h-7 rounded object-contain bg-muted" />
-                        ) : (
-                          <div className="w-7 h-7 rounded bg-muted flex items-center justify-center"><ShoppingBag className="w-3 h-3 text-muted-foreground" /></div>
-                        )}
-                        <span className="flex-1 truncate">{item.productName || item.name || 'Unknown'}</span>
-                        <span className="text-muted-foreground">×{item.quantity}</span>
-                        <span className="font-medium">৳{item.price?.toLocaleString()}</span>
-                      </div>
-                    ))}
-                    {order.items && order.items.length > 3 && (
-                      <p className="text-xs text-muted-foreground px-3 py-1.5 border-t">+{order.items.length - 3} more items</p>
-                    )}
-                  </div>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="reviews" className="space-y-3 mt-4">
-                {custDetailData.reviews.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No reviews yet</p>
-                ) : custDetailData.reviews.map((review: any) => (
-                  <div key={review._id} className="p-3 border rounded-lg space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm">{review.productId?.name || 'Unknown Product'}</p>
-                      <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(i => (
-                          <Star key={i} className={`w-3 h-3 ${i <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted'}`} />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{review.comment}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</p>
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
-          ) : null}
-          <DialogFooter>
-            <Button onClick={() => setCustDetailOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Invoice Dialog */}
+      {/* ── Invoice Dialog (unchanged) ────────────────────────────────────────── */}
       <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Invoice — {invoiceOrder?.orderNumber}</DialogTitle></DialogHeader>
@@ -879,7 +1175,7 @@ export default function Orders() {
                   <p>{(invoiceOrder.customerId as any)?.email ?? ''}</p>
                   {invoiceOrder.shippingAddress && <>
                     <p>{invoiceOrder.shippingAddress.street}</p>
-                    <p>{[invoiceOrder.shippingAddress.city,invoiceOrder.shippingAddress.state].filter(Boolean).join(', ')}</p>
+                    <p>{[invoiceOrder.shippingAddress.city, invoiceOrder.shippingAddress.state].filter(Boolean).join(', ')}</p>
                   </>}
                 </div>
               </div>
@@ -897,21 +1193,21 @@ export default function Orders() {
                     <tr key={idx}>
                       <td className="p-2 border border-border">{item.productName}{item.variantName && <span className="text-muted-foreground"> ({item.variantName})</span>}</td>
                       <td className="text-center p-2 border border-border">{item.quantity}</td>
-                      <td className="text-right p-2 border border-border">৳{(item.price||0).toLocaleString()}</td>
-                      <td className="text-right p-2 border border-border">৳{(item.total||0).toLocaleString()}</td>
+                      <td className="text-right p-2 border border-border">৳{(item.price || 0).toLocaleString()}</td>
+                      <td className="text-right p-2 border border-border">৳{(item.total || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="ml-auto w-64 space-y-1 text-xs">
-                <div className="flex justify-between"><span>{t('subtotal')}</span><span>৳{(invoiceOrder.subtotal||0).toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>{t('shipping')}</span><span>৳{(invoiceOrder.shipping||invoiceOrder.deliveryCharge||0).toLocaleString()}</span></div>
-                {(invoiceOrder.discount||0)>0 && <div className="flex justify-between text-success"><span>{t('discount')}</span><span>-৳{(invoiceOrder.discount||0).toLocaleString()}</span></div>}
+                <div className="flex justify-between"><span>{t('subtotal')}</span><span>৳{(invoiceOrder.subtotal || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>{t('shipping')}</span><span>৳{(invoiceOrder.shipping || invoiceOrder.deliveryCharge || 0).toLocaleString()}</span></div>
+                {(invoiceOrder.discount || 0) > 0 && <div className="flex justify-between text-success"><span>{t('discount')}</span><span>-৳{(invoiceOrder.discount || 0).toLocaleString()}</span></div>}
                 <div className="flex justify-between font-bold text-sm border-t pt-1"><span>{t('total')}</span><span>৳{invoiceOrder.total.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>{t('paymentMethod')}</span><span className="capitalize">{invoiceOrder.paymentMethod?.replace(/_/g,' ')||'—'}</span></div>
+                <div className="flex justify-between"><span>{t('paymentMethod')}</span><span className="capitalize">{invoiceOrder.paymentMethod?.replace(/_/g, ' ') || '—'}</span></div>
                 <div className="flex justify-between items-center"><span>{t('paymentStatus')}</span>
-                  <Badge className={`${(paymentStatusConfig[invoiceOrder.paymentStatus]??defaultCfg).className} border-0 text-xs`}>
-                    {(paymentStatusConfig[invoiceOrder.paymentStatus]??defaultCfg).label}
+                  <Badge className={`${(paymentStatusConfig[invoiceOrder.paymentStatus] ?? defaultCfg).className} border-0 text-xs`}>
+                    {(paymentStatusConfig[invoiceOrder.paymentStatus] ?? defaultCfg).label}
                   </Badge>
                 </div>
               </div>
@@ -919,7 +1215,106 @@ export default function Orders() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvoiceOpen(false)}>{t('close')}</Button>
-            <Button onClick={handlePrintInvoice}><Printer className="w-4 h-4 mr-2" />{t('printInvoice')}</Button>
+            <Button
+              onClick={() => window.open(`https://api.sholok.com/api/orders/invoice/${invoiceOrder?.orderNumber}`, '_blank')}
+              className="bg-teal-700 hover:bg-teal-800 text-white"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              View Full Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Customer Details Dialog ───────────────────────────────────────────── */}
+      <Dialog open={custOpen} onOpenChange={setCustOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-4 h-4" /> Customer Details
+            </DialogTitle>
+          </DialogHeader>
+          {custLoading ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">Loading…</div>
+          ) : custData ? (
+            <div className="space-y-4 text-sm">
+              {/* Profile */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-lg">
+                  {custData.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-bold text-base leading-tight">{custData.name}</p>
+                  <p className="text-muted-foreground text-xs">{custData.email}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Badge className={`text-xs border-0 ${custData.status === 'active' ? 'bg-success/20 text-success' : custData.status === 'blocked' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                      {custData.status}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs capitalize">{custData.group}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-border">
+                  <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p className="font-medium text-sm">{custData.phone || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-border">
+                  <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="font-medium text-xs truncate max-w-[120px]">{custData.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg border border-border text-center">
+                  <p className="text-xl font-bold text-primary">{custData.totalOrders ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">Orders</p>
+                </div>
+                <div className="p-3 rounded-lg border border-border text-center">
+                  <p className="text-xl font-bold text-primary">৳{(custData.totalSpent ?? 0).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Spent</p>
+                </div>
+                <div className="p-3 rounded-lg border border-border text-center">
+                  <p className="text-xl font-bold text-primary">{custData.rewardPoints ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">Points</p>
+                </div>
+              </div>
+
+              {/* Address */}
+              {custData.address && (custData.address.street || custData.address.city) && (
+                <div className="p-3 rounded-lg border border-border">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Default Address</p>
+                      <p className="text-sm">{custData.address.street}</p>
+                      <p className="text-sm text-muted-foreground">{[custData.address.city, custData.address.state, custData.address.zipCode].filter(Boolean).join(', ')}</p>
+                      {custData.address.country && <p className="text-sm text-muted-foreground">{custData.address.country}</p>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Joined */}
+              <div className="text-xs text-muted-foreground text-center">
+                Member since {new Date(custData.createdAt).toLocaleDateString()}
+                {custData.lastLoginDate && ` · Last login: ${new Date(custData.lastLoginDate).toLocaleDateString()}`}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">Customer not found</div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setCustOpen(false)}>{t('close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
