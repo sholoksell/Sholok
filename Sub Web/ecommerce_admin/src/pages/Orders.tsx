@@ -426,8 +426,24 @@ export default function Orders() {
             <option value="all">All Shipment Status</option>
             {['Not Created','Pending','Preparing','Processing','Picked Up','In Transit','Out for Delivery','Delivered','Failed Delivery','Returned','Cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-36" title="From date" />
-          <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-36" title="To date" />
+          <select
+            value={fromDate}
+            onChange={e => {
+              const v = e.target.value;
+              if (!v) { setFromDate(''); setToDate(''); return; }
+              const now = new Date();
+              if (v === 'today') { const d = now.toISOString().slice(0,10); setFromDate(d); setToDate(d); }
+              else if (v === '7') { const d = new Date(now.getTime()-7*86400000).toISOString().slice(0,10); setFromDate(d); setToDate(''); }
+              else if (v === '30') { const d = new Date(now.getTime()-30*86400000).toISOString().slice(0,10); setFromDate(d); setToDate(''); }
+              else setFromDate(v);
+            }}
+            className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground"
+          >
+            <option value="">All Dates</option>
+            <option value="today">Today</option>
+            <option value="7">Last 7 Days</option>
+            <option value="30">Last 30 Days</option>
+          </select>
           {(search || statusFilter !== 'all' || paymentFilter !== 'all' || shipmentFilter !== 'all' || fromDate || toDate) && (
             <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); setShipmentFilter('all'); setFromDate(''); setToDate(''); }}>
               <X className="w-4 h-4 mr-1" />Clear
