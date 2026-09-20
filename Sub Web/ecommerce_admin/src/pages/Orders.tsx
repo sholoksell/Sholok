@@ -33,35 +33,41 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   out_for_delivery: { label: 'Out for Delivery',  className: 'bg-chart-5/20 text-chart-5' },
   delivered:        { label: 'Delivered',         className: 'bg-success/20 text-success' },
   cancelled:        { label: 'Cancelled',         className: 'bg-muted text-muted-foreground' },
+  returned:         { label: 'Returned',          className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
   refunded:         { label: 'Refunded',          className: 'bg-destructive/20 text-destructive' },
 };
 
 const paymentStatusConfig: Record<string, { label: string; className: string }> = {
-  pending:  { label: 'Pending',  className: 'bg-warning/20 text-warning' },
-  paid:     { label: 'Paid',     className: 'bg-success/20 text-success' },
-  failed:   { label: 'Failed',   className: 'bg-destructive/20 text-destructive' },
-  refunded: { label: 'Refunded', className: 'bg-muted text-muted-foreground' },
+  pending:           { label: 'Pending',           className: 'bg-warning/20 text-warning' },
+  partially_paid:    { label: 'Partially Paid',    className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+  paid:              { label: 'Paid',              className: 'bg-success/20 text-success' },
+  failed:            { label: 'Failed',            className: 'bg-destructive/20 text-destructive' },
+  refunded:          { label: 'Refunded',          className: 'bg-muted text-muted-foreground' },
+  partially_refunded:{ label: 'Partially Refunded',className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' },
 };
 
 const defaultCfg = { label: 'Unknown', className: 'bg-muted text-muted-foreground' };
-const ALL_STATUSES = ['pending','confirmed','processing','shipped','out_for_delivery','delivered','cancelled','refunded'];
-const PAYMENT_STATUSES = ['pending','paid','failed','refunded'];
-const SHIPMENT_STATUSES = ['Pending','Confirmed','Processing','Ready for Pickup','Picked Up','In Transit','Out for Delivery','Delivered','Failed Delivery','Returned','Cancelled','Completed','Refunded'];
+const ALL_STATUSES = ['pending','confirmed','processing','shipped','out_for_delivery','delivered','cancelled','returned','refunded'];
+const PAYMENT_STATUSES = ['pending','partially_paid','paid','failed','refunded','partially_refunded'];
+const SHIPMENT_STATUSES = ['Pending','Preparing','Shipment Created','Pickup Scheduled','Picked Up','In Transit','Out for Delivery','Delivered','Delivery Failed','Delivery Rescheduled','Return to Sender','Returned','Cancelled','Completed','Refunded'];
 
 const shipmentStatusColor: Record<string, string> = {
-  'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Confirmed': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  'Processing': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  'Ready for Pickup': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-  'Picked Up': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  'In Transit': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  'Out for Delivery': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  'Delivered': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  'Failed Delivery': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  'Returned': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  'Cancelled': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  'Refunded': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+  'Pending':              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Preparing':            'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  'Shipment Created':     'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  'Pickup Scheduled':     'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  'Picked Up':            'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  'In Transit':           'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  'Out for Delivery':     'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  'Delivered':            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  'Delivery Failed':      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  'Delivery Rescheduled': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Return to Sender':     'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  'Returned':             'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  'Cancelled':            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  'Completed':            'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  'Refunded':             'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+  'Not Created':          'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
 };
 
 const imgSrc = (url?: string) => {
@@ -424,7 +430,7 @@ export default function Orders() {
           </select>
           <select value={shipmentFilter} onChange={e => setShipmentFilter(e.target.value)} className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground">
             <option value="all">All Shipment Status</option>
-            {['Not Created','Pending','Preparing','Processing','Picked Up','In Transit','Out for Delivery','Delivered','Failed Delivery','Returned','Cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+            {['Not Created','Preparing','Shipment Created','Pickup Scheduled','Picked Up','In Transit','Out for Delivery','Delivered','Delivery Failed','Delivery Rescheduled','Return to Sender','Returned','Cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select
             value={fromDate}
