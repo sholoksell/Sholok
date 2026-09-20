@@ -88,10 +88,7 @@ export default function Orders() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteOrder, setNoteOrder] = useState<Order | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
-  const invoicePrintRef = useRef<HTMLDivElement>(null);
 
   // Shipment state
   interface Shipment {
@@ -244,19 +241,6 @@ export default function Orders() {
     window.open(`https://api.sholok.com/api/orders/invoice/${order.orderNumber}`, '_blank');
   };
 
-  const handlePrintInvoice = () => {
-    const el = invoicePrintRef.current;
-    if (!el) return;
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(`<html><head><title>Invoice</title><style>
-      body{font-family:Arial,sans-serif;padding:20px;color:#000}
-      table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px;font-size:12px}
-      th{background:#f0f0f0}.flex{display:flex;justify-content:space-between}
-    </style></head><body>${el.innerHTML}</body></html>`);
-    win.document.close();
-    win.print();
-  };
 
   const toggleSelect = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleSelectAll = () => {
@@ -1064,7 +1048,7 @@ export default function Orders() {
                             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); handlePrintInvoice(); }}>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
                               ↓
                             </Button>
                           </div>
@@ -1157,74 +1141,6 @@ export default function Orders() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Invoice Dialog (unchanged) ────────────────────────────────────────── */}
-      <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Invoice — {invoiceOrder?.orderNumber}</DialogTitle></DialogHeader>
-          {invoiceOrder && (
-            <div ref={invoicePrintRef} className="p-4 space-y-4 text-sm">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-bold">SHOLOK</h2>
-                  <p className="text-muted-foreground text-xs">Invoice #{invoiceOrder.orderNumber}</p>
-                  <p className="text-muted-foreground text-xs">Date: {new Date(invoiceOrder.createdAt).toLocaleDateString()}</p>
-                </div>
-                <div className="text-right text-xs">
-                  <p className="font-medium">Bill To:</p>
-                  <p>{(invoiceOrder.customerId as any)?.name ?? ''}</p>
-                  <p>{(invoiceOrder.customerId as any)?.email ?? ''}</p>
-                  {invoiceOrder.shippingAddress && <>
-                    <p>{invoiceOrder.shippingAddress.street}</p>
-                    <p>{[invoiceOrder.shippingAddress.city, invoiceOrder.shippingAddress.state].filter(Boolean).join(', ')}</p>
-                  </>}
-                </div>
-              </div>
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr className="bg-secondary">
-                    <th className="text-left p-2 border border-border">{t('product')}</th>
-                    <th className="text-center p-2 border border-border">{t('qty')}</th>
-                    <th className="text-right p-2 border border-border">{t('price')}</th>
-                    <th className="text-right p-2 border border-border">{t('total')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceOrder.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="p-2 border border-border">{item.productName}{item.variantName && <span className="text-muted-foreground"> ({item.variantName})</span>}</td>
-                      <td className="text-center p-2 border border-border">{item.quantity}</td>
-                      <td className="text-right p-2 border border-border">৳{(item.price || 0).toLocaleString()}</td>
-                      <td className="text-right p-2 border border-border">৳{(item.total || 0).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="ml-auto w-64 space-y-1 text-xs">
-                <div className="flex justify-between"><span>{t('subtotal')}</span><span>৳{(invoiceOrder.subtotal || 0).toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>{t('shipping')}</span><span>৳{(invoiceOrder.shipping || invoiceOrder.deliveryCharge || 0).toLocaleString()}</span></div>
-                {(invoiceOrder.discount || 0) > 0 && <div className="flex justify-between text-success"><span>{t('discount')}</span><span>-৳{(invoiceOrder.discount || 0).toLocaleString()}</span></div>}
-                <div className="flex justify-between font-bold text-sm border-t pt-1"><span>{t('total')}</span><span>৳{invoiceOrder.total.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>{t('paymentMethod')}</span><span className="capitalize">{invoiceOrder.paymentMethod?.replace(/_/g, ' ') || '—'}</span></div>
-                <div className="flex justify-between items-center"><span>{t('paymentStatus')}</span>
-                  <Badge className={`${(paymentStatusConfig[invoiceOrder.paymentStatus] ?? defaultCfg).className} border-0 text-xs`}>
-                    {(paymentStatusConfig[invoiceOrder.paymentStatus] ?? defaultCfg).label}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setInvoiceOpen(false)}>{t('close')}</Button>
-            <Button
-              onClick={() => window.open(`https://api.sholok.com/api/orders/invoice/${invoiceOrder?.orderNumber}`, '_blank')}
-              className="bg-teal-700 hover:bg-teal-800 text-white"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Full Invoice
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* ── Customer Details Dialog ───────────────────────────────────────────── */}
       <Dialog open={custOpen} onOpenChange={setCustOpen}>
