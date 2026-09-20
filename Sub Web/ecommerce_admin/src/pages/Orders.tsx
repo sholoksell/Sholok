@@ -77,6 +77,7 @@ export default function Orders() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
+  const [shipmentFilter, setShipmentFilter] = useState('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -127,6 +128,17 @@ export default function Orders() {
     return orders.filter((o) => {
       if (statusFilter !== 'all' && o.status !== statusFilter) return false;
       if (paymentFilter !== 'all' && o.paymentStatus !== paymentFilter) return false;
+      if (shipmentFilter !== 'all') {
+        const ex = o as any;
+        const hasTracking = ex.courierName || ex.trackingNumber;
+        const smap: Record<string, string> = {
+          delivered: 'Delivered', shipped: 'In Transit', out_for_delivery: 'Out for Delivery',
+          processing: 'Processing', confirmed: 'Preparing', pending: 'Pending',
+          cancelled: 'Cancelled', refunded: 'Returned',
+        };
+        const derived = hasTracking ? (smap[o.status] || 'Pending') : 'Not Created';
+        if (derived !== shipmentFilter) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         const inNum = o.orderNumber.toLowerCase().includes(q);
@@ -137,12 +149,27 @@ export default function Orders() {
       if (toDate && new Date(o.createdAt) > new Date(toDate + 'T23:59:59')) return false;
       return true;
     });
-  }, [orders, search, statusFilter, paymentFilter, fromDate, toDate]);
+  }, [orders, search, statusFilter, paymentFilter, shipmentFilter, fromDate, toDate]);
 
   const totalOrders = orders.length;
+  const confirmedOrders = orders.filter(o => o.status === 'confirmed').length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
+  const processingOrders = orders.filter(o => o.status === 'processing').length;
+  const shippedOrders = orders.filter(o => o.status === 'shipped' || o.status === 'out_for_delivery').length;
+  const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
+  const cancelledOrders = orders.filter(o => o.status === 'cancelled' || o.status === 'refunded').length;
   const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
-  const paidOrders = orders.filter(o => o.paymentStatus === 'paid').length;
+
+  const getShipmentInfo = (order: Order) => {
+    const ex = order as any;
+    if (!ex.courierName && !ex.trackingNumber) return { status: 'Not Created', partner: '—' };
+    const smap: Record<string, string> = {
+      delivered: 'Delivered', shipped: 'In Transit', out_for_delivery: 'Out for Delivery',
+      processing: 'Processing', confirmed: 'Preparing', pending: 'Pending',
+      cancelled: 'Cancelled', refunded: 'Returned',
+    };
+    return { status: smap[order.status] || 'Pending', partner: ex.courierName || 'Not Assigned' };
+  };
 
   // ── Existing action handlers (unchanged) ────────────────────────────────────
 
@@ -346,30 +373,38 @@ export default function Orders() {
           <h1 className="text-3xl font-bold text-foreground">{t('orders')}</h1>
           <p className="text-muted-foreground">{t('manageTrackOrders')}</p>
         </div>
-        <Button onClick={handleExportCsv} disabled={exportLoading} variant="outline" className="gap-2">
-          <Download className="w-4 h-4" />
-          {exportLoading ? t('exporting') : t('export')}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={fetchOrders} variant="outline" className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button onClick={handleExportCsv} disabled={exportLoading} className="gap-2 bg-success hover:bg-success/90 text-white">
+            <Download className="w-4 h-4" />
+            {exportLoading ? t('exporting') : 'Export CSV'}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-chart-1/10 flex items-center justify-center"><ShoppingCart className="w-6 h-6 text-chart-1" /></div>
-          <div><p className="text-2xl font-bold">{totalOrders}</p><p className="text-sm text-muted-foreground">{t('totalOrders')}</p></div>
-        </CardContent></Card>
-        <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center"><Clock className="w-6 h-6 text-warning" /></div>
-          <div><p className="text-2xl font-bold">{pendingOrders}</p><p className="text-sm text-muted-foreground">{t('pendingOrders')}</p></div>
-        </CardContent></Card>
-        <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-chart-4/10 flex items-center justify-center"><TakaIcon className="w-6 h-6 text-chart-4" /></div>
-          <div><p className="text-2xl font-bold">৳{totalRevenue.toLocaleString()}</p><p className="text-sm text-muted-foreground">{t('totalRevenue')}</p></div>
-        </CardContent></Card>
-        <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center"><CheckCircle className="w-6 h-6 text-success" /></div>
-          <div><p className="text-2xl font-bold">{paidOrders}</p><p className="text-sm text-muted-foreground">{t('paidOrders')}</p></div>
-        </CardContent></Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        {[
+          { label: 'Total Orders',       value: totalOrders,      icon: <ShoppingCart className="w-5 h-5 text-chart-1" />,   bg: 'bg-chart-1/10' },
+          { label: 'Confirmed',          value: confirmedOrders,  icon: <CheckCircle   className="w-5 h-5 text-chart-2" />,   bg: 'bg-chart-2/10' },
+          { label: 'Pending',            value: pendingOrders,    icon: <Clock         className="w-5 h-5 text-warning" />,    bg: 'bg-warning/10' },
+          { label: 'Processing',         value: processingOrders, icon: <Package       className="w-5 h-5 text-chart-1" />,   bg: 'bg-chart-1/10' },
+          { label: 'Shipped / In Transit', value: shippedOrders, icon: <Truck         className="w-5 h-5 text-chart-3" />,   bg: 'bg-chart-3/10' },
+          { label: 'Delivered',          value: deliveredOrders,  icon: <CheckCircle   className="w-5 h-5 text-success" />,   bg: 'bg-success/10' },
+          { label: 'Cancelled / Returned', value: cancelledOrders, icon: <X           className="w-5 h-5 text-destructive" />, bg: 'bg-destructive/10' },
+          { label: 'Order Value',        value: `৳${totalRevenue.toLocaleString()}`, icon: <TakaIcon className="w-5 h-5 text-chart-4" />, bg: 'bg-chart-4/10' },
+        ].map((s, i) => (
+          <Card key={i} className="glass-card border-border">
+            <CardContent className="p-3">
+              <div className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center mb-2`}>{s.icon}</div>
+              <p className="text-xl font-bold leading-tight">{s.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
@@ -384,13 +419,17 @@ export default function Orders() {
             {ALL_STATUSES.map(s => <option key={s} value={s}>{statusConfig[s]?.label}</option>)}
           </select>
           <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground">
-            <option value="all">{t('allPayments')}</option>
+            <option value="all">All Payment Status</option>
             {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{paymentStatusConfig[s]?.label}</option>)}
+          </select>
+          <select value={shipmentFilter} onChange={e => setShipmentFilter(e.target.value)} className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground">
+            <option value="all">All Shipment Status</option>
+            {['Not Created','Pending','Preparing','Processing','Picked Up','In Transit','Out for Delivery','Delivered','Failed Delivery','Returned','Cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-36" title="From date" />
           <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-36" title="To date" />
-          {(search || statusFilter !== 'all' || paymentFilter !== 'all' || fromDate || toDate) && (
-            <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); setFromDate(''); setToDate(''); }}>
+          {(search || statusFilter !== 'all' || paymentFilter !== 'all' || shipmentFilter !== 'all' || fromDate || toDate) && (
+            <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); setShipmentFilter('all'); setFromDate(''); setToDate(''); }}>
               <X className="w-4 h-4 mr-1" />Clear
             </Button>
           )}
@@ -420,9 +459,9 @@ export default function Orders() {
 
       {/* Orders table */}
       <Card className="glass-card border-border">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Orders ({filteredOrders.length})</CardTitle>
-          <Button variant="ghost" size="sm" onClick={fetchOrders}><RefreshCw className="w-4 h-4" /></Button>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle>Order List</CardTitle>
+          <span className="text-sm text-muted-foreground">View, search and manage all marketplace orders.</span>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -432,14 +471,14 @@ export default function Orders() {
                   <TableHead className="w-10">
                     <Checkbox checked={filteredOrders.length > 0 && selected.length === filteredOrders.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
-                  <TableHead>{t('orderNumber')}</TableHead>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Order Date &amp; Time</TableHead>
                   <TableHead>{t('customer')}</TableHead>
                   <TableHead>{t('items')}</TableHead>
                   <TableHead>{t('total')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead>{t('paymentStatus')}</TableHead>
-                  <TableHead>{t('tracking')}</TableHead>
-                  <TableHead>{t('date')}</TableHead>
+                  <TableHead>Payment Status</TableHead>
+                  <TableHead>Order Status</TableHead>
+                  <TableHead>Shipment Status</TableHead>
                   <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -448,64 +487,60 @@ export default function Orders() {
                   <TableRow><TableCell colSpan={10} className="text-center py-8">{t('loadingOrders')}</TableCell></TableRow>
                 ) : filteredOrders.length === 0 ? (
                   <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">{t('noOrdersFound')}</TableCell></TableRow>
-                ) : filteredOrders.map((order) => (
+                ) : filteredOrders.map((order) => {
+                  const ship = getShipmentInfo(order);
+                  return (
                   <TableRow
                     key={order._id}
                     className={`cursor-pointer hover:bg-muted/40 transition-colors ${selected.includes(order._id) ? 'bg-primary/5' : ''}`}
                     onClick={(e) => {
-                      const tag = (e.target as HTMLElement).tagName;
                       const closest = (e.target as HTMLElement).closest('button,input,[role="combobox"],[role="option"]');
-                      if (!closest && tag !== 'BUTTON' && tag !== 'INPUT') handleViewOrder(order);
+                      if (!closest) handleViewOrder(order);
                     }}
                   >
                     <TableCell onClick={e => e.stopPropagation()}>
                       <Checkbox checked={selected.includes(order._id)} onCheckedChange={() => toggleSelect(order._id)} />
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-medium text-primary">
-                        {order.orderNumber}
-                      </span>
+                      <span className="font-mono font-semibold text-primary text-sm">{order.orderNumber}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">{new Date(order.createdAt).toLocaleDateString('en-BD', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                     </TableCell>
                     <TableCell>
                       {(order.customerId as any)?._id ? (
-                        <button
-                          className="text-left hover:text-primary transition-colors group"
-                          onClick={() => openCustomerDetail((order.customerId as any)._id)}
-                        >
-                          <p className="font-medium group-hover:underline">{customerName(order)}</p>
-                          {(order.customerId as any)?.email && (
-                            <p className="text-xs text-muted-foreground">{(order.customerId as any)?.email}</p>
-                          )}
+                        <button className="text-left hover:text-primary transition-colors group" onClick={e => { e.stopPropagation(); openCustomerDetail((order.customerId as any)._id); }}>
+                          <p className="font-semibold text-sm group-hover:underline">{customerName(order)}</p>
+                          <p className="text-xs text-muted-foreground">{(order.customerId as any)?.phone || (order.customerId as any)?.email || ''}</p>
                         </button>
                       ) : (
                         <div>
-                          <p className="font-medium">{customerName(order)}</p>
-                          {(order.customerId as any)?.email && (
-                            <p className="text-xs text-muted-foreground">{(order.customerId as any)?.email}</p>
-                          )}
+                          <p className="font-semibold text-sm">{customerName(order)}</p>
+                          <p className="text-xs text-muted-foreground">{(order.shippingAddress as any)?.phone || ''}</p>
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">{order.items.length} {order.items.length === 1 ? 'item' : 'items'}</span>
+                      <span className="text-sm">{order.items.length} {order.items.length === 1 ? 'Item' : 'Items'}</span>
                     </TableCell>
-                    <TableCell><span className="font-semibold">৳{(order.total || 0).toLocaleString()}</span></TableCell>
+                    <TableCell><span className="font-bold">৳{(order.total || 0).toLocaleString()}</span></TableCell>
+                    <TableCell>
+                      <div><PaymentDropdown orderId={order._id} paymentStatus={order.paymentStatus} /></div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{(order.paymentMethod || 'COD').toUpperCase()}</div>
+                    </TableCell>
                     <TableCell><StatusDropdown orderId={order._id} status={order.status} /></TableCell>
-                    <TableCell><PaymentDropdown orderId={order._id} paymentStatus={order.paymentStatus} /></TableCell>
                     <TableCell>
-                      <span className="text-xs">
-                        {(order as any).trackingNumber
-                          ? <span className="font-mono text-foreground">{(order as any).trackingNumber}</span>
-                          : <span className="text-muted-foreground">—</span>}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{new Date(order.createdAt).toLocaleDateString()}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${shipmentStatusColor[ship.status] || 'bg-gray-100 text-gray-600'}`}>
+                          • {ship.status}
+                        </span>
+                      </div>
+                      {ship.partner !== '—' && <div className="text-xs text-muted-foreground mt-0.5">Partner: {ship.partner}</div>}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="sm"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}><Button variant="ghost" size="sm"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleViewOrder(order)}><Eye className="w-4 h-4 mr-2" />{t('view')}</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openInvoice(order)}><FileText className="w-4 h-4 mr-2" />{t('invoice')}</DropdownMenuItem>
@@ -518,10 +553,16 @@ export default function Orders() {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
+          {!loading && filteredOrders.length > 0 && (
+            <div className="pt-3 text-sm text-muted-foreground border-t border-border mt-2">
+              Showing 1–{filteredOrders.length} of {filteredOrders.length} orders
+            </div>
+          )}
         </CardContent>
       </Card>
 
