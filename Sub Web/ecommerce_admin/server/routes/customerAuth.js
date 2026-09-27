@@ -251,7 +251,7 @@ router.get('/orders', customerAuthMiddleware, async (req, res) => {
 // POST /customer-auth/orders — place a new order
 router.post('/orders', customerAuthMiddleware, async (req, res) => {
   try {
-    const { items, shippingAddress = {}, paymentMethod, subtotal, shippingCost, total, couponCode, discount = 0 } = req.body;
+    const { items, shippingAddress = {}, paymentMethod, subtotal, shippingCost, deliveryCharge, total, couponCode, discount = 0 } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: 'Cart is empty' });
@@ -273,15 +273,30 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
       const [[{ cnt }]] = await conn.query('SELECT COUNT(*) AS cnt FROM orders');
       const orderNumber = `ORD-${String(cnt + 1).padStart(5, '0')}`;
 
+      // Auto-calculate delivery charge if not provided
+      let finalDeliveryCharge = deliveryCharge != null ? Number(deliveryCharge) : null;
+      if (finalDeliveryCharge == null && shippingAddress.city) {
+        try {
+          const [dcRows] = await conn.query(
+            `SELECT g.base_rate FROM delivery_area_assignments a
+             JOIN delivery_rate_groups g ON g.id = a.group_id
+             WHERE a.district = ? LIMIT 1`,
+            [shippingAddress.city]
+          );
+          if (dcRows.length) finalDeliveryCharge = Number(dcRows[0].base_rate);
+        } catch { /* tables may not exist yet */ }
+      }
+      if (finalDeliveryCharge == null) finalDeliveryCharge = shippingCost || 0;
+
       const [result] = await conn.query(
         `INSERT INTO orders
-         (order_number, customer_id, subtotal, shipping, tax, discount, total,
+         (order_number, customer_id, subtotal, shipping, delivery_charge, tax, discount, total,
           payment_method, status, payment_status,
           shipping_name, shipping_phone, shipping_street, shipping_city,
           shipping_state, shipping_zip_code, shipping_country)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?)`,
         [
-          orderNumber, req.customer.id, subtotal || 0, shippingCost || 0, 0, discount || 0, total || 0,
+          orderNumber, req.customer.id, subtotal || 0, shippingCost || 0, finalDeliveryCharge, 0, discount || 0, total || 0,
           mappedPayment,
           shippingAddress.name || '', shippingAddress.phone || '', shippingAddress.street || '',
           shippingAddress.city || '', shippingAddress.state || '', shippingAddress.zipCode || '',

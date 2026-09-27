@@ -247,7 +247,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create order (admin)
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { customerId, items = [], shippingAddress = {}, subtotal = 0, shipping = 0, tax = 0, discount = 0, total = 0, paymentMethod, paymentStatus = 'pending', status = 'pending', notes = '' } = req.body;
+    const { customerId, items = [], shippingAddress = {}, subtotal = 0, shipping = 0, tax = 0, discount = 0, total = 0, paymentMethod, paymentStatus = 'pending', status = 'pending', notes = '', deliveryCharge } = req.body;
 
     const [[{ cnt }]] = await pool.query('SELECT COUNT(*) AS cnt FROM orders');
     const orderNumber = `#ORD-${String(cnt + 1).padStart(5, '0')}`;
@@ -256,15 +256,30 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
       await conn.beginTransaction();
 
+      // Auto-calculate delivery charge if not provided
+      let finalDeliveryCharge = deliveryCharge != null ? Number(deliveryCharge) : null;
+      if (finalDeliveryCharge == null && shippingAddress.city) {
+        try {
+          const [dcRows] = await conn.query(
+            `SELECT g.base_rate FROM delivery_area_assignments a
+             JOIN delivery_rate_groups g ON g.id = a.group_id
+             WHERE a.district = ? LIMIT 1`,
+            [shippingAddress.city]
+          );
+          if (dcRows.length) finalDeliveryCharge = Number(dcRows[0].base_rate);
+        } catch { /* tables may not exist yet */ }
+      }
+      if (finalDeliveryCharge == null) finalDeliveryCharge = shipping || 0;
+
       const [result] = await conn.query(
         `INSERT INTO orders
-         (order_number, customer_id, subtotal, shipping, tax, discount, total,
+         (order_number, customer_id, subtotal, shipping, delivery_charge, tax, discount, total,
           payment_method, payment_status, status, notes,
           shipping_name, shipping_phone, shipping_street, shipping_city,
           shipping_state, shipping_zip_code, shipping_country)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          orderNumber, customerId || null, subtotal, shipping, tax, discount, total,
+          orderNumber, customerId || null, subtotal, shipping, finalDeliveryCharge, tax, discount, total,
           paymentMethod || 'cash_on_delivery', paymentStatus, status, notes,
           shippingAddress.name || '', shippingAddress.phone || '', shippingAddress.street || '',
           shippingAddress.city || '', shippingAddress.state || '', shippingAddress.zipCode || '',
