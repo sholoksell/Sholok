@@ -25,6 +25,7 @@ function fmt(row, { images = [], tags = [], variants = [] } = {}) {
     availabilityDate:     row.availability_date,
     shippingClass:        row.shipping_class,
     shippingCharge:       Number(row.shipping_charge),
+    weightKg:             Number(row.weight_kg || 0.5),
     visibility:           row.visibility,
     lowStockThreshold:    row.low_stock_threshold,
     createdAt:            row.created_at,
