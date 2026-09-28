@@ -271,7 +271,7 @@ export default function Orders() {
   };
 
   const openInvoice = (order: Order) => {
-    window.open(`https://api.sholok.com/api/orders/invoice/${order.orderNumber}`, '_blank');
+    window.open(`${import.meta.env.VITE_API_URL}/orders/invoice/${order.orderNumber}`, '_blank');
   };
 
 
