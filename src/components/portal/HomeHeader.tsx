@@ -69,7 +69,7 @@ const HomeHeader = ({ initialQuery = "" }: HomeHeaderProps) => {
             </button>
 
             {/* Cart — desktop only; accessible via hamburger menu on mobile */}
-            <a href="/shopping/" aria-label="Shopping cart"
+            <a href="http://shopping.sholok.com" aria-label="Shopping cart"
               className="hidden sm:flex p-2 relative hover:bg-secondary rounded-full transition-colors">
               <ShoppingCart className="w-5 h-5 text-muted-foreground" />
               {cartItems.length > 0 && (

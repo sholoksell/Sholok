@@ -10,12 +10,13 @@ import {
 
 const EXTERNAL_PATHS = new Set([
   "https://shopping.sholok.com", "https://blog.sholok.com",
+  "http://shopping.sholok.com",
   "/shopping/", "/job-portal/", "/home/admin/",
   "/webtoon/", "/mail/", "/series/", "/sports/", "/music/",
 ]);
 
 const SHORTCUTS = [
-  { icon: ShoppingCart, label: "shopping",  color: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",         path: "/shopping/" },
+  { icon: ShoppingCart, label: "shopping",  color: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",         path: "http://shopping.sholok.com" },
   { icon: Newspaper,    label: "news",      color: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400",     path: "/news" },
   { icon: Tv,           label: "tv",        color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", path: "/tv" },
   { icon: FileText,     label: "blog",      color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", path: "https://blog.sholok.com" },
@@ -29,7 +30,7 @@ const ALL_SERVICES = [
   { icon: Mail,       label: "mail",        color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",         path: "/mail/" },
   { icon: Coffee,     label: "cafe",        color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",     path: "/cafe" },
   { icon: FileText,   label: "blog",        color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", path: "https://blog.sholok.com" },
-  { icon: ShoppingCart, label: "shopping",  color: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",         path: "/shopping/" },
+  { icon: ShoppingCart, label: "shopping",  color: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",         path: "http://shopping.sholok.com" },
   { icon: Newspaper,  label: "news",        color: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400",     path: "/news" },
   { icon: MapPin,     label: "maps",        color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400",         path: "/maps" },
   { icon: BookOpen,   label: "webtoon",     color: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", path: "/webtoon/" },

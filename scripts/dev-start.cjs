@@ -104,6 +104,11 @@ childEnv.SKIP_VITE_BACKENDS = '1';
 
 function start(service, color) {
   const label = `\x1b[${color}m[${service.name.padEnd(pad)}]\x1b[0m`;
+  const fs = require('fs');
+  if (!fs.existsSync(service.cwd)) {
+    process.stdout.write(`${label} \x1b[90mskipped (directory not found: ${service.cwd})\x1b[0m\n`);
+    return null;
+  }
   const child = spawn(service.cmd, {
     cwd: service.cwd,
     shell: true,
@@ -139,7 +144,8 @@ console.log('\x1b[1mStarting all websites (frontend + backend)...\n\x1b[0m');
 const children = [];
 let i = 0;
 for (const svc of services) {
-  children.push(start(svc, COLORS[i % COLORS.length]));
+  const child = start(svc, COLORS[i % COLORS.length]);
+  if (child) children.push(child);
   i++;
 }
 

@@ -18,7 +18,7 @@ import NotFound from "./pages/NotFound";
 
 // Shopping redirect component - redirects to shopping subdomain
 const ShoppingRedirect = () => {
-  window.location.replace('https://shopping.sholok.com');
+  window.location.replace('http://shopping.sholok.com');
   return null;
 };
 
