@@ -126,8 +126,8 @@ router.get('/', optionalAuth, async (req, res) => {
     const orderMap = { popular: 'p.views DESC', trending: 'p.views DESC, created_at DESC', latest: 'p.created_at DESC' };
     const order    = orderMap[sort] || 'p.created_at DESC';
 
-    const sql = `${POST_SELECT} WHERE ${where.join(' AND ')} GROUP BY p.id ORDER BY ${order} LIMIT ? OFFSET ?`;
-    const [posts] = await pool.execute(sql, [...params, parseInt(limit), skip]);
+    const sql = `${POST_SELECT} WHERE ${where.join(' AND ')} GROUP BY p.id ORDER BY ${order} LIMIT ${parseInt(limit)} OFFSET ${skip}`;
+    const [posts] = await pool.execute(sql, params);
 
     const [countRows] = await pool.execute(
       `SELECT COUNT(DISTINCT p.id) AS total FROM posts p WHERE ${where.join(' AND ')}`,
