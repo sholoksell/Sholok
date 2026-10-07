@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCartStore } from '@/store/cartStore';
@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { MapPin, CreditCard, Banknote, Loader2, Clock, Salad } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import DeliveryLocationModal from '@/components/DeliveryLocationModal';
+import { useDeliveryLocation } from '@/hooks/useDeliveryLocation';
 
 const API_BASE = '/api';
 
@@ -69,7 +71,7 @@ const CheckoutPage = () => {
     const customerAddrObj = customer?.address && typeof customer.address === 'object' ? customer.address : null;
     const customerAddrStr = typeof customer?.address === 'string' ? customer.address : (customerAddrObj?.street || '');
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         defaultValues: {
             fullName: customer?.name || '',
             phone: customer?.phone || '',
@@ -78,6 +80,50 @@ const CheckoutPage = () => {
             area: customerAddrObj?.state || '',
         }
     });
+
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const { location: deliveryLocation } = useDeliveryLocation();
+
+    const [autoDeliveryCharge, setAutoDeliveryCharge] = useState(60);
+    const [deliveryGroupName, setDeliveryGroupName] = useState('');
+    const [deliveryRateInfo, setDeliveryRateInfo] = useState(null); // { base, additionalPerKg }
+    const chargeTimerRef = useRef(null);
+    const watchedCity = watch('city');
+    const watchedArea = watch('area');
+
+    // Fix: declare items before totalWeightKg to avoid ReferenceError
+    const items = cart?.items || [];
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    // Total cart weight (use weightKg per item if available, else 0.5 kg default per item)
+    const totalWeightKg = items.reduce((sum, item) => sum + ((item.weightKg || 0.5) * item.quantity), 0);
+
+    useEffect(() => {
+        clearTimeout(chargeTimerRef.current);
+        chargeTimerRef.current = setTimeout(async () => {
+            try {
+                const params = new URLSearchParams();
+                if (watchedCity) params.set('district', watchedCity);
+                if (watchedArea) params.set('area', watchedArea);
+                params.set('weight', totalWeightKg.toFixed(2));
+                const res = await fetch(`${API_BASE}/delivery-rates/charge?${params}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.matched) {
+                    setAutoDeliveryCharge(data.charge);
+                    setDeliveryGroupName(data.groupName || '');
+                    setDeliveryRateInfo({ base: data.base, additionalPerKg: data.additionalPerKg });
+                }
+            } catch { /* silently ignore */ }
+        }, 600);
+        return () => clearTimeout(chargeTimerRef.current);
+    }, [watchedCity, watchedArea, totalWeightKg]);
+
+    // Sync delivery location modal selection → city/area form fields
+    useEffect(() => {
+        if (deliveryLocation?.district) setValue('city', deliveryLocation.district);
+        if (deliveryLocation?.area) setValue('area', deliveryLocation.area);
+    }, [deliveryLocation, setValue]);
 
     // Pre-fill from default saved address in the address book
     useEffect(() => {
@@ -97,9 +143,7 @@ const CheckoutPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated]);
 
-    const items = cart?.items || [];
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shippingCost = items.length > 0 ? 60 : 0;
+    const shippingCost = items.length > 0 ? autoDeliveryCharge : 0;
     const total = subtotal + shippingCost - couponDiscount;
 
     const applyCoupon = async () => {
@@ -162,6 +206,7 @@ const CheckoutPage = () => {
                 paymentMethod: paymentMethod === 'cod' ? 'cash_on_delivery' : 'credit_card',
                 subtotal,
                 shippingCost,
+                deliveryCharge: shippingCost,
                 discount: couponDiscount,
                 total,
                 couponCode: appliedCoupon ? appliedCoupon.code : undefined,
@@ -259,21 +304,49 @@ const CheckoutPage = () => {
                                 {errors.address && <span className="text-red-500 text-xs">{errors.address.message}</span>}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t('city')}</label>
-                                    <Input
-                                        {...register('city', { required: t('cityRequired') })}
-                                        defaultValue="Dhaka"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t('areaThana')}</label>
-                                    <Input
-                                        {...register('area', { required: t('areaRequired') })}
-                                        placeholder="e.g. Gulshan, Mirpur"
-                                    />
-                                    {errors.area && <span className="text-red-500 text-xs">{errors.area.message}</span>}
+                            {/* Location picker */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">ডেলিভারি এলাকা (District & Area)</label>
+                                {deliveryLocation ? (
+                                    <div className="flex items-center justify-between border rounded-lg px-3 py-2.5 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-green-600 shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-semibold text-green-800 dark:text-green-300">{deliveryLocation.district || deliveryLocation.label}</p>
+                                                {deliveryLocation.area && <p className="text-xs text-green-600 dark:text-green-400">{deliveryLocation.area}</p>}
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={() => setShowLocationModal(true)} className="text-primary text-sm font-medium hover:underline shrink-0">
+                                            পরিবর্তন
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowLocationModal(true)}
+                                        className="flex items-center gap-2 w-full border-2 border-dashed border-primary/40 rounded-lg px-3 py-3 text-primary hover:border-primary hover:bg-primary/5 transition-colors text-sm font-medium"
+                                    >
+                                        <MapPin className="h-4 w-4" />
+                                        মানচিত্র থেকে এলাকা নির্বাচন করুন
+                                    </button>
+                                )}
+                                {/* Hidden form inputs — auto-filled from modal, editable manually */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <Input
+                                            {...register('city', { required: t('cityRequired') })}
+                                            placeholder="District (জেলা)"
+                                            className="text-sm"
+                                        />
+                                        {errors.city && <span className="text-red-500 text-xs">{errors.city.message}</span>}
+                                    </div>
+                                    <div>
+                                        <Input
+                                            {...register('area')}
+                                            placeholder="Area / Thana"
+                                            className="text-sm"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -436,7 +509,15 @@ const CheckoutPage = () => {
                                 <span>{formatPrice(subtotal)}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">{t('shippingFee')}</span>
+                                <span className="text-muted-foreground">
+                                    {t('shippingFee')}
+                                    {deliveryGroupName && <span className="ml-1 text-xs text-primary">({deliveryGroupName})</span>}
+                                    {deliveryRateInfo && deliveryRateInfo.additionalPerKg > 0 && (
+                                        <span className="block text-xs text-muted-foreground/70 mt-0.5">
+                                            Base {formatPrice(deliveryRateInfo.base)} + {formatPrice(deliveryRateInfo.additionalPerKg)}/kg · {totalWeightKg.toFixed(1)} kg
+                                        </span>
+                                    )}
+                                </span>
                                 <span>{formatPrice(shippingCost)}</span>
                             </div>
                             {couponDiscount > 0 && (
@@ -480,6 +561,11 @@ const CheckoutPage = () => {
                 </div>
             </div>
         </div>
+
+        <DeliveryLocationModal
+            isOpen={showLocationModal}
+            onClose={() => setShowLocationModal(false)}
+        />
     );
 };
 

@@ -14,31 +14,37 @@ export default function DeliveryInfoCard({ product, onChangeLocation }) {
     useEffect(() => {
         calculateDelivery();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location, product?._id]);
+    }, [location?.district, location?.area, product?._id, isGrocery]);
 
     const calculateDelivery = async () => {
         setLoading(true);
         try {
-            const body = {
-                weight_kg: product?.weight_kg || 0.5,
-                order_total: product?.price || 0,
-                is_grocery: isGrocery,
-            };
-            if (location?.district) body.district_name = location.district;
+            if (isGrocery) {
+                setInfo({ charge: 60, deliveryType: 'grocery', estimatedDaysMin: 0, estimatedDaysMax: 0 });
+                setLoading(false);
+                return;
+            }
+            const weightKg = product?.weight_kg || 0.5;
+            const params = new URLSearchParams({ weight: weightKg.toFixed(2) });
+            if (location?.district) params.set('district', location.district);
+            if (location?.area) params.set('area', location.area);
 
-            const res = await fetch(`${API_BASE}/delivery-coverage/calculate-charge`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+            const res = await fetch(`${API_BASE}/delivery-rates/charge?${params}`);
             if (!res.ok) throw new Error('Failed');
             const data = await res.json();
-            setInfo(data);
+            if (data.matched) {
+                setInfo({
+                    charge: data.charge,
+                    deliveryType: 'standard',
+                    estimatedDaysMin: 1,
+                    estimatedDaysMax: 3,
+                    groupName: data.groupName || '',
+                });
+            } else {
+                setInfo({ charge: 100, deliveryType: 'nationwide', estimatedDaysMin: 3, estimatedDaysMax: 7 });
+            }
         } catch {
-            // Show sensible defaults on error
-            setInfo(isGrocery
-                ? { charge: 60, deliveryType: 'grocery', estimatedDaysMin: 0, estimatedDaysMax: 0 }
-                : { charge: 100, deliveryType: 'inside_city', estimatedDaysMin: 1, estimatedDaysMax: 3 });
+            setInfo({ charge: 100, deliveryType: 'inside_city', estimatedDaysMin: 1, estimatedDaysMax: 3 });
         } finally {
             setLoading(false);
         }
