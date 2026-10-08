@@ -256,13 +256,9 @@ router.get('/', async (req, res) => {
         conds.push(`p.name_bn LIKE ?`);
         params.push(`%${t}%`);
       }
-      // Also tag + brand + store search using original term only
+      // Also tag search using original term only
       const orig = `%${q.trim()}%`;
       conds.push(`EXISTS (SELECT 1 FROM product_tags pt WHERE pt.product_id = p.id AND pt.tag LIKE ?)`);
-      params.push(orig);
-      conds.push(`b.name LIKE ?`);
-      params.push(orig);
-      conds.push(`v.business_name LIKE ?`);
       params.push(orig);
       where.push(`(${conds.join(' OR ')})`);
     }
@@ -274,8 +270,7 @@ router.get('/', async (req, res) => {
       )`);
       params.push(category, category, category);
     }
-    if (brand)    { where.push(`p.brand_id = ?`);  params.push(brand);    }
-    if (vendor)   { where.push(`p.vendor_id = ?`); params.push(vendor);   }
+    // brand_id / vendor_id not yet in products schema — skip filters
     if (minPrice) { where.push(`COALESCE(p.sale_price, p.regular_price) >= ?`); params.push(minPrice); }
     if (maxPrice) { where.push(`COALESCE(p.sale_price, p.regular_price) <= ?`); params.push(maxPrice); }
     if (inStock === '1' || inStock === 'true') { where.push(`p.stock > 0`); }
@@ -288,20 +283,7 @@ router.get('/', async (req, res) => {
         params.push(...tagList);
       }
     }
-    if (colors) {
-      const colorList = colors.split(',').map(c => c.trim()).filter(Boolean);
-      if (colorList.length > 0) {
-        where.push(`JSON_UNQUOTE(JSON_EXTRACT(p.attributes, '$.color')) IN (${colorList.map(() => '?').join(',')})`);
-        params.push(...colorList);
-      }
-    }
-    if (sizes) {
-      const sizeList = sizes.split(',').map(s => s.trim()).filter(Boolean);
-      if (sizeList.length > 0) {
-        where.push(`JSON_UNQUOTE(JSON_EXTRACT(p.attributes, '$.size')) IN (${sizeList.map(() => '?').join(',')})`);
-        params.push(...sizeList);
-      }
-    }
+    // colors/sizes use p.attributes which is not yet in schema — skip
 
     const whereSQL = `WHERE ${where.join(' AND ')}`;
     let orderSQL = 'ORDER BY p.featured DESC, p.id DESC';
@@ -309,13 +291,11 @@ router.get('/', async (req, res) => {
     if (sort === 'price_desc') orderSQL = 'ORDER BY COALESCE(p.sale_price, p.regular_price) DESC';
     if (sort === 'newest')     orderSQL = 'ORDER BY p.created_at DESC';
     if (sort === 'name_asc')   orderSQL = 'ORDER BY p.name ASC';
-    if (sort === 'discount')   orderSQL = 'ORDER BY (p.compare_price - COALESCE(p.sale_price, p.regular_price)) DESC';
+    if (sort === 'discount')   orderSQL = 'ORDER BY p.featured DESC, p.id DESC';
 
     const baseFromSQL = `
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN brands b     ON p.brand_id     = b.id
-      LEFT JOIN vendors v    ON p.vendor_id    = v.id
       LEFT JOIN product_tags pt ON p.id = pt.product_id
     `;
 
@@ -327,12 +307,12 @@ router.get('/', async (req, res) => {
     const [products] = await pool.query(`
       SELECT
         p.id, p.name, p.name_bn, p.slug, p.sku, p.thumbnail,
-        p.regular_price, p.sale_price, p.compare_price, p.stock,
-        p.on_sale, p.featured, p.is_new, p.shipping_charge, p.product_type,
-        p.attributes,
+        p.regular_price, p.sale_price, NULL AS compare_price, p.stock,
+        p.on_sale, p.featured, p.is_new, p.shipping_charge, NULL AS product_type,
+        NULL AS attributes,
         c.id as category_id, c.name as category_name, c.slug as category_slug,
-        b.id as brand_id, b.name as brand_name, b.slug as brand_slug,
-        v.id as vendor_id, v.business_name AS store_name, NULL AS vendor_slug, NULL AS vendor_rating,
+        NULL AS brand_id, NULL AS brand_name, NULL AS brand_slug,
+        NULL AS vendor_id, NULL AS store_name, NULL AS vendor_slug, NULL AS vendor_rating,
         GROUP_CONCAT(DISTINCT pt.tag) as tags
       ${baseFromSQL}
       ${whereSQL}
@@ -344,16 +324,13 @@ router.get('/', async (req, res) => {
     const facetFromSQL = `
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN brands b     ON p.brand_id     = b.id
-      LEFT JOIN vendors v    ON p.vendor_id    = v.id
     `;
 
-    const [[categoryFacets], [brandFacets], [vendorFacets], [priceRange]] = await Promise.all([
+    const [[categoryFacets], [priceRange]] = await Promise.all([
       pool.query(`SELECT c.id, c.name, c.name_bn AS nameBn, c.slug, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND c.id IS NOT NULL GROUP BY c.id, c.name, c.name_bn, c.slug ORDER BY count DESC LIMIT 20`, params),
-      pool.query(`SELECT b.id, b.name, b.slug, b.logo, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND b.id IS NOT NULL GROUP BY b.id, b.name, b.slug, b.logo ORDER BY count DESC LIMIT 20`, params),
-      pool.query(`SELECT v.id, v.business_name AS store_name, NULL AS slug, v.logo AS store_logo, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND v.id IS NOT NULL GROUP BY v.id, v.business_name, v.logo ORDER BY count DESC LIMIT 10`, params),
       pool.query(`SELECT MIN(COALESCE(p.sale_price, p.regular_price)) as min_price, MAX(COALESCE(p.sale_price, p.regular_price)) as max_price ${facetFromSQL} ${whereSQL}`, params),
     ]);
+    const brandFacets = [], vendorFacets = [];
 
     res.json({
       products: products.map(p => ({
