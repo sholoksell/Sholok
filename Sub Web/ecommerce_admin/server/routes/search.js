@@ -262,7 +262,7 @@ router.get('/', async (req, res) => {
       params.push(orig);
       conds.push(`b.name LIKE ?`);
       params.push(orig);
-      conds.push(`v.store_name LIKE ?`);
+      conds.push(`v.business_name LIKE ?`);
       params.push(orig);
       where.push(`(${conds.join(' OR ')})`);
     }
@@ -332,7 +332,7 @@ router.get('/', async (req, res) => {
         p.attributes,
         c.id as category_id, c.name as category_name, c.slug as category_slug,
         b.id as brand_id, b.name as brand_name, b.slug as brand_slug,
-        v.id as vendor_id, v.store_name, v.slug as vendor_slug, v.rating as vendor_rating,
+        v.id as vendor_id, v.business_name AS store_name, NULL AS vendor_slug, NULL AS vendor_rating,
         GROUP_CONCAT(DISTINCT pt.tag) as tags
       ${baseFromSQL}
       ${whereSQL}
@@ -351,7 +351,7 @@ router.get('/', async (req, res) => {
     const [[categoryFacets], [brandFacets], [vendorFacets], [priceRange]] = await Promise.all([
       pool.query(`SELECT c.id, c.name, c.name_bn AS nameBn, c.slug, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND c.id IS NOT NULL GROUP BY c.id, c.name, c.name_bn, c.slug ORDER BY count DESC LIMIT 20`, params),
       pool.query(`SELECT b.id, b.name, b.slug, b.logo, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND b.id IS NOT NULL GROUP BY b.id, b.name, b.slug, b.logo ORDER BY count DESC LIMIT 20`, params),
-      pool.query(`SELECT v.id, v.store_name, v.slug, v.store_logo, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND v.id IS NOT NULL GROUP BY v.id, v.store_name, v.slug, v.store_logo ORDER BY count DESC LIMIT 10`, params),
+      pool.query(`SELECT v.id, v.business_name AS store_name, NULL AS slug, v.logo AS store_logo, COUNT(*) as count ${facetFromSQL} ${whereSQL} AND v.id IS NOT NULL GROUP BY v.id, v.business_name, v.logo ORDER BY count DESC LIMIT 10`, params),
       pool.query(`SELECT MIN(COALESCE(p.sale_price, p.regular_price)) as min_price, MAX(COALESCE(p.sale_price, p.regular_price)) as max_price ${facetFromSQL} ${whereSQL}`, params),
     ]);
 
