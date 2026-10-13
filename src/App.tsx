@@ -16,11 +16,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
-// Shopping redirect component - redirects to shopping subdomain
-const ShoppingRedirect = () => {
-  window.location.replace('http://shopping.sholok.com');
-  return null;
-};
+// Shopping page (lazy loaded)
+const Shopping = lazy(() => import("./pages/Shopping"));
 
 const BlogRedirect = () => {
   window.location.replace('https://blog.sholok.com');
@@ -128,8 +125,8 @@ const App = () => (
                 {/* Public Routes */}
                 <Route path="/news" element={<NewsRedirect />} />
                 <Route path="/news/*" element={<NewsRedirect />} />
-                <Route path="/shopping" element={<ShoppingRedirect />} />
-                <Route path="/shopping/*" element={<ShoppingRedirect />} />
+                <Route path="/shopping" element={<Shopping />} />
+                <Route path="/shopping/*" element={<Shopping />} />
                 <Route path="/qna" element={<QnA />} />
                 <Route path="/blog" element={<BlogRedirect />} />
                 <Route path="/blog/*" element={<BlogRedirect />} />
