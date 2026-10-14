@@ -26,6 +26,7 @@ import Vendors from "@/pages/Vendors";
 import Warehouses from "@/pages/Warehouses";
 import Couriers from "@/pages/Couriers";
 import DeliveryCoverage from "@/pages/DeliveryCoverage";
+import CheckoutSettings from "@/pages/CheckoutSettings";
 import GrocerySettings from "@/pages/GrocerySettings";
 import Shipments from "@/pages/Shipments";
 import CodSettlement from "@/pages/CodSettlement";
@@ -88,6 +89,7 @@ const App = () => (
                   <Route path="/warehouses" element={<Warehouses />} />
                   <Route path="/couriers" element={<Couriers />} />
                   <Route path="/delivery-coverage" element={<DeliveryCoverage />} />
+                  <Route path="/checkout-settings" element={<CheckoutSettings />} />
                   <Route path="/grocery-settings" element={<GrocerySettings />} />
                   <Route path="/shipments" element={<Shipments />} />
                   <Route path="/cod-settlement" element={<CodSettlement />} />

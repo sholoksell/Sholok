@@ -30,6 +30,7 @@ const translations = {
     vendorReviews: 'Vendor Reviews',
     settings: 'Settings',
     homePageProduct: 'Home Page Product',
+    checkoutSettings: 'Checkout Settings',
     logout: 'Logout',
     switchLanguage: 'বাংলা',
     // ── Common actions ───────────────────────────────────────────────────────
@@ -843,6 +844,7 @@ const translations = {
     vendorReviews: 'বিক্রেতা রিভিউ',
     settings: 'সেটিংস',
     homePageProduct: 'হোমপেজ পণ্য',
+    checkoutSettings: 'চেকআউট সেটিংস',
     logout: 'লগআউট',
     switchLanguage: 'English',
     // ── Common actions ───────────────────────────────────────────────────────

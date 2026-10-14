@@ -51,6 +51,7 @@ export default function Sidebar() {
     { icon: Warehouse,       labelKey: 'warehouses',       path: '/warehouses' },
     { icon: Truck,           labelKey: 'couriers',         path: '/couriers' },
     { icon: MapPin,          labelKey: 'deliveryCoverage', path: '/delivery-coverage' },
+    { icon: ShoppingCart,    labelKey: 'checkoutSettings', path: '/checkout-settings' },
     { icon: Salad,           labelKey: 'grocerySettings',  path: '/grocery-settings' },
     { icon: Wallet,          labelKey: 'codSettlement',    path: '/cod-settlement' },
     { icon: Tag,             labelKey: 'brands',           path: '/brands' },
