@@ -16,35 +16,98 @@ import {
   Search, Settings, Eye, Edit, RefreshCw, ChevronDown, Save, Globe,
 } from 'lucide-react';
 
-// ── Bangladesh location data ──────────────────────────────────────────────────
-const BD_DIVISIONS = ['Dhaka','Chittagong','Rajshahi','Khulna','Sylhet','Barisal','Rangpur','Mymensingh'];
+// ── Bangladesh location data (8 Divisions · 64 Districts · 763 Areas) ─────────
+const BD_DIVISIONS = ['Dhaka','Chattogram','Rajshahi','Khulna','Barishal','Sylhet','Rangpur','Mymensingh'];
 const BD_DISTRICTS: Record<string, string[]> = {
-  Dhaka:       ['Dhaka','Gazipur','Narayanganj','Narsingdi','Manikganj','Munshiganj','Rajbari','Shariatpur','Faridpur','Madaripur','Gopalganj','Kishoreganj','Tangail'],
-  Chittagong:  ["Chittagong","Cox's Bazar","Comilla","Feni","Noakhali","Lakshmipur","Chandpur","Brahmanbaria","Khagrachhari","Rangamati","Bandarban"],
-  Rajshahi:    ['Rajshahi','Bogura','Naogaon','Chapai Nawabganj','Natore','Sirajganj','Pabna','Joypurhat'],
-  Khulna:      ['Khulna','Jessore','Satkhira','Bagerhat','Narail','Magura','Jhenaidah','Chuadanga','Kushtia','Meherpur'],
-  Sylhet:      ['Sylhet','Moulvibazar','Habiganj','Sunamganj'],
-  Barisal:     ['Barisal','Pirojpur','Bhola','Jhalokathi','Patuakhali','Barguna'],
-  Rangpur:     ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Panchagarh','Thakurgaon','Lalmonirhat'],
-  Mymensingh:  ['Mymensingh','Jamalpur','Netrokona','Sherpur'],
+  Dhaka:      ['Dhaka','Faridpur','Gazipur','Gopalganj','Kishoreganj','Madaripur','Manikganj','Munshiganj','Narayanganj','Narsingdi','Rajbari','Shariatpur','Tangail'],
+  Chattogram: ['Bandarban','Brahmanbaria','Chandpur','Chattogram',"Cox's Bazar",'Cumilla','Feni','Khagrachhari','Lakshmipur','Noakhali','Rangamati'],
+  Rajshahi:   ['Bogra','Chapainawabganj','Joypurhat','Naogaon','Natore','Pabna','Rajshahi','Sirajganj'],
+  Khulna:     ['Bagerhat','Chuadanga','Jashore','Jhenaidah','Khulna','Kushtia','Magura','Meherpur','Narail','Satkhira'],
+  Barishal:   ['Barguna','Barishal','Bhola','Jhalokathi','Patuakhali','Pirojpur'],
+  Sylhet:     ['Habiganj','Moulvibazar','Sunamganj','Sylhet'],
+  Rangpur:    ['Dinajpur','Gaibandha','Kurigram','Lalmonirhat','Nilphamari','Panchagarh','Rangpur','Thakurgaon'],
+  Mymensingh: ['Jamalpur','Mymensingh','Netrokona','Sherpur'],
 };
 const BD_AREAS: Record<string, string[]> = {
-  Dhaka:         ['Dhanmondi','Mirpur','Gulshan','Banani','Uttara','Mohammadpur','Rayer Bazar','Badda','Khilgaon','Motijheel','Paltan','Old Dhaka','Demra','Jatrabari','Shyamoli','Lalmatia','Azimpur','Lalbagh','New Market','Kalabagan','Farmgate','Tejgaon','Rampura','Khilkhet','Vatara'],
-  Gazipur:       ['Gazipur Sadar','Kaliakoir','Kapasia','Sreepur','Tongi'],
-  Narayanganj:   ['Narayanganj Sadar','Araihazar','Bandar','Rupganj','Sonargaon'],
-  Chittagong:    ['Agrabad','Anderkilla','Bakolia','Bayazid','Chandgaon','Chawkbazar','Double Mooring','Halishahar','Khulshi','Kotwali','Pahartali','Panchlaish','Patenga','Sholoshahar'],
-  "Cox's Bazar": ["Cox's Bazar Sadar",'Chakaria','Maheshkhali','Ukhia','Teknaf','Kutubdia'],
-  Comilla:       ['Comilla Sadar','Burichang','Chandina','Chauddagram','Daudkandi','Debidwar','Homna','Laksam','Monohorganj','Muradnagar'],
-  Rajshahi:      ['Rajshahi Sadar','Boalia','Motihar','Rajpara','Shah Makhdum'],
-  Khulna:        ['Khulna Sadar','Daulatpur','Khalishpur','Khanepur','Sonadanga'],
-  Sylhet:        ['Sylhet Sadar','Beanibazar','Companiganj','Golapganj','Gowainghat','Jaintapur','Kanaighat','Osmaninagar'],
-  Barisal:       ['Barisal Sadar','Agailjhara','Babuganj','Bakerganj','Banaripara','Gauranadi','Mehendiganj','Muladi','Wazirpur'],
-  Rangpur:       ['Rangpur Sadar','Badarganj','Gangachara','Kaunia','Mithapukur','Pirgachha','Pirganj','Taraganj'],
-  Mymensingh:    ['Mymensingh Sadar','Bhaluka','Dhobaura','Fulbaria','Gaffargaon','Gauripur','Haluaghat','Ishwarganj','Muktagachha','Nandail','Phulpur','Trishal'],
+  // Dhaka Division
+  Dhaka:          ['Adabor','Badda','Bangshal','Cantonment','Chawkbazar','Darus Salam','Demra','Dhamrai','Dhanmondi','Dohar','Farmgate','Gulshan','Hazaribagh','Jatrabari','Kalabagan','Kafrul','Kadamtali','Keraniganj','Khilgaon','Khilkhet','Kotwali','Lalbagh','Mirpur','Mohammadpur','Motijheel','Mugda','Nawabganj','New Market','Old Dhaka','Pallabi','Paltan','Rampura','Rayer Bazar','Sabujbagh','Shah Ali','Shahjahanpur','Shyamoli','Sutrapur','Tejgaon','Turag','Uttara','Uttarkhan','Wari'],
+  Gazipur:        ['Gazipur Sadar','Kaliakoir','Kapasia','Sreepur','Tongi'],
+  Faridpur:       ['Faridpur Sadar','Alfadanga','Bhanga','Boalmari','Charbhadrasan','Madhukhali','Nagarkanda','Sadarpur','Saltha'],
+  Gopalganj:      ['Gopalganj Sadar','Kashiani','Kotalipara','Muksudpur','Tungipara'],
+  Kishoreganj:    ['Kishoreganj Sadar','Austagram','Bajitpur','Bhairab','Hossainpur','Itna','Karimganj','Katiadi','Kuliarchar','Mithamain','Nikli','Pakundia','Tarail'],
+  Madaripur:      ['Madaripur Sadar','Kalkini','Rajoir','Shibchar'],
+  Manikganj:      ['Manikganj Sadar','Daulatpur','Ghior','Harirampur','Saturia','Shivalaya','Singair'],
+  Munshiganj:     ['Munshiganj Sadar','Gazaria','Lohajang','Serajdikhan','Sirajdikhan','Sreenagar','Tongibari'],
+  Narayanganj:    ['Narayanganj Sadar','Araihazar','Bandar','Naryanganj City','Rupganj','Sonargaon'],
+  Narsingdi:      ['Narsingdi Sadar','Belabo','Monohardi','Palash','Raipura','Shibpur'],
+  Rajbari:        ['Rajbari Sadar','Baliakandi','Goalandaghat','Kalukhali','Pangsha'],
+  Shariatpur:     ['Shariatpur Sadar','Bhedarganj','Damudya','Gosairhat','Naria','Zajira'],
+  Tangail:        ['Tangail Sadar','Basail','Bhuapur','Delduar','Dhanbari','Ghatail','Gopalpur','Kalihati','Madhupur','Mirzapur','Nagarpur','Sakhipur'],
+  // Chattogram Division
+  Chattogram:     ['Agrabad','Anwara','Bakolia','Banshkhali','Bayazid','Boalkhali','Chandgaon','Chandanaish','Chawkbazar','Double Mooring','Fatikchhari','Halishahar','Hathazari','Khulshi','Kotwali','Lohagara','Mirsharai','Pahartali','Panchlaish','Patenga','Patiya','Rangunia','Raozan','Sandwip','Satkania','Sholoshahar','Sitakunda'],
+  Bandarban:      ['Bandarban Sadar','Alikadam','Lama','Naikhongchhari','Rowangchhari','Ruma','Thanchi'],
+  Brahmanbaria:   ['Brahmanbaria Sadar','Akhaura','Ashuganj','Banchharampur','Bijoynagar','Kasba','Nabinagar','Nasirnagar','Sarail'],
+  Chandpur:       ['Chandpur Sadar','Faridganj','Haimchar','Haziganj','Kachua','Matlab North','Matlab South','Shahrasti'],
+  "Cox's Bazar":  ["Cox's Bazar Sadar",'Chakaria','Eidgaon','Kutubdia','Maheshkhali','Pekua','Ramu','Teknaf','Ukhia'],
+  Cumilla:        ['Cumilla Sadar','Barura','Brahmanpara','Burichang','Chandina','Chauddagram','Daudkandi','Debidwar','Homna','Laksam','Lalmai','Meghna','Monohorganj','Muradnagar','Nangalkot','Titas'],
+  Feni:           ['Feni Sadar','Chhagalnaiya','Daganbhuiyan','Fulgazi','Parshuram','Sonagazi'],
+  Khagrachhari:   ['Khagrachhari Sadar','Dighinala','Lakshmichhari','Mahalchhari','Manikchhari','Matiranga','Panchhari','Ramgarh'],
+  Lakshmipur:     ['Lakshmipur Sadar','Kamalnagar','Ramganj','Ramgati','Roypur'],
+  Noakhali:       ['Noakhali Sadar','Begumganj','Chatkhil','Companiganj','Hatiya','Kabirhat','Senbagh','Sonaimuri','Subarnachar'],
+  Rangamati:      ['Rangamati Sadar','Bagaichhari','Barkal','Belaichhari','Juraichhari','Kaptai','Kaukhali','Langadu','Naniarchar','Rajasthali'],
+  // Rajshahi Division
+  Bogra:          ['Bogra Sadar','Adamdighi','Dhunat','Dhupchanchia','Gabtali','Kahaloo','Nandigram','Sariakandi','Shajahanpur','Sherpur','Shibganj','Sonatola'],
+  Chapainawabganj:['Chapainawabganj Sadar','Bholahat','Gomastapur','Nachole','Shibganj'],
+  Joypurhat:      ['Joypurhat Sadar','Akkelpur','Kalai','Khetlal','Panchbibi'],
+  Naogaon:        ['Naogaon Sadar','Atrai','Badalgachi','Dhamoirhat','Manda','Mahadebpur','Mohanpur','Niamatpur','Patnitala','Porsha','Raninagar','Sapahar'],
+  Natore:         ['Natore Sadar','Bagastha','Baraigram','Gurudaspur','Lalpur','Singra'],
+  Pabna:          ['Pabna Sadar','Atgharia','Bera','Bhangura','Chatmohar','Faridpur','Ishwardi','Santhia','Sujanagar'],
+  Rajshahi:       ['Rajshahi Sadar','Bagha','Bagmara','Boalia','Charghat','Durgapur','Godagari','Mohanpur','Motihar','Paba','Puthia','Rajpara','Shah Makhdum','Tanore'],
+  Sirajganj:      ['Sirajganj Sadar','Belkuchi','Chauhali','Kamarkhanda','Kazipur','Raiganj','Shahjadpur','Tarash','Ullapara'],
+  // Khulna Division
+  Bagerhat:       ['Bagerhat Sadar','Chitalmari','Fakirhat','Kachua','Mollahat','Mongla','Morrelganj','Rampal','Sarankhola'],
+  Chuadanga:      ['Chuadanga Sadar','Alamdanga','Damurhuda','Jibannagar'],
+  Jashore:        ['Jashore Sadar','Abhaynagar','Bagherpara','Chaugachha','Jhikargacha','Keshabpur','Manirampur','Sharsha'],
+  Jhenaidah:      ['Jhenaidah Sadar','Harinakunda','Kaliganj','Kotchandpur','Maheshpur','Shailkupa'],
+  Khulna:         ['Khulna Sadar','Batiaghata','Dacope','Daulatpur','Dighalia','Dumuria','Khalishpur','Khanepur','Koyra','Paikgachha','Phultala','Rupsa','Sonadanga','Terokhada'],
+  Kushtia:        ['Kushtia Sadar','Bheramara','Daulatpur','Khoksa','Kumarkhali','Mirpur'],
+  Magura:         ['Magura Sadar','Mohammadpur','Shalikha','Sreepur'],
+  Meherpur:       ['Meherpur Sadar','Gangni','Mujibnagar'],
+  Narail:         ['Narail Sadar','Kalia','Lohagara'],
+  Satkhira:       ['Satkhira Sadar','Assasuni','Debhata','Kalaroa','Kaliganj','Shyamnagar','Tala'],
+  // Barishal Division
+  Barguna:        ['Barguna Sadar','Amtali','Bamna','Betagi','Patharghata','Taltali'],
+  Barishal:       ['Barishal Sadar','Agailjhara','Babuganj','Bakerganj','Banaripara','Barishal City','Gaurnadi','Hijla','Mehendiganj','Muladi','Nathullabad','Rupatali','Uzirpur','Wazirpur'],
+  Bhola:          ['Bhola Sadar','Burhanuddin','Char Fasson','Daulatkhan','Lalmohan','Manpura','Tazumuddin'],
+  Jhalokathi:     ['Jhalokathi Sadar','Kanthalia','Nalchity','Rajapur'],
+  Patuakhali:     ['Patuakhali Sadar','Bauphal','Dashmina','Dumki','Galachipa','Kalapara','Mirzaganj','Rangabali'],
+  Pirojpur:       ['Pirojpur Sadar','Bhandaria','Kawkhali','Mathbaria','Nazirpur','Nesarabad','Zianagar'],
+  // Sylhet Division
+  Habiganj:       ['Habiganj Sadar','Ajmiriganj','Bahubal','Baniyachong','Chunarughat','Lakhai','Madhabpur','Nabiganj'],
+  Moulvibazar:    ['Moulvibazar Sadar','Barlekha','Juri','Kamalganj','Kulaura','Rajnagar','Sreemangal'],
+  Sunamganj:      ['Sunamganj Sadar','Bishwamvarpur','Chhatak','Derai','Dharampasha','Dowarabazar','Jagannathpur','Jamalganj','Shalla','South Sunamganj','Tahirpur'],
+  Sylhet:         ['Sylhet Sadar','Balaganj','Beanibazar','Bishwanath','Companiganj','Fenchuganj','Golapganj','Gowainghat','Jaintapur','Kanaighat','Osmaninagar','South Surma','Zakiganj'],
+  // Rangpur Division
+  Dinajpur:       ['Dinajpur Sadar','Birampur','Birganj','Biral','Bochaganj','Chirirbandar','Fulbari','Ghoraghat','Hakimpur','Kaharole','Khansama','Nawabganj','Parbatipur'],
+  Gaibandha:      ['Gaibandha Sadar','Fulchhari','Gobindaganj','Palashbari','Sadullapur','Saghata','Sundarganj'],
+  Kurigram:       ['Kurigram Sadar','Bhurungamari','Char Rajibpur','Chilmari','Nageshwari','Phulbari','Rajarhat','Raomari','Ulipur'],
+  Lalmonirhat:    ['Lalmonirhat Sadar','Aditmari','Hatibandha','Kaliganj','Patgram'],
+  Nilphamari:     ['Nilphamari Sadar','Dimla','Domar','Jaldhaka','Kishoreganj','Saidpur'],
+  Panchagarh:     ['Panchagarh Sadar','Atwari','Boda','Debiganj','Tetulia'],
+  Rangpur:        ['Rangpur Sadar','Badarganj','Gangachara','Kaunia','Mithapukur','Pirgachha','Pirganj','Taraganj'],
+  Thakurgaon:     ['Thakurgaon Sadar','Baliadangi','Haripur','Pirganj','Ranisankail'],
+  // Mymensingh Division
+  Jamalpur:       ['Jamalpur Sadar','Bakshiganj','Dewanganj','Islampur','Madarganj','Melandaha','Sarishabari'],
+  Mymensingh:     ['Mymensingh Sadar','Bhaluka','Dhobaura','Fulbaria','Gaffargaon','Gauripur','Haluaghat','Ishwarganj','Muktagachha','Nandail','Phulpur','Trishal'],
+  Netrokona:      ['Netrokona Sadar','Atpara','Barhatta','Durgapur','Kalmakanda','Kendua','Khaliajuri','Madan','Mohanganj','Purbadhala'],
+  Sherpur:        ['Sherpur Sadar','Jhenaigati','Nakla','Nalitabari','Sreebardi'],
 };
 
+// Count total areas
+const BD_TOTAL_AREAS = Object.values(BD_AREAS).reduce((s, a) => s + a.length, 0);
+
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface RateGroup { id: string; store: string; name: string; base: number; additional: number; }
+interface RateGroup { id: string; store: string; name: string; base: number; additional: number; weightSlabs?: string; }
 interface Assignment { key: string; store: string; division: string; district: string; area: string; areaId: string; groupId: string; groupName?: string; }
 interface Shipment {
   _id: string; shipmentNumber: string; orderId: string | number; sourceType: string; sourceLabel: string;
@@ -124,7 +187,7 @@ export default function Shipping() {
   // ── Rate Groups ────────────────────────────────────────────────────────────
   const [groups, setGroups]         = useState<RateGroup[]>([]);
   const [groupsSaving, setGroupsSaving] = useState(false);
-  const [newGroup, setNewGroup]     = useState({ name: '', base: '', additional: '' });
+  const [newGroup, setNewGroup]     = useState({ name: '', base: '', additional: '', slabs: '' });
 
   // ── Fee Preview ────────────────────────────────────────────────────────────
   const [prevDiv, setPrevDiv]   = useState('');
@@ -273,8 +336,8 @@ export default function Shipping() {
   const addGroup = () => {
     const name = newGroup.name.trim();
     if (!name) return toast.error('Group name required');
-    setGroups(g => [...g, { id: mkGroupId(name), store: 'main', name, base: parseFloat(newGroup.base) || 0, additional: parseFloat(newGroup.additional) || 0 }]);
-    setNewGroup({ name: '', base: '', additional: '' });
+    setGroups(g => [...g, { id: mkGroupId(name), store: 'main', name, base: parseFloat(newGroup.base) || 0, additional: parseFloat(newGroup.additional) || 0, weightSlabs: newGroup.slabs.trim() || undefined }]);
+    setNewGroup({ name: '', base: '', additional: '', slabs: '' });
   };
   const saveGroups = async () => {
     setGroupsSaving(true);
@@ -475,34 +538,66 @@ export default function Shipping() {
       {/* ════ RATE GROUPS TAB ══════════════════════════════════════════════ */}
       {tab === 'rate-groups' && (
         <div className="space-y-4">
+
+          {/* Coverage Summary */}
+          {(() => {
+            const totalAreas = BD_TOTAL_AREAS;
+            const assigned = new Set(assignments.map(a => a.key)).size;
+            const pct = totalAreas ? Math.round(assigned / totalAreas * 100) : 0;
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total Areas (BD)', val: totalAreas, color: 'text-muted-foreground' },
+                  { label: 'Assigned', val: assigned, color: 'text-primary' },
+                  { label: 'Unassigned', val: totalAreas - assigned, color: 'text-warning' },
+                  { label: 'Coverage', val: `${pct}%`, color: pct === 100 ? 'text-success' : pct > 50 ? 'text-primary' : 'text-warning' },
+                ].map(({ label, val, color }) => (
+                  <Card key={label}><CardContent className="pt-4 pb-3">
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className={`text-2xl font-bold ${color}`}>{val}</p>
+                  </CardContent></Card>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Add Group form */}
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-base font-semibold mb-4">Add New Rate Group</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Group Name *</label><Input value={newGroup.name} onChange={e => setNewGroup(g => ({ ...g, name: e.target.value }))} placeholder="e.g. Dhaka City" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Base Rate (৳) *</label><Input type="number" min="0" value={newGroup.base} onChange={e => setNewGroup(g => ({ ...g, base: e.target.value }))} placeholder="60" /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Group Name *</label><Input value={newGroup.name} onChange={e => setNewGroup(g => ({ ...g, name: e.target.value }))} placeholder="e.g. Inside Dhaka" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Base Rate — First 1kg (৳) *</label><Input type="number" min="0" value={newGroup.base} onChange={e => setNewGroup(g => ({ ...g, base: e.target.value }))} placeholder="60" /></div>
               <div><label className="text-xs font-medium text-muted-foreground block mb-1">Additional / kg (৳)</label><Input type="number" min="0" value={newGroup.additional} onChange={e => setNewGroup(g => ({ ...g, additional: e.target.value }))} placeholder="20" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Weight Slabs <span className="text-muted-foreground font-normal">(optional)</span></label><Input value={newGroup.slabs} onChange={e => setNewGroup(g => ({ ...g, slabs: e.target.value }))} placeholder="1:60, 2:80, 5:120, 10:200" /></div>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">Weight Slabs format: <code className="bg-muted px-1 rounded text-xs">maxKg:price, maxKg:price</code> — e.g. <code className="bg-muted px-1 rounded text-xs">1:60, 2:80, 3:100, 5:140</code>. If set, overrides base+additional for those weights.</p>
             <Button onClick={addGroup} className="mt-3"><Plus className="w-4 h-4 mr-2" />Add Group</Button>
           </div>
+
+          {/* Groups table */}
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between py-3">
-              <CardTitle className="text-sm">{groups.length} Rate Groups</CardTitle>
+              <CardTitle className="text-sm">{groups.length} Rate Groups · {BD_TOTAL_AREAS} areas · connects to checkout automatically</CardTitle>
               <Button size="sm" onClick={saveGroups} disabled={groupsSaving}><Save className="w-4 h-4 mr-1" />{groupsSaving ? 'Saving…' : 'Save All'}</Button>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 overflow-x-auto">
               <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Base Rate (৳)</TableHead><TableHead>Additional/kg (৳)</TableHead><TableHead>Example 1kg</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Base / 1kg (৳)</TableHead><TableHead>Extra/kg (৳)</TableHead><TableHead>Weight Slabs</TableHead><TableHead>Assigned Areas</TableHead><TableHead></TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {groups.map(g => (
-                    <TableRow key={g.id}>
-                      <TableCell className="font-medium">{g.name}</TableCell>
-                      <TableCell><Input type="number" min="0" value={g.base} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, base: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
-                      <TableCell><Input type="number" min="0" value={g.additional} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, additional: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
-                      <TableCell className="text-muted-foreground text-sm">৳{g.base}</TableCell>
-                      <TableCell><Button variant="ghost" size="icon" onClick={() => setGroups(gs => gs.filter(x => x.id !== g.id))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
-                    </TableRow>
-                  ))}
-                  {groups.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No rate groups yet. Add one above.</TableCell></TableRow>}
+                  {groups.map(g => {
+                    const assignedCount = assignments.filter(a => a.groupId === g.id).length;
+                    return (
+                      <TableRow key={g.id}>
+                        <TableCell className="font-medium">{g.name}</TableCell>
+                        <TableCell><Input type="number" min="0" value={g.base} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, base: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
+                        <TableCell><Input type="number" min="0" value={g.additional} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, additional: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
+                        <TableCell><Input value={g.weightSlabs || ''} className="w-40 h-8 text-xs font-mono" placeholder="1:60, 2:80…" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, weightSlabs: e.target.value } : x))} /></TableCell>
+                        <TableCell><Badge variant="outline">{assignedCount} area{assignedCount !== 1 ? 's' : ''}</Badge></TableCell>
+                        <TableCell><Button variant="ghost" size="icon" onClick={() => setGroups(gs => gs.filter(x => x.id !== g.id))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {groups.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No rate groups yet. Add one above.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
