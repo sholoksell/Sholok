@@ -126,6 +126,13 @@ export default function Shipping() {
   const [groupsSaving, setGroupsSaving] = useState(false);
   const [newGroup, setNewGroup]     = useState({ name: '', base: '', additional: '' });
 
+  // ── Fee Preview ────────────────────────────────────────────────────────────
+  const [prevDiv, setPrevDiv]   = useState('');
+  const [prevDist, setPrevDist] = useState('');
+  const [prevArea, setPrevArea] = useState('');
+  const [prevResult, setPrevResult] = useState<{ charge: number; matched: boolean; groupName?: string } | null>(null);
+  const [prevLoading, setPrevLoading] = useState(false);
+
   // ── Area Assignments ───────────────────────────────────────────────────────
   const [assignments, setAssignments]   = useState<Assignment[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
@@ -273,6 +280,17 @@ export default function Shipping() {
     setGroupsSaving(true);
     try { await api.post('/delivery-rates/rate-groups/sync', groups); toast.success('Rate groups saved'); loadRates(); }
     catch { toast.error('Failed to save'); } finally { setGroupsSaving(false); }
+  };
+  const previewFee = async () => {
+    if (!prevDist) return toast.error('Select a district first');
+    setPrevLoading(true); setPrevResult(null);
+    try {
+      const params = new URLSearchParams({ district: prevDist });
+      if (prevArea) params.append('area', prevArea);
+      const { data } = await api.get(`/delivery-rates/charge?${params}`);
+      setPrevResult(data);
+    } catch { setPrevResult({ charge: 0, matched: false }); }
+    finally { setPrevLoading(false); }
   };
 
   // ── Area Assignments ─────────────────────────────────────────────────────────
@@ -487,6 +505,66 @@ export default function Shipping() {
                   {groups.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No rate groups yet. Add one above.</TableCell></TableRow>}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+
+          {/* Fee Preview */}
+          <Card className="border-border border-dashed">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-success animate-pulse inline-block"></span>
+                Checkout Fee Preview — Test what a customer will pay
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <p className="text-xs text-muted-foreground">Select a location below to see exactly which Rate Group matches and what delivery fee the customer will see at checkout.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Division</label>
+                  <div className="relative">
+                    <select value={prevDiv} onChange={e => { setPrevDiv(e.target.value); setPrevDist(''); setPrevArea(''); setPrevResult(null); }} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background pr-8">
+                      <option value="">All</option>
+                      {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">District *</label>
+                  <div className="relative">
+                    <select value={prevDist} onChange={e => { setPrevDist(e.target.value); setPrevArea(''); setPrevResult(null); }} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background pr-8">
+                      <option value="">Select</option>
+                      {(prevDiv ? BD_DISTRICTS[prevDiv] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Area (optional)</label>
+                  <div className="relative">
+                    <select value={prevArea} onChange={e => { setPrevArea(e.target.value); setPrevResult(null); }} disabled={!prevDist} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background pr-8 disabled:opacity-50">
+                      <option value="">All areas</option>
+                      {(BD_AREAS[prevDist] || []).map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+                <Button onClick={previewFee} disabled={prevLoading || !prevDist} className="w-full">
+                  {prevLoading ? 'Calculating…' : 'Check Fee'}
+                </Button>
+              </div>
+              {prevResult && (
+                <div className={`mt-3 p-4 rounded-lg border flex items-center gap-4 ${prevResult.matched ? 'bg-success/10 border-success/30' : 'bg-warning/10 border-warning/30'}`}>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{prevResult.matched ? `৳${prevResult.charge} delivery fee` : 'No matching rate group — default fee applies'}</p>
+                    {prevResult.matched && prevResult.groupName && <p className="text-xs text-muted-foreground mt-0.5">Matched group: <strong>{prevResult.groupName}</strong></p>}
+                    <p className="text-xs text-muted-foreground mt-0.5">Location: {[prevDiv, prevDist, prevArea].filter(Boolean).join(' › ')}</p>
+                  </div>
+                  <div className={`text-3xl font-bold ${prevResult.matched ? 'text-success' : 'text-warning'}`}>
+                    {prevResult.matched ? `৳${prevResult.charge}` : '—'}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

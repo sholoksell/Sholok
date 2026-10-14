@@ -88,10 +88,10 @@ const App = () => (
                   <Route path="/vendors" element={<Vendors />} />
                   <Route path="/warehouses" element={<Warehouses />} />
                   <Route path="/couriers" element={<Couriers />} />
-                  <Route path="/delivery-coverage" element={<DeliveryCoverage />} />
-                  <Route path="/checkout-settings" element={<CheckoutSettings />} />
+                  <Route path="/delivery-coverage" element={<Navigate to="/shipping" replace />} />
+                  <Route path="/checkout-settings" element={<Navigate to="/shipping" replace />} />
                   <Route path="/grocery-settings" element={<GrocerySettings />} />
-                  <Route path="/shipments" element={<Shipments />} />
+                  <Route path="/shipments" element={<Navigate to="/shipping" replace />} />
                   <Route path="/cod-settlement" element={<CodSettlement />} />
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/returns" element={<Returns />} />
