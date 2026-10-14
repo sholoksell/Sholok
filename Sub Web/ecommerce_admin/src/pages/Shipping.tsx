@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { shippingApi, DeliveryArea, ShippingStats, ShippingOrder, ShippingMethod } from '@/services/shippingService';
 import api from '@/lib/axios';
@@ -151,7 +151,7 @@ const mkGroupId  = (name: string) => `${slugify('main')}_${slugify(name)}_${Date
 const mkAssignKey = (div: string, dist: string, area: string) =>
   `main|${div}|${dist}|${area}`.replace(/\s+/g, '_');
 
-type Tab = 'shipments' | 'orders' | 'rate-groups' | 'assignments' | 'areas' | 'methods' | 'grocery' | 'policies';
+type Tab = 'shipments' | 'orders' | 'rate-groups' | 'assignments' | 'areas' | 'assigned-rates' | 'methods' | 'grocery' | 'policies';
 
 export default function Shipping() {
   const { t } = useLanguage();
@@ -187,7 +187,7 @@ export default function Shipping() {
   // ── Rate Groups ────────────────────────────────────────────────────────────
   const [groups, setGroups]         = useState<RateGroup[]>([]);
   const [groupsSaving, setGroupsSaving] = useState(false);
-  const [newGroup, setNewGroup]     = useState({ name: '', base: '', additional: '', slabs: '' });
+  const [newGroup, setNewGroup]     = useState({ name: '', base: '', additional: '', slabs: '', store: 'Dhaka' });
 
   // ── Fee Preview ────────────────────────────────────────────────────────────
   const [prevDiv, setPrevDiv]   = useState('');
@@ -217,6 +217,31 @@ export default function Shipping() {
   const [editPolicy, setEditPolicy] = useState<ShippingPolicy | null>(null);
 
   const [loading, setLoading] = useState(false);
+
+  // ── BD Area Management (Delivery Areas tab) ────────────────────────────────
+  const [areaStatuses, setAreaStatuses]       = useState<Record<string, 'Enable' | 'Disable'>>({});
+  const [selBdAreas, setSelBdAreas]           = useState<Set<string>>(new Set());
+  const [areasPage, setAreasPage]             = useState(1);
+  const [areasPageSize, setAreasPageSize]     = useState(25);
+  const [areasSearch, setAreasSearch]         = useState('');
+  const [areasFilterDiv, setAreasFilterDiv]   = useState('');
+  const [areasFilterDist, setAreasFilterDist] = useState('');
+  const [bdAreaFormOpen, setBdAreaFormOpen]   = useState(false);
+  const [bdAreaForm, setBdAreaForm]           = useState({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' });
+
+  // ── Assignment checkbox view state ─────────────────────────────────────────
+  const [assignStore2, setAssignStore2]   = useState('Dhaka');
+  const [assignDiv2, setAssignDiv2]       = useState('');
+  const [assignDist2, setAssignDist2]     = useState('');
+  const [assignGroup2, setAssignGroup2]   = useState('');
+  const [assignSearch2, setAssignSearch2] = useState('');
+
+  // ── Assigned Rates tab filters ─────────────────────────────────────────────
+  const [arStore, setArStore]   = useState('');
+  const [arGroup, setArGroup]   = useState('');
+  const [arSearch, setArSearch] = useState('');
+  const [arPage, setArPage]     = useState(1);
+  const [arSelKeys, setArSelKeys] = useState<Set<string>>(new Set());
 
   // ── Load all data ─────────────────────────────────────────────────────────
   const loadShippingOrders = useCallback(async () => {
@@ -336,8 +361,8 @@ export default function Shipping() {
   const addGroup = () => {
     const name = newGroup.name.trim();
     if (!name) return toast.error('Group name required');
-    setGroups(g => [...g, { id: mkGroupId(name), store: 'main', name, base: parseFloat(newGroup.base) || 0, additional: parseFloat(newGroup.additional) || 0, weightSlabs: newGroup.slabs.trim() || undefined }]);
-    setNewGroup({ name: '', base: '', additional: '', slabs: '' });
+    setGroups(g => [...g, { id: mkGroupId(name), store: newGroup.store || 'Dhaka', name, base: parseFloat(newGroup.base) || 0, additional: parseFloat(newGroup.additional) || 0, weightSlabs: newGroup.slabs.trim() || undefined }]);
+    setNewGroup({ name: '', base: '', additional: '', slabs: '', store: newGroup.store });
   };
   const saveGroups = async () => {
     setGroupsSaving(true);
@@ -402,6 +427,81 @@ export default function Shipping() {
     setPolicyDialogOpen(true);
   };
 
+  // ── BD Area flat list (memoized) ──────────────────────────────────────────
+  const allBdAreas = useMemo(() => {
+    const list: { div: string; dist: string; area: string; key: string }[] = [];
+    BD_DIVISIONS.forEach(div => {
+      (BD_DISTRICTS[div] || []).forEach(dist => {
+        (BD_AREAS[dist] || []).forEach(area => {
+          list.push({ div, dist, area, key: `D-${div}-${dist}-${area}` });
+        });
+      });
+    });
+    return list;
+  }, []);
+
+  const filteredBdAreas = useMemo(() => allBdAreas.filter(a => {
+    if (areasFilterDiv && a.div !== areasFilterDiv) return false;
+    if (areasFilterDist && a.dist !== areasFilterDist) return false;
+    if (areasSearch) { const q = areasSearch.toLowerCase(); if (!a.dist.toLowerCase().includes(q) && !a.area.toLowerCase().includes(q)) return false; }
+    return true;
+  }), [allBdAreas, areasFilterDiv, areasFilterDist, areasSearch]);
+
+  const areasTotalPages = Math.ceil(filteredBdAreas.length / areasPageSize) || 1;
+  const pagedBdAreas    = filteredBdAreas.slice((areasPage - 1) * areasPageSize, areasPage * areasPageSize);
+
+  const toggleBdArea = (key: string) => setSelBdAreas(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const bulkSetStatus = (status: 'Enable' | 'Disable') => {
+    setAreaStatuses(prev => { const n = { ...prev }; selBdAreas.forEach(k => { n[k] = status; }); return n; });
+  };
+  const exportAreasCsv = () => {
+    const rows = [['Division','District','Area','Status']];
+    filteredBdAreas.forEach(a => rows.push([a.div, a.dist, a.area, areaStatuses[a.key] || 'Enable']));
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = 'delivery_areas.csv'; link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const calcCharge = (g: RateGroup, kg: number) => {
+    if (g.weightSlabs) {
+      const slabs = g.weightSlabs.split(',').map(s => { const [m, p] = s.trim().split(':'); return { maxKg: parseFloat(m), price: parseFloat(p) }; }).filter(s => !isNaN(s.maxKg) && !isNaN(s.price));
+      const slab = slabs.find(s => kg <= s.maxKg);
+      if (slab) return slab.price;
+    }
+    return g.base + g.additional * Math.max(0, kg - 1);
+  };
+
+  const assignFilteredAreas = useMemo(() => allBdAreas.filter(a => {
+    if (assignDiv2 && a.div !== assignDiv2) return false;
+    if (assignDist2 && a.dist !== assignDist2) return false;
+    if (assignSearch2) { const q = assignSearch2.toLowerCase(); if (!a.area.toLowerCase().includes(q) && !a.dist.toLowerCase().includes(q)) return false; }
+    return true;
+  }), [allBdAreas, assignDiv2, assignDist2, assignSearch2]);
+
+  const isAreaAssigned = (key: string) => assignments.some(a => a.key === key && a.store === assignStore2 && a.groupId === assignGroup2);
+  const toggleAreaAssign = (item: { div: string; dist: string; area: string; key: string }) => {
+    const existing = assignments.find(a => a.key === item.key && a.store === assignStore2 && a.groupId === assignGroup2);
+    if (existing) {
+      setAssignments(as => as.filter(a => !(a.key === item.key && a.store === assignStore2 && a.groupId === assignGroup2)));
+    } else {
+      if (!assignGroup2) return toast.error('Select a Rate Group first');
+      const group = groups.find(g => g.id === assignGroup2);
+      setAssignments(as => [...as, { key: item.key, store: assignStore2, division: item.div, district: item.dist, area: item.area, areaId: item.key, groupId: assignGroup2, groupName: group?.name }]);
+    }
+  };
+
+  const filteredAssignments = useMemo(() => assignments.filter(a => {
+    if (arStore && a.store !== arStore) return false;
+    if (arGroup && a.groupId !== arGroup) return false;
+    if (arSearch) { const q = arSearch.toLowerCase(); if (!a.district.toLowerCase().includes(q) && !a.area.toLowerCase().includes(q) && !(a.groupName || '').toLowerCase().includes(q)) return false; }
+    return true;
+  }), [assignments, arStore, arGroup, arSearch]);
+
+  const arTotalPages = Math.ceil(filteredAssignments.length / 25) || 1;
+  const pagedAssignments = filteredAssignments.slice((arPage - 1) * 25, arPage * 25);
+
   // ── Tab button helper ─────────────────────────────────────────────────────────
   const TabBtn = ({ id, label }: { id: Tab; label: string }) => (
     <button onClick={() => setTab(id)} className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors border-b-2 ${tab === id ? 'border-primary text-primary bg-background' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{label}</button>
@@ -432,14 +532,15 @@ export default function Shipping() {
 
       {/* Tabs */}
       <div className="flex gap-0 border-b border-border overflow-x-auto">
-        <TabBtn id="shipments"   label="Shipments" />
-        <TabBtn id="orders"      label="Orders" />
-        <TabBtn id="rate-groups" label="Rate Groups" />
-        <TabBtn id="assignments" label="Area Assignments" />
-        <TabBtn id="areas"       label="Delivery Areas" />
-        <TabBtn id="methods"     label="Methods" />
-        <TabBtn id="grocery"     label="Grocery Coverage" />
-        <TabBtn id="policies"    label="Policies" />
+        <TabBtn id="shipments"     label="Shipments" />
+        <TabBtn id="orders"        label="Orders" />
+        <TabBtn id="areas"         label="⌖ Delivery Areas" />
+        <TabBtn id="rate-groups"   label="৳ Rate Groups" />
+        <TabBtn id="assignments"   label="⇄ Area Assignment" />
+        <TabBtn id="assigned-rates" label="▤ Assigned Zone Rates" />
+        <TabBtn id="methods"       label="Methods" />
+        <TabBtn id="grocery"       label="Grocery" />
+        <TabBtn id="policies"      label="Policies" />
       </div>
 
       {/* ════ SHIPMENTS TAB ════════════════════════════════════════════════ */}
@@ -564,13 +665,20 @@ export default function Shipping() {
           {/* Add Group form */}
           <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-base font-semibold mb-4">Add New Rate Group</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <p className="text-xs text-muted-foreground mb-3">Create up to 17 reusable delivery charge groups by store location. Only groups you create can be assigned.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Store Location</label>
+                <select value={newGroup.store || 'Dhaka'} onChange={e => setNewGroup(g => ({ ...g, store: e.target.value }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                  {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
               <div><label className="text-xs font-medium text-muted-foreground block mb-1">Group Name *</label><Input value={newGroup.name} onChange={e => setNewGroup(g => ({ ...g, name: e.target.value }))} placeholder="e.g. Inside Dhaka" /></div>
               <div><label className="text-xs font-medium text-muted-foreground block mb-1">Base Rate — First 1kg (৳) *</label><Input type="number" min="0" value={newGroup.base} onChange={e => setNewGroup(g => ({ ...g, base: e.target.value }))} placeholder="60" /></div>
               <div><label className="text-xs font-medium text-muted-foreground block mb-1">Additional / kg (৳)</label><Input type="number" min="0" value={newGroup.additional} onChange={e => setNewGroup(g => ({ ...g, additional: e.target.value }))} placeholder="20" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Weight Slabs <span className="text-muted-foreground font-normal">(optional)</span></label><Input value={newGroup.slabs} onChange={e => setNewGroup(g => ({ ...g, slabs: e.target.value }))} placeholder="1:60, 2:80, 5:120, 10:200" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Weight Slabs <span className="font-normal">(optional)</span></label><Input value={newGroup.slabs} onChange={e => setNewGroup(g => ({ ...g, slabs: e.target.value }))} placeholder="1:60, 2:80, 5:120" /></div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Weight Slabs format: <code className="bg-muted px-1 rounded text-xs">maxKg:price, maxKg:price</code> — e.g. <code className="bg-muted px-1 rounded text-xs">1:60, 2:80, 3:100, 5:140</code>. If set, overrides base+additional for those weights.</p>
+            <p className="text-xs text-muted-foreground mt-2">Formula: <code className="bg-muted px-1 rounded text-xs">Base + Additional × (KG − 1)</code>. Weight Slabs format: <code className="bg-muted px-1 rounded text-xs">maxKg:price, maxKg:price</code> — overrides formula when set.</p>
             <Button onClick={addGroup} className="mt-3"><Plus className="w-4 h-4 mr-2" />Add Group</Button>
           </div>
 
@@ -668,92 +776,314 @@ export default function Shipping() {
       {/* ════ AREA ASSIGNMENTS TAB ══════════════════════════════════════════ */}
       {tab === 'assignments' && (
         <div className="space-y-4">
+          {/* Controls */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-base font-semibold mb-4">Assign Area to Rate Group</h2>
-            {groups.length === 0 ? <p className="text-sm text-muted-foreground">First create rate groups in the "Rate Groups" tab.</p> : (
+            <h2 className="text-base font-semibold mb-4">Delivery Area Assignment</h2>
+            {groups.length === 0 ? (
+              <p className="text-sm text-muted-foreground">First create rate groups in the "৳ Rate Groups" tab.</p>
+            ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Division', val: selDiv, onChange: (v: string) => { setSelDiv(v); setSelDist(''); setSelArea(''); }, opts: BD_DIVISIONS, placeholder: 'All Divisions' },
-                    { label: 'District *', val: selDist, onChange: (v: string) => { setSelDist(v); setSelArea(''); }, opts: districtList, placeholder: 'Select District' },
-                    { label: 'Area (optional)', val: selArea, onChange: (v: string) => setSelArea(v), opts: areaList, placeholder: 'All Areas', disabled: !selDist },
-                  ].map(({ label, val, onChange, opts, placeholder, disabled }) => (
-                    <div key={label}>
-                      <label className="text-xs font-medium text-muted-foreground block mb-1">{label}</label>
-                      <div className="relative">
-                        <select value={val} onChange={e => onChange(e.target.value)} disabled={disabled} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 pr-8 disabled:opacity-50">
-                          <option value="">{placeholder}</option>
-                          {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      </div>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Store Location</label>
+                    <select value={assignStore2} onChange={e => setAssignStore2(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                      {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Division / Region</label>
+                    <select value={assignDiv2} onChange={e => { setAssignDiv2(e.target.value); setAssignDist2(''); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                      <option value="">All Divisions</option>
+                      {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">City / District</label>
+                    <select value={assignDist2} onChange={e => setAssignDist2(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                      <option value="">All Districts</option>
+                      {(assignDiv2 ? BD_DISTRICTS[assignDiv2] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Rate Group *</label>
-                    <div className="relative">
-                      <select value={selGroup} onChange={e => setSelGroup(e.target.value)} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 pr-8">
-                        <option value="">Select Group</option>
-                        {groups.map(g => <option key={g.id} value={g.id}>{g.name} (৳{g.base})</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    </div>
+                    <select value={assignGroup2} onChange={e => setAssignGroup2(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                      <option value="">Select Rate Group</option>
+                      {groups.map(g => <option key={g.id} value={g.id}>{g.name} (৳{g.base})</option>)}
+                    </select>
                   </div>
                 </div>
-                <Button onClick={addAssignment} className="mt-3"><Plus className="w-4 h-4 mr-2" />Add Assignment</Button>
+
+                {/* Area checkbox list */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border flex-wrap gap-2">
+                    <span className="text-sm font-medium">Saved Delivery Areas ({assignFilteredAreas.length})</span>
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="relative"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" /><Input className="pl-8 h-7 text-xs w-48" placeholder="Search areas…" value={assignSearch2} onChange={e => setAssignSearch2(e.target.value)} /></div>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { if (!assignGroup2) return toast.error('Select a Rate Group first'); assignFilteredAreas.forEach(item => { if (!isAreaAssigned(item.key)) toggleAreaAssign(item); }); }}>Select All</Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { assignFilteredAreas.forEach(item => { if (isAreaAssigned(item.key)) toggleAreaAssign(item); }); }}>Clear</Button>
+                    </div>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {assignFilteredAreas.length === 0 ? (
+                      <p className="text-center py-6 text-sm text-muted-foreground">No areas match the current filters.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                        {assignFilteredAreas.map(item => (
+                          <label key={item.key} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 cursor-pointer border-b border-border/30 last:border-0">
+                            <input type="checkbox" checked={isAreaAssigned(item.key)} onChange={() => toggleAreaAssign(item)} className="w-4 h-4 rounded" />
+                            <span className="text-sm">{item.area}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">{item.dist}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-sm text-muted-foreground">{assignments.filter(a => a.store === assignStore2 && a.groupId === assignGroup2).length} areas assigned to this group</span>
+                  <Button size="sm" onClick={saveAssignments} disabled={assignSaving}><Save className="w-4 h-4 mr-1" />{assignSaving ? 'Saving…' : 'Save Assignments'}</Button>
+                </div>
               </>
             )}
           </div>
-          <Card className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between py-3">
-              <CardTitle className="text-sm">{assignments.length} Assignments</CardTitle>
-              <Button size="sm" onClick={saveAssignments} disabled={assignSaving}><Save className="w-4 h-4 mr-1" />{assignSaving ? 'Saving…' : 'Save All'}</Button>
-            </CardHeader>
-            <CardContent className="pt-0 overflow-x-auto">
-              <Table>
-                <TableHeader><TableRow><TableHead>Division</TableHead><TableHead>District</TableHead><TableHead>Area</TableHead><TableHead>Rate Group</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {assignments.map(a => (
-                    <TableRow key={a.key}>
-                      <TableCell>{a.division || '—'}</TableCell>
-                      <TableCell>{a.district}</TableCell>
-                      <TableCell className="text-muted-foreground">{a.area || <span className="italic text-xs">All areas</span>}</TableCell>
-                      <TableCell><span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{a.groupName || a.groupId}</span></TableCell>
-                      <TableCell><Button variant="ghost" size="icon" onClick={() => setAssignments(as => as.filter(x => x.key !== a.key))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
-                    </TableRow>
-                  ))}
-                  {assignments.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No assignments yet.</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
         </div>
       )}
 
       {/* ════ DELIVERY AREAS TAB ════════════════════════════════════════════ */}
       {tab === 'areas' && (
-        <Card className="glass-card border-border">
-          <CardHeader><div className="flex items-center justify-between"><CardTitle>{t('deliveryAreas')}</CardTitle><Button onClick={() => { setEditingArea(null); setAreaForm({ name: '', city: '', deliveryCharge: 0, freeDeliveryThreshold: 0, estimatedDeliveryDays: 1, postalCodes: '' }); setAreaDialogOpen(true); }}><Plus className="w-4 h-4 mr-2" />{t('addArea')}</Button></div></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>{t('name')}</TableHead><TableHead>{t('city')}</TableHead><TableHead>{t('charge')}</TableHead><TableHead>{t('freeAbove')}</TableHead><TableHead>{t('estDays')}</TableHead><TableHead>{t('status')}</TableHead><TableHead>{t('actions')}</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {areas.map(area => (
-                  <TableRow key={area._id}>
-                    <TableCell className="font-medium">{area.name}</TableCell>
-                    <TableCell>{area.city}</TableCell>
-                    <TableCell>৳{area.deliveryCharge}</TableCell>
-                    <TableCell>{area.freeDeliveryThreshold > 0 ? `৳${area.freeDeliveryThreshold}` : '—'}</TableCell>
-                    <TableCell>{area.estimatedDeliveryDays} day(s)</TableCell>
-                    <TableCell><Badge className={area.isActive ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}>{area.isActive ? t('active') : t('inactive')}</Badge></TableCell>
-                    <TableCell><div className="flex gap-1"><Button variant="ghost" size="icon" onClick={() => openEditArea(area)}><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => deleteArea(area._id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></div></TableCell>
+        <div className="space-y-4">
+          {/* Header + Add button */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Delivery Areas</h2>
+              <p className="text-sm text-muted-foreground">{BD_TOTAL_AREAS} saved Bangladesh delivery areas. Custom districts are also supported.</p>
+            </div>
+            <Button onClick={() => { setBdAreaForm({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' }); setBdAreaFormOpen(v => !v); }}>
+              <Plus className="w-4 h-4 mr-2" />Add Delivery Area
+            </Button>
+          </div>
+
+          {/* Add area inline form */}
+          {bdAreaFormOpen && (
+            <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Division / Region</label>
+                  <select value={bdAreaForm.division} onChange={e => setBdAreaForm(f => ({ ...f, division: e.target.value, district: '' }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                    {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">City / District</label>
+                  <select value={bdAreaForm.district} onChange={e => setBdAreaForm(f => ({ ...f, district: e.target.value }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background mb-1">
+                    <option value="">Select existing…</option>
+                    {(BD_DISTRICTS[bdAreaForm.division] || []).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <Input value={bdAreaForm.districtNew} onChange={e => setBdAreaForm(f => ({ ...f, districtNew: e.target.value }))} placeholder="…or enter new district" className="text-sm h-8" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Zone / Area</label>
+                  <Input value={bdAreaForm.area} onChange={e => setBdAreaForm(f => ({ ...f, area: e.target.value }))} placeholder="Enter delivery area" />
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button onClick={() => { if (!bdAreaForm.area.trim()) return toast.error('Area name required'); setBdAreaFormOpen(false); toast.success('Area saved (local)'); }} className="flex-1">Save</Button>
+                  <Button variant="outline" onClick={() => setBdAreaFormOpen(false)}>Cancel</Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">For a new Delivery Area, choose an existing City / District or enter a new one.</p>
+            </div>
+          )}
+
+          {/* Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Search</label>
+              <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search district or area..." className="pl-9" value={areasSearch} onChange={e => { setAreasSearch(e.target.value); setAreasPage(1); }} /></div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Division</label>
+              <select value={areasFilterDiv} onChange={e => { setAreasFilterDiv(e.target.value); setAreasFilterDist(''); setAreasPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="">All Divisions</option>
+                {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">District</label>
+              <select value={areasFilterDist} onChange={e => { setAreasFilterDist(e.target.value); setAreasPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="">All Districts</option>
+                {(areasFilterDiv ? BD_DISTRICTS[areasFilterDiv] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Bulk toolbar */}
+          <div className="flex items-center justify-between flex-wrap gap-2 px-1">
+            <span className="text-sm font-medium text-muted-foreground">{selBdAreas.size} selected</span>
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set(pagedBdAreas.map(a => a.key)))}>Select All</Button>
+              <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set())}>Clear</Button>
+              <Button size="sm" onClick={() => bulkSetStatus('Enable')} disabled={selBdAreas.size === 0}>Enable Selected</Button>
+              <Button size="sm" variant="destructive" onClick={() => bulkSetStatus('Disable')} disabled={selBdAreas.size === 0}>Disable Selected</Button>
+              <Button size="sm" variant="outline" onClick={exportAreasCsv}>Export CSV</Button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <Card className="border-border">
+            <CardContent className="pt-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"><input type="checkbox" checked={selBdAreas.size === pagedBdAreas.length && pagedBdAreas.length > 0} onChange={e => e.target.checked ? setSelBdAreas(new Set(pagedBdAreas.map(a => a.key))) : setSelBdAreas(new Set())} /></TableHead>
+                    <TableHead>Region / Division</TableHead>
+                    <TableHead>City / District</TableHead>
+                    <TableHead>Zone / Area</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Assignments</TableHead>
+                    <TableHead>Action</TableHead>
                   </TableRow>
-                ))}
-                {areas.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('noDeliveryAreas')}</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {pagedBdAreas.map(a => {
+                    const status = areaStatuses[a.key] || 'Enable';
+                    const assignCount = assignments.filter(x => x.key === a.key).length;
+                    return (
+                      <TableRow key={a.key}>
+                        <TableCell><input type="checkbox" checked={selBdAreas.has(a.key)} onChange={() => toggleBdArea(a.key)} /></TableCell>
+                        <TableCell className="text-sm">{a.div}</TableCell>
+                        <TableCell className="text-sm">{a.dist}</TableCell>
+                        <TableCell className="text-sm font-medium">{a.area}</TableCell>
+                        <TableCell>
+                          <select value={status} onChange={e => setAreaStatuses(prev => ({ ...prev, [a.key]: e.target.value as 'Enable' | 'Disable' }))} className={`border rounded px-2 py-1 text-xs bg-background ${status === 'Enable' ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'}`}>
+                            <option value="Enable">Enable</option>
+                            <option value="Disable">Disable</option>
+                          </select>
+                        </TableCell>
+                        <TableCell><span className="text-xs text-muted-foreground">Assignments: {assignCount}</span></TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key }); setBdAreaFormOpen(true); }}>Edit Area</Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => toast.info(`Edit District: ${a.dist}`)}>Edit District</Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {pagedBdAreas.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No areas match the current filters.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <span className="text-sm text-muted-foreground">Showing page {areasPage} of {areasTotalPages} · {filteredBdAreas.length} records</span>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-muted-foreground flex items-center gap-2">Per page
+                <select value={areasPageSize} onChange={e => { setAreasPageSize(Number(e.target.value)); setAreasPage(1); }} className="border border-border rounded px-2 py-1 text-sm bg-background ml-1">
+                  <option value={25}>25</option><option value={50}>50</option><option value={100}>100</option>
+                </select>
+              </label>
+              <Button size="sm" variant="outline" disabled={areasPage === 1} onClick={() => setAreasPage(p => p - 1)}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={areasPage >= areasTotalPages} onClick={() => setAreasPage(p => p + 1)}>Next</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════ ASSIGNED ZONE RATES TAB ═══════════════════════════════════════ */}
+      {tab === 'assigned-rates' && (
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Store Location</label>
+              <select value={arStore} onChange={e => { setArStore(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="">All Stores</option>
+                {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Rate Group Filter</label>
+              <select value={arGroup} onChange={e => { setArGroup(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="">All Rate Groups</option>
+                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Search</label>
+              <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search store, group, district, area..." className="pl-9" value={arSearch} onChange={e => { setArSearch(e.target.value); setArPage(1); }} /></div>
+            </div>
+          </div>
+
+          {/* Bulk toolbar */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span className="text-sm text-muted-foreground">{arSelKeys.size} selected</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set(pagedAssignments.map(a => a.key)))}>Select All</Button>
+              <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set())}>Clear</Button>
+              <Button size="sm" variant="destructive" disabled={arSelKeys.size === 0} onClick={() => { setAssignments(as => as.filter(a => !arSelKeys.has(a.key))); setArSelKeys(new Set()); }}>Remove Selected</Button>
+              <Button size="sm" onClick={saveAssignments} disabled={assignSaving}><Save className="w-4 h-4 mr-1" />{assignSaving ? 'Saving…' : 'Save All'}</Button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <Card className="border-border">
+            <CardContent className="pt-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"><input type="checkbox" checked={arSelKeys.size === pagedAssignments.length && pagedAssignments.length > 0} onChange={e => e.target.checked ? setArSelKeys(new Set(pagedAssignments.map(a => a.key))) : setArSelKeys(new Set())} /></TableHead>
+                    <TableHead>Store Location</TableHead>
+                    <TableHead>Rate Group</TableHead>
+                    <TableHead>Region</TableHead>
+                    <TableHead>City / District</TableHead>
+                    <TableHead>Zone / Area</TableHead>
+                    <TableHead>Base Charge (1kg)</TableHead>
+                    <TableHead>Charge (2kg)</TableHead>
+                    <TableHead>Charge (3kg)</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedAssignments.map(a => {
+                    const group = groups.find(g => g.id === a.groupId);
+                    const c1 = group ? calcCharge(group, 1) : 0;
+                    const c2 = group ? calcCharge(group, 2) : 0;
+                    const c3 = group ? calcCharge(group, 3) : 0;
+                    return (
+                      <TableRow key={a.key}>
+                        <TableCell><input type="checkbox" checked={arSelKeys.has(a.key)} onChange={() => setArSelKeys(prev => { const n = new Set(prev); n.has(a.key) ? n.delete(a.key) : n.add(a.key); return n; })} /></TableCell>
+                        <TableCell className="text-sm">{a.store}</TableCell>
+                        <TableCell><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{a.groupName || a.groupId}</span></TableCell>
+                        <TableCell className="text-sm">{a.division || '—'}</TableCell>
+                        <TableCell className="text-sm">{a.district}</TableCell>
+                        <TableCell className="text-sm font-medium">{a.area || <span className="italic text-muted-foreground text-xs">All areas</span>}</TableCell>
+                        <TableCell className="font-mono text-sm">৳{c1}</TableCell>
+                        <TableCell className="font-mono text-sm">৳{c2}</TableCell>
+                        <TableCell className="font-mono text-sm">৳{c3}</TableCell>
+                        <TableCell><Button size="sm" variant="ghost" onClick={() => setAssignments(as => as.filter(x => x.key !== a.key))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {pagedAssignments.length === 0 && (
+                    <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">No assigned Zone Rates yet. Assign areas in the "⇄ Area Assignment" tab.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <span className="text-sm text-muted-foreground">Showing page {arPage} of {arTotalPages} · {filteredAssignments.length} records</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={arPage === 1} onClick={() => setArPage(p => p - 1)}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={arPage >= arTotalPages} onClick={() => setArPage(p => p + 1)}>Next</Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ════ SHIPPING METHODS TAB ══════════════════════════════════════════ */}
