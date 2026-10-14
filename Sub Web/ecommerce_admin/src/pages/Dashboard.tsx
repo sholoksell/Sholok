@@ -281,7 +281,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-foreground">৳ {order.total?.toFixed(2)}</p>
+                        <p className="font-semibold text-foreground">৳ {Number(order.total || 0).toFixed(2)}</p>
                         <span className={`text-xs px-2 py-1 rounded-full ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}>
                           {order.status?.charAt(0).toUpperCase() + order.status?.slice(1).replace(/_/g, ' ')}
                         </span>
