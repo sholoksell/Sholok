@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X, MapPin, Search, Crosshair, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { setDeliveryLocation, useDeliveryLocation } from '@/hooks/useDeliveryLocation';
+import { useAuth } from '@/contexts/AuthContext';
+import { addressService } from '@/services/addressService';
 import { toast } from 'sonner';
 
 // Lightweight loader for Leaflet from CDN — avoids new npm dep.
@@ -40,23 +42,22 @@ const loadLeaflet = () => {
     return leafletPromise;
 };
 
-// Static district → areas (Bangladesh) for the OR fallback
-const DISTRICT_AREAS = {
-    Dhaka: ['Banani', 'Gulshan', 'Dhanmondi', 'Mirpur', 'Mohammadpur', 'Uttara', 'Bashundhara', 'Motijheel'],
-    Chittagong: ['Agrabad', 'Halishahar', 'Khulshi', 'Pahartali', 'Panchlaish'],
-    Sylhet: ['Zindabazar', 'Ambarkhana', 'Subhanighat', 'Tilagor'],
-    Rajshahi: ['Shaheb Bazar', 'Boalia', 'Motihar'],
-    Khulna: ['Khalishpur', 'Sonadanga', 'Daulatpur'],
-    Barisal: ['Sadar', 'Banaripara', 'Gournadi'],
-    Rangpur: ['Sadar', 'Mithapukur'],
-    Mymensingh: ['Sadar', 'Trishal'],
-};
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Static fallback in case the API is unavailable
+const FALLBACK_DIVISIONS = [
+    { _id: 1, name: 'Dhaka' }, { _id: 2, name: 'Chittagong' },
+    { _id: 3, name: 'Rajshahi' }, { _id: 4, name: 'Khulna' },
+    { _id: 5, name: 'Barisal' }, { _id: 6, name: 'Sylhet' },
+    { _id: 7, name: 'Rangpur' }, { _id: 8, name: 'Mymensingh' },
+];
 
 const DEFAULT_CENTER = [23.7806, 90.4054]; // Dhaka
 
 const DeliveryLocationModal = ({ isOpen, onClose }) => {
     const { t } = useLanguage();
     const { location: savedLocation } = useDeliveryLocation();
+    const { isAuthenticated, customer } = useAuth();
 
     const mapElRef = useRef(null);
     const mapRef = useRef(null);
@@ -69,6 +70,31 @@ const DeliveryLocationModal = ({ isOpen, onClose }) => {
     const [district, setDistrict] = useState('');
     const [area, setArea] = useState('');
     const [locating, setLocating] = useState(false);
+
+    // DB-driven location data
+    const [divisions, setDivisions] = useState(FALLBACK_DIVISIONS);
+    const [dbDistricts, setDbDistricts] = useState([]);
+    const [selectedDivisionId, setSelectedDivisionId] = useState('');
+    const [selectedDistrictId, setSelectedDistrictId] = useState('');
+    const [selectedDivisionName, setSelectedDivisionName] = useState('');
+    const [selectedDistrictName, setSelectedDistrictName] = useState('');
+
+    // Load divisions on mount
+    useEffect(() => {
+        fetch(`${API_BASE}/delivery-coverage/nationwide/divisions`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => { if (Array.isArray(data) && data.length) setDivisions(data); })
+            .catch(() => {});
+    }, []);
+
+    // Load districts when division changes
+    useEffect(() => {
+        if (!selectedDivisionId) { setDbDistricts([]); return; }
+        fetch(`${API_BASE}/delivery-coverage/nationwide/districts?division_id=${selectedDivisionId}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setDbDistricts(Array.isArray(data) ? data : []))
+            .catch(() => setDbDistricts([]));
+    }, [selectedDivisionId]);
 
     // Reset / preload state on open ONLY (not when savedLocation changes mid-modal,
     // otherwise the user's in-progress map click can be overwritten right after Done).
@@ -301,32 +327,84 @@ const DeliveryLocationModal = ({ isOpen, onClose }) => {
         );
     };
 
-    const handleDone = () => {
+    const handleDone = async () => {
         let payload = null;
-        if (pinned) {
+        // Priority 1: dropdown-selected division + district (has DB IDs for accurate fee calc)
+        if (selectedDistrictId) {
+            const divisionName = selectedDivisionName;
+            const districtName = selectedDistrictName;
+            const labelParts = [districtName, divisionName].filter(Boolean);
+            payload = {
+                label: labelParts.join(', '),
+                district: districtName,
+                district_id: Number(selectedDistrictId),
+                district_name: districtName,
+                division_id: Number(selectedDivisionId),
+                division_name: divisionName,
+                area: '',
+                lat: pinned?.lat ?? null,
+                lng: pinned?.lng ?? null,
+            };
+        } else if (pinned) {
             payload = {
                 label: pinned.label,
                 lat: pinned.lat,
                 lng: pinned.lng,
                 district,
                 area,
+                district_id: null,
             };
         } else if (district && area) {
-            payload = { label: `${area}, ${district}`, district, area, lat: null, lng: null };
+            payload = { label: `${area}, ${district}`, district, area, lat: null, lng: null, district_id: null };
         } else if (district) {
-            payload = { label: district, district, area: '', lat: null, lng: null };
+            payload = { label: district, district, area: '', lat: null, lng: null, district_id: null };
         } else {
             toast.error('Please select a location');
             return;
         }
+
+        // Save to localStorage (header display)
         setDeliveryLocation(payload);
+
+        // Auto-sync to Address Book if logged in
+        if (isAuthenticated) {
+            try {
+                const addrLabel = payload.area
+                    ? `${payload.area}, ${payload.district || 'Bangladesh'}`
+                    : payload.district || payload.label.split(',')[0];
+
+                const newAddr = {
+                    label: 'My Location',
+                    name: customer?.name || '',
+                    phone: customer?.phone || '',
+                    street: payload.label,
+                    city: payload.area || payload.district || 'Dhaka',
+                    state: payload.district || '',
+                    zipCode: '',
+                    country: 'Bangladesh',
+                    type: 'both',
+                    isDefault: true,
+                };
+
+                const all = await addressService.getAll();
+                const existing = Array.isArray(all) && all.find(a => a.label === 'My Location');
+
+                if (existing) {
+                    await addressService.update(existing._id, newAddr);
+                    if (!existing.isDefault) await addressService.setDefault(existing._id);
+                } else {
+                    await addressService.create(newAddr);
+                }
+            } catch (_) {
+                // Silent — address sync is best-effort, don't block the user
+            }
+        }
+
         toast.success('Delivery location saved');
         onClose?.();
     };
 
     if (!isOpen) return null;
-
-    const areaOptions = DISTRICT_AREAS[district] || [];
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -416,36 +494,41 @@ const DeliveryLocationModal = ({ isOpen, onClose }) => {
                         <div className="h-[1px] bg-gray-200 flex-1" />
                     </div>
 
-                    {/* Dropdowns */}
+                    {/* Dropdowns — Division → District */}
                     <div className="grid grid-cols-2 gap-4 mb-6">
                         <select
-                            value={district}
+                            value={selectedDivisionId}
                             onChange={(e) => {
-                                const d = e.target.value;
-                                setDistrict(d);
-                                setArea('');
-                                if (d) flyToQuery(`${d}, Bangladesh`, 12);
+                                const id = e.target.value;
+                                const name = e.target.options[e.target.selectedIndex].text;
+                                setSelectedDivisionId(id);
+                                setSelectedDivisionName(id ? name : '');
+                                setSelectedDistrictId('');
+                                setSelectedDistrictName('');
+                                if (id) flyToQuery(`${name} Division, Bangladesh`, 9);
                             }}
                             className="w-full h-11 px-3 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:border-[#E31E24] cursor-pointer"
                         >
-                            <option value="">{t('selectDistrict') || 'Select district'}</option>
-                            {Object.keys(DISTRICT_AREAS).map((d) => (
-                                <option key={d} value={d}>{d}</option>
+                            <option value="">Select Division</option>
+                            {divisions.map((d) => (
+                                <option key={d._id} value={d._id}>{d.name}</option>
                             ))}
                         </select>
                         <select
-                            value={area}
+                            value={selectedDistrictId}
                             onChange={(e) => {
-                                const a = e.target.value;
-                                setArea(a);
-                                if (a && district) flyToQuery(`${a}, ${district}, Bangladesh`, 15);
+                                const id = e.target.value;
+                                const name = e.target.options[e.target.selectedIndex].text;
+                                setSelectedDistrictId(id);
+                                setSelectedDistrictName(id ? name : '');
+                                if (id) flyToQuery(`${name} District, Bangladesh`, 12);
                             }}
-                            disabled={!district}
+                            disabled={!selectedDivisionId}
                             className="w-full h-11 px-3 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:border-[#E31E24] cursor-pointer disabled:bg-gray-50 disabled:cursor-not-allowed"
                         >
-                            <option value="">{t('selectArea') || 'Select area'}</option>
-                            {areaOptions.map((a) => (
-                                <option key={a} value={a}>{a}</option>
+                            <option value="">Select District</option>
+                            {dbDistricts.map((d) => (
+                                <option key={d._id} value={d._id}>{d.name}</option>
                             ))}
                         </select>
                     </div>

@@ -358,40 +358,111 @@ const ProductPage = () => {
                 </div>
 
                 {/* ── CENTER: Product Details ── */}
-                <div className="lg:col-span-5 space-y-5">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground mb-2">{language === 'bn' && product.nameBn ? product.nameBn : product.name}</h1>
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Unit:</span>
-                                <span className="font-medium bg-muted px-2 py-0.5 rounded text-sm">{product.unit || 'Each'}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-yellow-400">
-                                <Star className="h-4 w-4 fill-current" />
-                                <span className="text-foreground font-medium text-sm">{reviewStats?.averageRating || '0'}</span>
-                                <span className="text-muted-foreground text-sm">({reviewStats?.total || 0} reviews)</span>
-                            </div>
+                <div className="lg:col-span-5 space-y-4">
+                    {/* Title */}
+                    <h1 className="text-xl font-semibold text-foreground leading-snug">
+                        {language === 'bn' && product.nameBn ? product.nameBn : product.name}
+                    </h1>
+
+                    {/* Rating + sold row */}
+                    <div className="flex items-center gap-3 flex-wrap text-sm">
+                        <div className="flex items-center gap-1 text-yellow-500">
+                            {[1,2,3,4,5].map(i => {
+                                const avg = Number(reviewStats?.averageRating || 0);
+                                return (
+                                    <Star key={i} className={`h-3.5 w-3.5 ${i <= Math.round(avg) ? 'fill-current' : 'fill-none'}`} />
+                                );
+                            })}
                         </div>
+                        <span className="text-muted-foreground">
+                            {reviewStats?.averageRating || '0'}/5
+                            {reviewStats?.total > 0 && <> &nbsp;·&nbsp; Ratings {reviewStats.total}</>}
+                        </span>
+                        {product.brand?.name && (
+                            <>
+                                <span className="text-muted-foreground">·</span>
+                                <span className="text-muted-foreground">Brand: <span className="text-blue-600 font-medium cursor-pointer hover:underline">{product.brand.name}</span></span>
+                            </>
+                        )}
+                    </div>
+
+                    {/* SKU + Stock inline */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        {(product.sku || product._id) && (
+                            <span>SKU: <span className="text-foreground font-medium">{product.sku || product._id?.slice(-8)}</span></span>
+                        )}
+                        <span className={`flex items-center gap-1 font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                        </span>
                     </div>
 
                     {/* Sale countdown banner */}
                     {saleEndAt && saleEndAt > now && (
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-sm font-semibold text-foreground">Hurry! Sales Ends in</span>
-                            <span className="bg-yellow-300 text-foreground font-mono font-bold px-3 py-1 rounded text-sm tracking-wider">
-                                {formatCountdown(saleEndAt - now)} <span className="font-sans font-semibold">Left</span>
+                        <div className="flex items-center gap-3 flex-wrap bg-orange-50 dark:bg-orange-900/20 border border-orange-200 rounded-lg px-3 py-2">
+                            <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">SHOP NOW!</span>
+                            <span className="text-xs bg-orange-500 text-white font-bold px-2 py-1 rounded">10.10 SHOPPING FEST</span>
+                            <span className="bg-yellow-400 text-black font-mono font-bold px-3 py-1 rounded text-sm tracking-wider">
+                                {formatCountdown(saleEndAt - now)} LEFT
                             </span>
                         </div>
                     )}
 
                     {/* Price */}
-                    <div className="flex items-end gap-3 flex-wrap">
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                        <span className="text-2xl font-bold text-[#E31E24]">
+                            {formatPrice(product.price || product.salePrice || product.regularPrice)}
+                        </span>
                         {product.comparePrice > (product.price || product.salePrice || 0) && (
-                            <span className="text-lg text-muted-foreground line-through mb-1">{formatPrice(product.comparePrice)}</span>
+                            <>
+                                <span className="text-base text-muted-foreground line-through">
+                                    {formatPrice(product.comparePrice)}
+                                </span>
+                                <span className="text-sm font-semibold text-[#E31E24]">
+                                    -{Math.round(100 - ((product.price || product.salePrice) / product.comparePrice) * 100)}%
+                                </span>
+                            </>
                         )}
-                        <span className="text-3xl font-bold text-[#E31E24]">{formatPrice(product.price || product.salePrice || product.regularPrice)}</span>
-                        <span className="text-sm text-muted-foreground mb-1">{product.unit ? `Per ${product.unit.replace(/^per\s+/i, '')}` : 'Per Piece'}</span>
                     </div>
+
+                    {/* Color Family (if variants exist) */}
+                    {product.variants?.some(v => v.type === 'color' || v.label?.toLowerCase() === 'color') && (
+                        <div className="space-y-1.5">
+                            <span className="text-sm font-medium text-muted-foreground">Color Family</span>
+                            <div className="flex flex-wrap gap-2">
+                                {product.variants
+                                    .filter(v => v.type === 'color' || v.label?.toLowerCase() === 'color')
+                                    .map((v, i) => (
+                                        <button key={i}
+                                            className="h-8 px-3 border-2 border-primary rounded text-sm font-medium"
+                                        >
+                                            {v.value || v.name}
+                                        </button>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Size (if variants exist) */}
+                    {product.variants?.some(v => v.type === 'size' || v.label?.toLowerCase() === 'size') && (
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-muted-foreground">Size</span>
+                                <button className="text-xs text-blue-600 hover:underline">Size Guide</button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {product.variants
+                                    .filter(v => v.type === 'size' || v.label?.toLowerCase() === 'size')
+                                    .map((v, i) => (
+                                        <button key={i}
+                                            className="h-8 px-3 border border-border rounded text-sm font-medium hover:border-primary transition-colors"
+                                        >
+                                            {v.value || v.name}
+                                        </button>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Quantity + Add to bag */}
                     <div className="flex items-center gap-3 flex-wrap">
@@ -413,114 +484,151 @@ const ProductPage = () => {
                             </button>
                         </div>
                         <Button
+                            onClick={() => {
+                                handleAddToCart();
+                                window.location.href = '/checkout';
+                            }}
+                            size="lg"
+                            className="gap-2 bg-[#fec400] hover:bg-[#eebb00] text-black font-bold px-8"
+                            disabled={product.stock === 0}
+                        >
+                            {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
+                        </Button>
+                        <Button
                             onClick={handleAddToCart}
                             size="lg"
-                            className="gap-2 bg-[#E31E24] hover:bg-[#b9151a] px-8"
+                            variant="outline"
+                            className="gap-2 border-[#E31E24] text-[#E31E24] hover:bg-red-50 px-6"
                             disabled={product.stock === 0}
                         >
                             <ShoppingCart className="h-5 w-5" />
-                            {product.stock === 0 ? 'Out of Stock' : '+ Add to Bag'}
+                            Add to Cart
                         </Button>
                     </div>
 
-                    {/* Trust features */}
-                    <div className="grid grid-cols-3 gap-2 pt-4 border-t">
-                        <div className="flex flex-col items-center text-center gap-1 p-2 bg-muted/30 rounded-lg">
-                            <Truck className="h-5 w-5 text-primary" />
-                            <h4 className="font-medium text-xs">Fast Delivery</h4>
-                        </div>
-                        <div className="flex flex-col items-center text-center gap-1 p-2 bg-muted/30 rounded-lg">
-                            <ShieldCheck className="h-5 w-5 text-primary" />
-                            <h4 className="font-medium text-xs">Authentic</h4>
-                        </div>
-                        <div className="flex flex-col items-center text-center gap-1 p-2 bg-muted/30 rounded-lg">
-                            <RefreshCw className="h-5 w-5 text-primary" />
-                            <h4 className="font-medium text-xs">Easy Returns</h4>
+                    {/* Wishlist + Share */}
+                    <div className="flex items-center gap-3 flex-wrap pt-1 text-sm border-t">
+                        <button
+                            onClick={handleWishlistToggle}
+                            className={`flex items-center gap-1.5 font-medium transition-colors ${isWishlisted ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
+                        >
+                            <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+                            {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+                        </button>
+                        <span className="text-muted-foreground/30 select-none">|</span>
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Share:</span>
+                            <a
+                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                                target="_blank" rel="noreferrer"
+                                className="p-1 rounded-full hover:bg-muted text-blue-600"
+                                aria-label="Share on Facebook"
+                            >
+                                <Facebook className="h-4 w-4" />
+                            </a>
+                            <a
+                                href={`https://wa.me/?text=${encodeURIComponent(product.name + ' - ' + window.location.href)}`}
+                                target="_blank" rel="noreferrer"
+                                className="p-1 rounded-full hover:bg-muted text-green-600"
+                                aria-label="Share on WhatsApp"
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                            </a>
+                            <button
+                                onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied'); }}
+                                className="p-1 rounded-full hover:bg-muted text-muted-foreground"
+                                aria-label="Copy link"
+                            >
+                                <Copy className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
+
+                    {/* Stock warning */}
+                    {product.stock > 0 && product.stock <= 10 && (
+                        <p className="text-xs text-orange-600 font-semibold">
+                            Only {product.stock} left — order soon!
+                        </p>
+                    )}
                 </div>
 
-                {/* ── RIGHT: Sidebar (SKU / Payments / Delivery) ── */}
-                <aside className="lg:col-span-3">
-                    <div className="border rounded-xl p-4 space-y-4 bg-card sticky top-24">
-                        {/* SKU + Stock */}
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">
-                                SKU: <span className="font-semibold text-foreground">{product.sku || product._id?.slice(-7) || '—'}</span>
-                            </span>
-                            <span className={`flex items-center gap-1 font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                <CheckCircle2 className="h-4 w-4" />
-                                {product.stock > 0 ? 'In stock' : 'Out of stock'}
-                            </span>
+                {/* ── RIGHT: Sidebar (Delivery / Seller / Payment) ── */}
+                <aside className="lg:col-span-3 space-y-3">
+
+                    {/* Delivery & Return/Warranty */}
+                    <div className="border rounded-xl p-4 bg-card">
+                        <DeliveryInfoCard
+                            product={product}
+                            onChangeLocation={() => setShowLocationModal(true)}
+                        />
+                    </div>
+
+                    {/* Seller Info */}
+                    <div className="border rounded-xl p-4 bg-card space-y-3">
+                        {/* Store avatar + name */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-lg flex-shrink-0 uppercase">
+                                {(product.vendor?.name || product.store_name || product.vendorName || 'S')[0]}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-foreground truncate">
+                                    {product.vendor?.name || product.store_name || product.vendorName || 'Sholok Official Store'}
+                                </p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-xs text-muted-foreground">Positive Seller</span>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Wishlist + Share row */}
-                        <div className="flex items-center justify-between pt-2 border-t">
+                        {/* Seller stats */}
+                        <div className="grid grid-cols-3 text-center border rounded-lg overflow-hidden divide-x divide-border">
+                            <div className="py-2 px-1">
+                                <div className="text-sm font-bold text-foreground">88%</div>
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">Positive<br/>Seller</div>
+                            </div>
+                            <div className="py-2 px-1">
+                                <div className="text-sm font-bold text-foreground">95%</div>
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">Ship on<br/>Time</div>
+                            </div>
+                            <div className="py-2 px-1">
+                                <div className="text-sm font-bold text-foreground">72%</div>
+                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">Chat<br/>Response</div>
+                            </div>
+                        </div>
+
+                        {/* Chat / Go to Store */}
+                        <div className="grid grid-cols-2 gap-2">
                             <button
-                                onClick={handleWishlistToggle}
-                                className="flex items-center gap-1.5 text-sm font-medium hover:text-primary transition-colors"
+                                onClick={() => toast.info('Chat feature coming soon')}
+                                className="flex items-center justify-center gap-1.5 border border-border rounded-md py-2 text-xs font-bold text-foreground hover:bg-muted transition-colors"
                             >
-                                <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-                                Add to Wishlist
+                                <MessageCircle className="h-3.5 w-3.5" />
+                                CHAT NOW
                             </button>
-                            <div className="flex items-center gap-2">
-                                <a
-                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="p-1.5 rounded-full hover:bg-muted text-blue-600"
-                                    aria-label="Share on Facebook"
-                                >
-                                    <Facebook className="h-4 w-4" />
-                                </a>
-                                <a
-                                    href={`https://wa.me/?text=${encodeURIComponent(product.name + ' - ' + window.location.href)}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="p-1.5 rounded-full hover:bg-muted text-green-600"
-                                    aria-label="Share on WhatsApp"
-                                >
-                                    <MessageCircle className="h-4 w-4" />
-                                </a>
-                                <button
-                                    onClick={() => {
-                                        navigator.clipboard?.writeText(window.location.href);
-                                        toast.success('Link copied');
-                                    }}
-                                    className="p-1.5 rounded-full hover:bg-muted text-muted-foreground"
-                                    aria-label="Copy link"
-                                >
-                                    <Copy className="h-4 w-4" />
-                                </button>
-                            </div>
+                            <Link
+                                to={`/store/${product.vendor?.slug || product.vendorSlug || ''}`}
+                                className="flex items-center justify-center gap-1 border border-border rounded-md py-2 text-xs font-bold text-foreground hover:bg-muted transition-colors"
+                            >
+                                GO TO STORE
+                                <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
                         </div>
+                    </div>
 
-                        {/* Delivery info */}
-                        <div className="pt-2 border-t">
-                            <DeliveryInfoCard
-                                product={product}
-                                onChangeLocation={() => setShowLocationModal(true)}
-                            />
+                    {/* Payment Methods */}
+                    <div className="border rounded-xl p-4 bg-card">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payment Methods</span>
+                            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
                         </div>
-
-                        {/* Payment methods */}
-                        <div className="pt-2 border-t">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-semibold">Other Payment Methods</span>
-                                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="flex items-center justify-center gap-1 border rounded-md py-2 text-xs font-semibold bg-pink-50 text-pink-700 border-pink-200">
-                                    bKash
-                                </div>
-                                <div className="flex items-center justify-center gap-1 border rounded-md py-2 text-xs font-semibold bg-green-50 text-green-700 border-green-200">
-                                    Cash on Delivery
-                                </div>
-                                <div className="flex items-center justify-center gap-1 border rounded-md py-2 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
-                                    City Bank
-                                </div>
-                                <div className="flex items-center justify-center gap-1 border rounded-md py-2 text-xs font-semibold bg-muted text-foreground">
-                                    Card Payment
-                                </div>
-                            </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            <div className="border rounded py-1.5 text-center text-[11px] font-bold bg-pink-50 text-pink-700 border-pink-200">bKash</div>
+                            <div className="border rounded py-1.5 text-center text-[11px] font-bold bg-orange-50 text-orange-700 border-orange-200">Nagad</div>
+                            <div className="border rounded py-1.5 text-center text-[11px] font-bold bg-violet-50 text-violet-700 border-violet-200">Rocket</div>
+                            <div className="border rounded py-1.5 text-center text-[11px] font-bold bg-green-50 text-green-700 border-green-200">COD</div>
+                            <div className="border rounded py-1.5 text-center text-[11px] font-bold bg-blue-50 text-blue-700 border-blue-200">Visa</div>
+                            <div className="border rounded py-1.5 text-center text-[11px] font-bold bg-muted text-foreground">MasterCard</div>
                         </div>
                     </div>
                 </aside>
