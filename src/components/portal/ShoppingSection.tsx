@@ -51,7 +51,7 @@ export default function ShoppingSection() {
           name:          p.name,
           name_bn:       p.name_bn || p.name,
           slug:          p.slug,
-          thumbnail:     p.thumbnail || null,
+          thumbnail:     p.thumbnail ? (p.thumbnail.startsWith("http") ? p.thumbnail : `https://api.sholok.com${p.thumbnail}`) : null,
           regular_price: p.regular_price != null ? Number(p.regular_price) : null,
           sale_price:    p.sale_price   != null ? Number(p.sale_price)    : null,
           category_name: p.category_name || null,

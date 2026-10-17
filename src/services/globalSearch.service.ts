@@ -124,7 +124,7 @@ async function fetchShoppingSuggestions(
     name:         p.name     || '',
     nameBn:       p.nameBn   || p.name || '',
     slug:         p.slug     || '',
-    thumbnail:    p.thumbnail || '',
+    thumbnail:    p.thumbnail ? (p.thumbnail.startsWith("http") ? p.thumbnail : `https://api.sholok.com${p.thumbnail}`) : '',
     regularPrice: p.regular_price != null ? Number(p.regular_price) : undefined,
     salePrice:    p.sale_price    != null ? Number(p.sale_price)    : null,
     categoryName: p.category_name || '',
