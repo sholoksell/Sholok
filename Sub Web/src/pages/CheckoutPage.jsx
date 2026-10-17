@@ -1,59 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { orderService } from '@/services/orderService';
-import { addressService } from '@/services/addressService';
 import { getImageUrl, formatPrice } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Loader2, Clock, Salad, Briefcase, Home, Truck, CheckCircle2, Tag, ChevronDown, Pencil } from 'lucide-react';
+import {
+  Loader2, Clock, Salad, Briefcase, Home, Truck, CheckCircle2,
+  Tag, ChevronDown, Pencil, MapPin, ChevronRight, AlertCircle,
+  Package,
+} from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const API_BASE = '/api';
 
-// Bangladesh cascading location data
-const BD_DIVISIONS = ['Dhaka','Chittagong','Rajshahi','Khulna','Sylhet','Barisal','Rangpur','Mymensingh'];
-
-const BD_DISTRICTS = {
-  Dhaka:       ['Dhaka','Gazipur','Narayanganj','Narsingdi','Manikganj','Munshiganj','Rajbari','Shariatpur','Faridpur','Madaripur','Gopalganj','Kishoreganj','Tangail'],
-  Chittagong:  ['Chittagong','Cox\'s Bazar','Comilla','Feni','Noakhali','Lakshmipur','Chandpur','Brahmanbaria','Khagrachhari','Rangamati','Bandarban'],
-  Rajshahi:    ['Rajshahi','Bogura','Naogaon','Chapai Nawabganj','Natore','Sirajganj','Pabna','Joypurhat'],
-  Khulna:      ['Khulna','Jessore','Satkhira','Bagerhat','Narail','Magura','Jhenaidah','Chuadanga','Kushtia','Meherpur'],
-  Sylhet:      ['Sylhet','Moulvibazar','Habiganj','Sunamganj'],
-  Barisal:     ['Barisal','Pirojpur','Bhola','Jhalokathi','Patuakhali','Barguna'],
-  Rangpur:     ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Panchagarh','Thakurgaon','Lalmonirhat'],
-  Mymensingh:  ['Mymensingh','Jamalpur','Netrokona','Sherpur'],
+// Same BD_GEO as DeliveryLocationModal — district names match DB `city` field
+const BD_GEO = {
+  'Dhaka':      ['Dhaka','Gazipur','Narsingdi','Manikganj','Munshiganj','Narayanganj','Tangail','Faridpur','Gopalganj','Kishoreganj','Madaripur','Rajbari','Shariatpur'],
+  'Chattogram': ['Chattogram',"Cox's Bazar",'Rangamati','Bandarban','Khagrachari','Feni','Lakshmipur','Noakhali','Cumilla','Chandpur','Brahmanbaria'],
+  'Sylhet':     ['Sylhet','Moulvibazar','Habiganj','Sunamganj'],
+  'Rajshahi':   ['Rajshahi','Bogura','Chapai Nawabganj','Naogaon','Natore','Pabna','Sirajganj','Joypurhat'],
+  'Khulna':     ['Khulna','Bagerhat','Satkhira','Jashore','Magura','Jhenaidah','Narail','Chuadanga','Kushtia','Meherpur'],
+  'Barishal':   ['Barishal','Bhola','Jhalokathi','Patuakhali','Pirojpur','Barguna'],
+  'Rangpur':    ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Lalmonirhat','Panchgarh','Thakurgaon'],
+  'Mymensingh': ['Mymensingh','Jamalpur','Netrokona','Sherpur'],
 };
 
-const BD_AREAS = {
-  Dhaka:         ['Dhanmondi','Mirpur','Gulshan','Banani','Uttara','Mohammadpur','Rayer Bazar','Badda','Khilgaon','Motijheel','Paltan','Old Dhaka','Demra','Jatrabari','Shyamoli','Lalmatia','Azimpur','Lalbagh','New Market','Kalabagan','Farmgate','Tejgaon','Rampura','Khilkhet','Vatara'],
-  Gazipur:       ['Gazipur Sadar','Kaliakoir','Kapasia','Sreepur','Tongi'],
-  Narayanganj:   ['Narayanganj Sadar','Araihazar','Bandar','Rupganj','Sonargaon'],
-  Chittagong:    ['Agrabad','Anderkilla','Bakolia','Bayazid','Chandgaon','Chawkbazar','Double Mooring','Halishahar','Khulshi','Kotwali','Pahartali','Panchlaish','Patenga','Sholoshahar'],
-  "Cox's Bazar": ['Cox\'s Bazar Sadar','Chakaria','Maheshkhali','Ukhia','Teknaf','Kutubdia'],
-  Comilla:       ['Comilla Sadar','Burichang','Chandina','Chauddagram','Daudkandi','Debidwar','Homna','Laksam','Monohorganj','Muradnagar'],
-  Rajshahi:      ['Rajshahi Sadar','Boalia','Motihar','Rajpara','Shah Makhdum'],
-  Khulna:        ['Khulna Sadar','Daulatpur','Khalishpur','Khanepur','Sonadanga'],
-  Sylhet:        ['Sylhet Sadar','Beanibazar','Companiganj','Golapganj','Gowainghat','Jaintapur','Kanaighat','Osmaninagar'],
-  Barisal:       ['Barisal Sadar','Agailjhara','Babuganj','Bakerganj','Banaripara','Gauranadi','Mehendiganj','Muladi','Wazirpur'],
-  Rangpur:       ['Rangpur Sadar','Badarganj','Gangachara','Kaunia','Mithapukur','Pirgachha','Pirganj','Taraganj'],
-  Mymensingh:    ['Mymensingh Sadar','Bhaluka','Dhobaura','Fulbaria','Gaffargaon','Gauripur','Haluaghat','Ishwarganj','Muktagachha','Nandail','Phulpur','Trishal'],
+const getDivision = (district) => {
+  for (const [div, dists] of Object.entries(BD_GEO)) {
+    if (dists.includes(district)) return div;
+  }
+  return '';
 };
 
-const getAreas = (district) => BD_AREAS[district] || [];
-
-const SelectField = ({ label, value, onChange, options, placeholder, error }) => (
+const SelectField = ({ label, value, onChange, options, placeholder, error, disabled }) => (
   <div className="space-y-1">
     <label className="text-xs font-semibold text-[#0f1111] block">{label}</label>
     <div className="relative">
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className={`w-full appearance-none border rounded px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#e77600] pr-8 ${
+        disabled={disabled}
+        className={`w-full appearance-none border rounded px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E31E24] pr-8 transition-colors ${
           error ? 'border-red-500' : 'border-[#adb1b8]'
-        } ${!value ? 'text-gray-400' : 'text-[#0f1111]'}`}
+        } ${!value ? 'text-gray-400' : 'text-[#0f1111]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <option value="">{placeholder}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -70,7 +60,7 @@ const TextField = ({ label, placeholder, error, ...props }) => (
     <input
       {...props}
       placeholder={placeholder}
-      className={`w-full border rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#e77600] ${
+      className={`w-full border rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E31E24] transition-colors ${
         error ? 'border-red-500' : 'border-[#adb1b8]'
       } text-[#0f1111] placeholder-gray-400`}
     />
@@ -83,6 +73,8 @@ const CheckoutPage = () => {
   const { isAuthenticated, customer } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const placeOrderLock = useRef(false);
+
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [grocerySlots, setGrocerySlots] = useState([]);
@@ -95,34 +87,109 @@ const CheckoutPage = () => {
   const [bundleOffers, setBundleOffers] = useState([]);
   const [addressLabel, setAddressLabel] = useState('home');
   const [addrSaved, setAddrSaved] = useState(false);
-  const [shippingCost, setShippingCost] = useState(115);
   const [shippingLoading, setShippingLoading] = useState(false);
+
+  // All DB areas (763 total), keyed by district
+  const [areasByDistrict, setAreasByDistrict] = useState({});
+  const [areasLoading, setAreasLoading] = useState(true);
+  const [selectedAreaObj, setSelectedAreaObj] = useState(null); // full area object from DB
+  const [shippingCost, setShippingCost] = useState(null); // null = not yet determined
 
   // Cascading location state
   const [division, setDivision] = useState('');
   const [district, setDistrict] = useState('');
-  const [area, setArea] = useState('');
+  const [areaName, setAreaName] = useState('');
   const [buildingAddr, setBuildingAddr] = useState('');
   const [colonyAddr, setColonyAddr] = useState('');
   const [streetAddr, setStreetAddr] = useState('');
-  const [fullName, setFullName] = useState(customer?.name || '');
-  const [phone, setPhone] = useState(customer?.phone || '');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [formErrors, setFormErrors] = useState({});
 
   const hasGrocery = (cart?.items || []).some(item => item.product_type === 'perishable');
+  const items = cart?.items || [];
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
+  // ── Load all areas from DB on mount ─────────────────────────────────────
   useEffect(() => {
-    const cartItems = cart?.items || [];
-    if (!cartItems.length) { setBundleOffers([]); return; }
-    fetch(`${API_BASE}/bundle-offers/check-cart`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cartItems.map(i => ({ productId: i.productId || i._id || i.id, quantity: i.quantity })) }),
-    }).then(r => r.ok ? r.json() : { applicable: [] })
-      .then(d => setBundleOffers(d.applicable || []))
-      .catch(() => {});
-  }, [cart]);
+    setAreasLoading(true);
+    fetch(`${API_BASE}/shipping/areas/active`)
+      .then(r => r.ok ? r.json() : [])
+      .then(areas => {
+        const byDistrict = {};
+        for (const a of (Array.isArray(areas) ? areas : [])) {
+          const d = a.city || '';
+          if (!byDistrict[d]) byDistrict[d] = [];
+          byDistrict[d].push(a);
+        }
+        // Sort each district's areas alphabetically
+        for (const d of Object.keys(byDistrict)) {
+          byDistrict[d].sort((a, b) => a.name.localeCompare(b.name));
+        }
+        setAreasByDistrict(byDistrict);
+      })
+      .catch(() => {})
+      .finally(() => setAreasLoading(false));
+  }, []);
 
+  // ── Pre-populate from localStorage delivery_location (product page) ───
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    try {
+      const saved = localStorage.getItem('delivery_location');
+      if (saved) {
+        const loc = JSON.parse(saved);
+        if (loc.division) setDivision(loc.division);
+        if (loc.city || loc.district) setDistrict(loc.city || loc.district);
+        if (loc.area_name) setAreaName(loc.area_name);
+        if (loc.area_id) {
+          // area obj will be resolved once areasByDistrict loads
+        }
+      }
+    } catch {}
+    // Pre-fill name/phone from customer
+    setFullName(customer?.name || '');
+    setPhone(customer?.phone || '');
+  }, [isAuthenticated, customer]);
+
+  // ── Resolve full area object when DB areas load / location changes ─────
+  useEffect(() => {
+    if (!district || !areaName || !Object.keys(areasByDistrict).length) {
+      if (!district) {
+        setSelectedAreaObj(null);
+        setShippingCost(null);
+      }
+      return;
+    }
+    const districtAreas = areasByDistrict[district] || [];
+    const found = districtAreas.find(a => a.name === areaName);
+    if (found) {
+      setSelectedAreaObj(found);
+      const charge = Number(found.deliveryCharge || found.delivery_charge || 0);
+      const threshold = Number(found.freeDeliveryThreshold || found.free_delivery_threshold || 0);
+      setShippingCost(threshold > 0 && subtotal >= threshold ? 0 : charge);
+    } else {
+      setSelectedAreaObj(null);
+      setShippingCost(null);
+    }
+  }, [district, areaName, areasByDistrict, subtotal]);
+
+  // ── Fallback: use delivery-rates/charge if no area selected but district known ─
+  useEffect(() => {
+    if (selectedAreaObj) return; // already resolved
+    if (!district) { setShippingCost(null); return; }
+    setShippingLoading(true);
+    fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(areaName || '')}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && d.matched) setShippingCost(d.charge);
+        else setShippingCost(null);
+      })
+      .catch(() => setShippingCost(null))
+      .finally(() => setShippingLoading(false));
+  }, [district, areaName, selectedAreaObj]);
+
+  // ── Grocery slots ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!hasGrocery) return;
     fetch(`${API_BASE}/grocery-settings/slots`)
@@ -131,38 +198,52 @@ const CheckoutPage = () => {
       .catch(() => {});
   }, [hasGrocery]);
 
+  // ── Bundle offers ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isAuthenticated) return;
-    addressService.getAll().then(list => {
-      const def = (list || []).find(a => a.isDefault) || (list || [])[0];
-      if (def) {
-        setFullName(def.name || customer?.name || '');
-        setPhone(def.phone || customer?.phone || '');
-        setBuildingAddr(def.street || '');
-        setDistrict(def.city || '');
-        setArea(def.state || '');
-      }
-    }).catch(() => {});
-  }, [isAuthenticated]);
+    if (!items.length) { setBundleOffers([]); return; }
+    fetch(`${API_BASE}/bundle-offers/check-cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items.map(i => ({ productId: i.productId || i._id || i.id, quantity: i.quantity })) }),
+    }).then(r => r.ok ? r.json() : { applicable: [] })
+      .then(d => setBundleOffers(d.applicable || []))
+      .catch(() => {});
+  }, [cart]);
 
-  useEffect(() => {
-    if (!district) return;
-    const items = cart?.items || [];
-    if (!items.length) { setShippingCost(0); return; }
-    setShippingLoading(true);
-    fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(area || '')}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d && d.matched) setShippingCost(d.charge); })
-      .catch(() => {})
-      .finally(() => setShippingLoading(false));
-  }, [district, area, cart]);
-
-  const items = cart?.items || [];
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const effectiveShipping = items.length > 0 ? shippingCost : 0;
+  // ── Derived totals ────────────────────────────────────────────────────
+  const effectiveShipping = items.length > 0 && shippingCost !== null ? shippingCost : 0;
   const bundleSavings = bundleOffers.reduce((s, o) => s + (o.discount_amount || 0), 0);
   const total = Math.max(0, subtotal + effectiveShipping - couponDiscount - bundleSavings);
 
+  // ── Location handlers ─────────────────────────────────────────────────
+  const handleDivisionChange = (v) => {
+    setDivision(v);
+    setDistrict('');
+    setAreaName('');
+    setSelectedAreaObj(null);
+    setShippingCost(null);
+  };
+
+  const handleDistrictChange = (v) => {
+    setDistrict(v);
+    setAreaName('');
+    setSelectedAreaObj(null);
+    setShippingCost(null);
+    if (v && !division) setDivision(getDivision(v));
+  };
+
+  const handleAreaChange = (v) => {
+    setAreaName(v);
+  };
+
+  // ── Districts available for selected division (only those with DB areas) ─
+  const availableDistricts = division
+    ? (BD_GEO[division] || []).filter(d => (areasByDistrict[d] || []).length > 0)
+    : [];
+
+  const availableAreas = district ? (areasByDistrict[district] || []) : [];
+
+  // ── Coupon ────────────────────────────────────────────────────────────
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
@@ -188,14 +269,16 @@ const CheckoutPage = () => {
 
   const removeCoupon = () => { setCouponDiscount(0); setAppliedCoupon(null); setCouponCode(''); };
 
+  // ── Validation ────────────────────────────────────────────────────────
   const validate = () => {
     const errs = {};
     if (!fullName.trim()) errs.fullName = 'Full name is required';
     if (!phone.trim()) errs.phone = 'Phone number is required';
-    if (!division) errs.division = 'Please choose your region';
-    if (!district) errs.district = 'Please choose your city';
-    if (!area && getAreas(district).length > 0) errs.area = 'Please choose your area';
-    if (!buildingAddr.trim()) errs.buildingAddr = 'Building / House No is required';
+    else if (!/^(\+88)?0[1-9]\d{9}$/.test(phone.replace(/\s/g, ''))) errs.phone = 'Enter a valid BD phone number';
+    if (!division) errs.division = 'Select your division';
+    if (!district) errs.district = 'Select your district';
+    if (availableAreas.length > 0 && !areaName) errs.areaName = 'Select your area/upazila';
+    if (!buildingAddr.trim()) errs.buildingAddr = 'House/Building no. is required';
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -206,30 +289,45 @@ const CheckoutPage = () => {
     toast.success('Delivery address saved');
   };
 
+  // ── Place Order ───────────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
+    if (placeOrderLock.current) return;
     if (!validate()) { toast.error('Please fill in all required fields'); return; }
-    if (!items.length) { toast.error(t('cartIsEmpty')); return; }
+    if (!items.length) { toast.error(t('cartIsEmpty') || 'Cart is empty'); return; }
+    if (availableAreas.length > 0 && !selectedAreaObj) {
+      toast.error('Please select your area to calculate delivery fee');
+      return;
+    }
+    placeOrderLock.current = true;
     try {
       setLoading(true);
+      const fullAddress = [buildingAddr, colonyAddr, streetAddr].filter(Boolean).join(', ');
       const orderData = {
         items: items.map(item => ({
-          productId: item._id,
+          productId: item._id || item.productId,
           productName: item.name,
+          name: item.name,
           quantity: item.quantity,
           price: item.price,
+          image: item.image || '',
           total: item.price * item.quantity,
         })),
         shippingAddress: {
           name: fullName,
           phone,
-          street: [buildingAddr, colonyAddr, streetAddr].filter(Boolean).join(', '),
+          street: fullAddress,
           city: district,
-          state: area || division,
+          state: areaName || district,
           country: 'Bangladesh',
+          division,
+          areaId: selectedAreaObj?._id || null,
+          areaName: areaName || null,
+          label: addressLabel,
         },
-        paymentMethod: paymentMethod === 'cod' ? 'cash_on_delivery' : 'credit_card',
+        paymentMethod: paymentMethod === 'cod' ? 'cod' : 'online',
         subtotal,
         shippingCost: effectiveShipping,
+        deliveryCharge: effectiveShipping,
         discount: couponDiscount + bundleSavings,
         total,
         couponCode: appliedCoupon?.code,
@@ -243,26 +341,30 @@ const CheckoutPage = () => {
         orderData.grocery_delivery_slot_id = selectedSlotId ? Number(selectedSlotId) : null;
       }
       await orderService.create(orderData);
-      toast.success(t('orderPlacedSuccess'));
+      toast.success(t('orderPlacedSuccess') || 'Order placed successfully!');
       clearCart();
       navigate('/account');
     } catch (error) {
-      toast.error(error.response?.data?.message || t('failedToPlaceOrder'));
-    } finally { setLoading(false); }
+      toast.error(error.response?.data?.message || t('failedToPlaceOrder') || 'Failed to place order');
+    } finally {
+      setLoading(false);
+      placeOrderLock.current = false;
+    }
   };
 
+  // ── Auth guard ────────────────────────────────────────────────────────
   if (!isAuthenticated || !customer) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">{t('pleaseLoginToCheckout')}</h2>
-          <p className="text-muted-foreground mb-6">{t('needSignedIn')}</p>
+          <h2 className="text-2xl font-bold mb-2">{t('pleaseLoginToCheckout') || 'Login to Checkout'}</h2>
+          <p className="text-muted-foreground mb-6">{t('needSignedIn') || 'You need to be signed in to place an order'}</p>
           <div className="flex justify-center gap-3">
             <Link to="/login?redirect=/checkout">
-              <Button className="bg-[#f57224] hover:bg-[#e06420] text-white border-0">{t('login')}</Button>
+              <button className="bg-[#E31E24] hover:bg-[#c41920] text-white font-semibold px-6 py-2.5 rounded transition-colors">{t('login') || 'Login'}</button>
             </Link>
             <Link to="/register">
-              <Button variant="outline">{t('register')}</Button>
+              <button className="border border-[#adb1b8] text-[#0f1111] font-semibold px-6 py-2.5 rounded hover:border-[#E31E24] transition-colors">{t('register') || 'Register'}</button>
             </Link>
           </div>
         </div>
@@ -273,179 +375,223 @@ const CheckoutPage = () => {
   if (!items.length) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4">
-        <h2 className="text-2xl font-bold">{t('yourCartIsEmpty')}</h2>
-        <Link to="/"><Button className="bg-[#f57224] hover:bg-[#e06420] text-white border-0">{t('continueShopping')}</Button></Link>
+        <Package className="w-16 h-16 text-gray-300" />
+        <h2 className="text-2xl font-bold text-[#0f1111]">{t('yourCartIsEmpty') || 'Your cart is empty'}</h2>
+        <Link to="/">
+          <button className="bg-[#E31E24] hover:bg-[#c41920] text-white font-semibold px-6 py-2.5 rounded transition-colors">
+            {t('continueShopping') || 'Continue Shopping'}
+          </button>
+        </Link>
       </div>
     );
   }
 
-  // Delivery date labels
   const today = new Date();
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
   const fmtDate = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+  const deliveryDays = selectedAreaObj?.estimatedDeliveryDays || selectedAreaObj?.estimated_delivery_days || 3;
+  const deliveryByDate = new Date(Date.now() + deliveryDays * 86400000);
+  const deliveryRangeEnd = new Date(Date.now() + (deliveryDays + 2) * 86400000);
+
+  const noAreaAvailable = district && availableAreas.length === 0 && !areasLoading;
+  const needsArea = district && availableAreas.length > 0 && !areaName;
+  const freeThreshold = selectedAreaObj
+    ? Number(selectedAreaObj.freeDeliveryThreshold || selectedAreaObj.free_delivery_threshold || 0)
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
       <div className="max-w-[1200px] mx-auto px-4 py-6">
 
-        {/* Page title */}
-        <h1 className="text-2xl font-bold text-[#0f1111] mb-5">Checkout</h1>
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1.5 text-xs text-[#565959] mb-4">
+          <Link to="/" className="hover:text-[#E31E24] hover:underline">Home</Link>
+          <ChevronRight className="w-3 h-3" />
+          <Link to="/cart" className="hover:text-[#E31E24] hover:underline">Cart</Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-[#0f1111] font-medium">Checkout</span>
+        </div>
+
+        <h1 className="text-xl font-bold text-[#0f1111] mb-5">Order Checkout</h1>
 
         <div className="flex flex-col lg:flex-row gap-5 items-start">
 
-          {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
+          {/* ── LEFT COLUMN ──────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 space-y-4">
 
-            {/* Delivery Information card */}
-            <div className="bg-white rounded-sm border border-[#ddd] p-5">
-              <h2 className="text-base font-bold text-[#0f1111] mb-4 border-b border-[#e7e7e7] pb-3">
-                Delivery Information
-              </h2>
+            {/* Delivery Address */}
+            <div className="bg-white rounded border border-[#ddd] p-5">
+              <div className="flex items-center gap-2 mb-4 border-b border-[#e7e7e7] pb-3">
+                <MapPin className="w-4 h-4 text-[#E31E24]" />
+                <h2 className="text-base font-bold text-[#0f1111]">Delivery Address</h2>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                {/* Row 1 */}
                 <TextField
-                  label="Full name"
-                  placeholder="Enter your first and last name"
+                  label="Full Name *"
+                  placeholder="Enter your full name"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
                   error={formErrors.fullName}
                 />
-                <SelectField
-                  label="Region"
-                  value={division}
-                  onChange={v => { setDivision(v); setDistrict(''); setArea(''); }}
-                  options={BD_DIVISIONS}
-                  placeholder="Please choose your region"
-                  error={formErrors.division}
-                />
-
-                {/* Row 2 */}
                 <TextField
-                  label="Phone Number"
-                  placeholder="Please enter your phone number"
+                  label="Phone Number *"
+                  placeholder="01XXXXXXXXX"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   error={formErrors.phone}
                   type="tel"
                 />
+
+                {/* Division */}
                 <SelectField
-                  label="City"
-                  value={district}
-                  onChange={v => { setDistrict(v); setArea(''); }}
-                  options={division ? (BD_DISTRICTS[division] || []) : []}
-                  placeholder="Please choose your city"
-                  error={formErrors.district}
+                  label="Division *"
+                  value={division}
+                  onChange={handleDivisionChange}
+                  options={Object.keys(BD_GEO)}
+                  placeholder="Select Division"
+                  error={formErrors.division}
                 />
 
-                {/* Row 3 */}
+                {/* District — filtered to only districts with DB areas */}
+                <SelectField
+                  label="District *"
+                  value={district}
+                  onChange={handleDistrictChange}
+                  options={availableDistricts}
+                  placeholder={division ? 'Select District' : 'Select Division first'}
+                  error={formErrors.district}
+                  disabled={!division || areasLoading}
+                />
+
+                {/* Area / Upazila */}
+                {!noAreaAvailable && (
+                  <SelectField
+                    label="Area / Upazila *"
+                    value={areaName}
+                    onChange={handleAreaChange}
+                    options={availableAreas.map(a => a.name)}
+                    placeholder={district ? 'Select Area' : 'Select District first'}
+                    error={formErrors.areaName}
+                    disabled={!district || areasLoading}
+                  />
+                )}
+
                 <TextField
-                  label="Building / House No / Floor / Street"
-                  placeholder="Please enter"
+                  label="House / Building / Road *"
+                  placeholder="e.g. House 12, Road 4, Block C"
                   value={buildingAddr}
                   onChange={e => setBuildingAddr(e.target.value)}
                   error={formErrors.buildingAddr}
                 />
-                {getAreas(district).length > 0 ? (
-                  <SelectField
-                    label="Area"
-                    value={area}
-                    onChange={setArea}
-                    options={getAreas(district)}
-                    placeholder="Please choose your area"
-                    error={formErrors.area}
-                  />
-                ) : (
-                  <TextField
-                    label="Area"
-                    placeholder="Enter your area / thana"
-                    value={area}
-                    onChange={e => setArea(e.target.value)}
-                  />
-                )}
 
-                {/* Row 4 */}
                 <TextField
-                  label="Colony / Suburb / Locality / Landmark"
-                  placeholder="Please enter"
+                  label="Colony / Area / Landmark"
+                  placeholder="e.g. Near City Hospital"
                   value={colonyAddr}
                   onChange={e => setColonyAddr(e.target.value)}
                 />
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[#0f1111] block">Address</label>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-semibold text-[#0f1111] block">Additional Notes (optional)</label>
                   <textarea
                     rows={2}
-                    placeholder="For Example: House# 123, Street# 123, ABC Road"
+                    placeholder="Any special delivery instructions..."
                     value={streetAddr}
                     onChange={e => setStreetAddr(e.target.value)}
-                    className="w-full border border-[#adb1b8] rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#e77600] text-[#0f1111] placeholder-gray-400 resize-none"
+                    className="w-full border border-[#adb1b8] rounded px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E31E24] text-[#0f1111] placeholder-gray-400 resize-none"
                   />
                 </div>
               </div>
 
-              {/* Label selection */}
+              {/* Delivery fee preview when area selected */}
+              {selectedAreaObj && (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded p-3 flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-green-800">
+                      {effectiveShipping === 0
+                        ? 'Free Delivery applied!'
+                        : `Delivery Fee: ৳${effectiveShipping}`}
+                    </p>
+                    <p className="text-green-700 text-xs mt-0.5">
+                      {selectedAreaObj.name}, {district} — Estimated {deliveryDays}–{deliveryDays + 2} days
+                      {freeThreshold > 0 && effectiveShipping > 0 && (
+                        <> &nbsp;·&nbsp; Free above ৳{freeThreshold}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {noAreaAvailable && (
+                <div className="mb-4 bg-amber-50 border border-amber-200 rounded p-3 flex items-start gap-2 text-xs text-amber-800">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  No delivery areas configured for {district} yet. Standard rates apply.
+                </div>
+              )}
+
+              {/* Address label */}
               <div className="mb-4">
-                <p className="text-xs font-semibold text-[#0f1111] mb-2">Select a label for effective delivery:</p>
+                <p className="text-xs font-semibold text-[#0f1111] mb-2">Address label:</p>
                 <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAddressLabel('office')}
-                    className={`flex items-center gap-2 px-5 py-2 border rounded text-sm font-medium transition-colors ${
-                      addressLabel === 'office'
-                        ? 'border-[#f57224] text-[#f57224] bg-orange-50'
-                        : 'border-[#adb1b8] text-[#565959] hover:border-[#f57224]'
-                    }`}
-                  >
-                    <Briefcase className="w-4 h-4" /> OFFICE
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddressLabel('home')}
-                    className={`flex items-center gap-2 px-5 py-2 border rounded text-sm font-medium transition-colors ${
-                      addressLabel === 'home'
-                        ? 'border-[#f57224] text-[#f57224] bg-orange-50'
-                        : 'border-[#adb1b8] text-[#565959] hover:border-[#f57224]'
-                    }`}
-                  >
-                    <Home className="w-4 h-4" /> HOME
-                  </button>
+                  {[
+                    { key: 'home',   icon: <Home className="w-4 h-4" />,     label: 'HOME' },
+                    { key: 'office', icon: <Briefcase className="w-4 h-4" />, label: 'OFFICE' },
+                  ].map(opt => (
+                    <button key={opt.key} type="button" onClick={() => setAddressLabel(opt.key)}
+                      className={`flex items-center gap-2 px-5 py-2 border rounded text-sm font-medium transition-colors ${
+                        addressLabel === opt.key
+                          ? 'border-[#E31E24] text-[#E31E24] bg-red-50'
+                          : 'border-[#adb1b8] text-[#565959] hover:border-[#E31E24]'
+                      }`}>
+                      {opt.icon} {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Save button */}
-              <button
-                type="button"
-                onClick={handleSaveAddress}
-                className="bg-[#1a94ff] hover:bg-[#0e87f0] text-white font-semibold text-sm px-8 py-2.5 rounded transition-colors"
-              >
-                {addrSaved ? '✓ SAVED' : 'SAVE'}
+              <button type="button" onClick={handleSaveAddress}
+                className="bg-[#E31E24] hover:bg-[#c41920] text-white font-semibold text-sm px-8 py-2.5 rounded transition-colors">
+                {addrSaved ? '✓ Address Saved' : 'Save Address'}
               </button>
             </div>
 
             {/* Grocery Schedule */}
             {hasGrocery && (
-              <div className="bg-white rounded-sm border border-[#ddd] p-5">
+              <div className="bg-white rounded border border-[#ddd] p-5">
                 <div className="flex items-center gap-2 mb-4 border-b border-[#e7e7e7] pb-3">
                   <Salad className="h-5 w-5 text-green-600" />
-                  <h2 className="text-base font-bold text-[#0f1111]">{t('groceryDeliverySchedule')}</h2>
+                  <h2 className="text-base font-bold text-[#0f1111]">{t('groceryDeliverySchedule') || 'Grocery Delivery Schedule'}</h2>
                 </div>
                 <div className="mb-3">
-                  <p className="text-xs font-semibold text-[#0f1111] mb-2">{t('deliveryDate')}</p>
+                  <p className="text-xs font-semibold text-[#0f1111] mb-2">{t('deliveryDate') || 'Delivery Date'}</p>
                   <div className="grid grid-cols-2 gap-3">
                     {['today', 'tomorrow'].map(day => (
                       <button key={day} type="button" onClick={() => setSelectedDeliveryDate(day)}
-                        className={`border rounded p-3 text-sm font-medium transition-colors ${selectedDeliveryDate === day ? 'border-[#f57224] bg-orange-50 text-[#f57224]' : 'border-[#adb1b8] text-[#565959] hover:border-[#f57224]'}`}>
-                        {day === 'today' ? `${t('today')} (${fmtDate(today)})` : `${t('tomorrow')} (${fmtDate(tomorrow)})`}
+                        className={`border rounded p-3 text-sm font-medium transition-colors ${
+                          selectedDeliveryDate === day
+                            ? 'border-[#E31E24] bg-red-50 text-[#E31E24]'
+                            : 'border-[#adb1b8] text-[#565959] hover:border-[#E31E24]'
+                        }`}>
+                        {day === 'today' ? `${t('today') || 'Today'} (${fmtDate(today)})` : `${t('tomorrow') || 'Tomorrow'} (${fmtDate(tomorrow)})`}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#0f1111] mb-2 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {t('selectTimeSlot')}</p>
+                  <p className="text-xs font-semibold text-[#0f1111] mb-2 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> {t('selectTimeSlot') || 'Select Time Slot'}
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     {grocerySlots.length > 0 ? grocerySlots.map(slot => (
                       <button key={slot._id} type="button" onClick={() => setSelectedSlotId(String(slot._id))}
-                        className={`border rounded p-2.5 text-xs font-medium text-left transition-colors ${selectedSlotId === String(slot._id) ? 'border-[#f57224] bg-orange-50 text-[#f57224]' : 'border-[#adb1b8] text-[#565959] hover:border-[#f57224]'}`}>
+                        className={`border rounded p-2.5 text-xs font-medium text-left transition-colors ${
+                          selectedSlotId === String(slot._id)
+                            ? 'border-[#E31E24] bg-red-50 text-[#E31E24]'
+                            : 'border-[#adb1b8] text-[#565959] hover:border-[#E31E24]'
+                        }`}>
                         {slot.label}
                       </button>
                     )) : <p className="text-sm text-gray-400 col-span-2">Loading slots…</p>}
@@ -454,92 +600,117 @@ const CheckoutPage = () => {
               </div>
             )}
 
-            {/* Package section */}
-            {items.map((item, idx) => {
-              const vendorName = item.vendor_name || item.store_name || 'Sholok Store';
-              const deliveryDate = `${fmtDate(new Date(Date.now() + 2 * 86400000))}-${fmtDate(new Date(Date.now() + 5 * 86400000))}`;
-              return (
-                <div key={item._id || idx} className="bg-white rounded-sm border border-[#ddd] p-5">
-                  <div className="flex items-center justify-between mb-3 border-b border-[#e7e7e7] pb-3">
-                    <span className="text-sm font-bold text-[#0f1111]">Package {idx + 1} of {items.length}</span>
-                    <span className="text-xs text-[#565959]">
-                      Shipped by <span className="font-semibold text-[#0f1111] uppercase">{vendorName}</span>
+            {/* Order Items */}
+            <div className="bg-white rounded border border-[#ddd] p-5">
+              <div className="flex items-center gap-2 mb-4 border-b border-[#e7e7e7] pb-3">
+                <Package className="w-4 h-4 text-[#E31E24]" />
+                <h2 className="text-base font-bold text-[#0f1111]">Order Items ({items.length})</h2>
+              </div>
+
+              {/* Delivery method row */}
+              <div className="mb-4 border border-[#E31E24] rounded p-3 flex items-start gap-3 bg-red-50">
+                <CheckCircle2 className="w-5 h-5 text-[#E31E24] flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-[#0f1111] flex items-center gap-2">
+                    Standard Delivery
+                    <span className="text-[#E31E24]">
+                      {shippingLoading ? '…' : shippingCost !== null ? `৳${effectiveShipping}` : (needsArea ? 'Select area' : '—')}
                     </span>
-                  </div>
+                  </p>
+                  <p className="text-xs text-[#565959] mt-0.5 flex items-center gap-1">
+                    <Truck className="w-3 h-3" />
+                    {selectedAreaObj
+                      ? `Estimated delivery: ${fmtDate(deliveryByDate)} – ${fmtDate(deliveryRangeEnd)}`
+                      : 'Select your delivery area to see estimated date'}
+                  </p>
+                  {freeThreshold > 0 && effectiveShipping > 0 && (
+                    <p className="text-xs text-green-700 mt-0.5">
+                      Add ৳{(freeThreshold - subtotal).toFixed(0)} more for FREE delivery
+                    </p>
+                  )}
+                </div>
+              </div>
 
-                  {/* Delivery option */}
-                  <div className="mb-4">
-                    <p className="text-xs font-semibold text-[#0f1111] mb-2">Delivery or Pickup</p>
-                    <div className="border-2 border-[#1a94ff] rounded p-3 flex items-start gap-3 bg-[#f0f8ff]">
-                      <CheckCircle2 className="w-5 h-5 text-[#1a94ff] flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-sm text-[#0f1111]">
-                          {shippingLoading ? '…' : `৳${effectiveShipping}`}
-                        </p>
-                        <p className="text-xs text-[#565959]">Standard Delivery</p>
-                        <p className="text-xs text-[#565959] mt-0.5 flex items-center gap-1">
-                          <Truck className="w-3 h-3" /> Guaranteed by {deliveryDate}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Product row */}
-                  <div className="flex gap-3">
-                    <div className="w-16 h-16 flex-shrink-0 border border-[#e7e7e7] rounded overflow-hidden bg-[#f5f5f5]">
+              {/* Product list */}
+              <div className="space-y-4">
+                {items.map((item, idx) => (
+                  <div key={item._id || idx} className="flex gap-3">
+                    <div className="w-[72px] h-[72px] flex-shrink-0 border border-[#e7e7e7] rounded overflow-hidden bg-[#f5f5f5]">
                       <img src={getImageUrl(item.image)} alt={item.name}
                         className="w-full h-full object-cover"
                         onError={e => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[#c45500] font-semibold mb-0.5">10.10</p>
-                      <p className="text-sm text-[#0f1111] line-clamp-2 font-medium">{item.name}</p>
-                      <p className="text-xs text-[#565959]">{item.brand || 'No Brand'}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-[#0f1111]">{formatPrice(item.price)}</p>
+                      <p className="text-sm text-[#0f1111] font-medium line-clamp-2">{item.name}</p>
+                      <p className="text-xs text-[#565959] mt-0.5">Qty: {item.quantity}</p>
                       {item.originalPrice && item.originalPrice > item.price && (
                         <p className="text-xs text-[#999] line-through">{formatPrice(item.originalPrice)}</p>
                       )}
-                      <p className="text-xs text-[#565959]">Qty: {item.quantity}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-[#0f1111]">{formatPrice(item.price * item.quantity)}</p>
+                      <p className="text-xs text-[#565959]">{formatPrice(item.price)} each</p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            </div>
 
             {/* Payment Method */}
-            <div className="bg-white rounded-sm border border-[#ddd] p-5">
+            <div className="bg-white rounded border border-[#ddd] p-5">
               <h2 className="text-base font-bold text-[#0f1111] mb-4 border-b border-[#e7e7e7] pb-3">
                 Payment Method
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button type="button" onClick={() => setPaymentMethod('cod')}
-                  className={`border-2 rounded p-4 text-left flex items-center gap-3 transition-colors ${paymentMethod === 'cod' ? 'border-[#f57224] bg-orange-50' : 'border-[#adb1b8] hover:border-[#f57224]'}`}>
-                  <span className="text-2xl">💵</span>
-                  <div>
-                    <p className={`font-semibold text-sm ${paymentMethod === 'cod' ? 'text-[#f57224]' : 'text-[#0f1111]'}`}>{t('cashOnDelivery')}</p>
-                    <p className="text-xs text-[#565959]">Pay when you receive</p>
-                  </div>
-                </button>
-                <button type="button" onClick={() => setPaymentMethod('online')}
-                  className={`border-2 rounded p-4 text-left flex items-center gap-3 transition-colors ${paymentMethod === 'online' ? 'border-[#f57224] bg-orange-50' : 'border-[#adb1b8] hover:border-[#f57224]'}`}>
-                  <span className="text-2xl">💳</span>
-                  <div>
-                    <p className={`font-semibold text-sm ${paymentMethod === 'online' ? 'text-[#f57224]' : 'text-[#0f1111]'}`}>{t('cardPayment')}</p>
-                    <p className="text-xs text-[#565959]">Bkash / Nagad / Card</p>
-                  </div>
-                </button>
+                {[
+                  { key: 'cod',    icon: '💵', label: t('cashOnDelivery') || 'Cash on Delivery', sub: 'Pay when you receive' },
+                  { key: 'online', icon: '📱', label: t('cardPayment') || 'Mobile Banking',      sub: 'bKash / Nagad / Card' },
+                ].map(pm => (
+                  <button key={pm.key} type="button" onClick={() => setPaymentMethod(pm.key)}
+                    className={`border-2 rounded p-4 text-left flex items-center gap-3 transition-colors ${
+                      paymentMethod === pm.key
+                        ? 'border-[#E31E24] bg-red-50'
+                        : 'border-[#adb1b8] hover:border-[#E31E24]'
+                    }`}>
+                    <span className="text-2xl">{pm.icon}</span>
+                    <div>
+                      <p className={`font-semibold text-sm ${paymentMethod === pm.key ? 'text-[#E31E24]' : 'text-[#0f1111]'}`}>{pm.label}</p>
+                      <p className="text-xs text-[#565959]">{pm.sub}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
+
           </div>
 
           {/* ── RIGHT COLUMN ─────────────────────────────────────────── */}
           <div className="w-full lg:w-[320px] flex-shrink-0 space-y-3">
 
-            {/* Promotion */}
-            <div className="bg-white rounded-sm border border-[#ddd] p-4">
-              <p className="text-sm font-bold text-[#0f1111] mb-3">Promotion</p>
+            {/* Contact Info summary */}
+            <div className="bg-white rounded border border-[#ddd] p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold text-[#0f1111]">Delivery To</p>
+                <button onClick={() => setAddrSaved(false)} className="text-[#E31E24] text-xs font-semibold flex items-center gap-1 hover:underline">
+                  <Pencil className="w-3 h-3" /> Edit
+                </button>
+              </div>
+              <div className="text-xs text-[#565959] space-y-0.5">
+                <p className="font-medium text-[#0f1111]">{fullName || customer?.name || '—'}</p>
+                <p>{phone || customer?.phone || '—'}</p>
+                {(areaName || district || division) && (
+                  <p className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-[#E31E24] flex-shrink-0" />
+                    {[areaName, district, division].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {buildingAddr && <p className="text-[#0f1111]">{buildingAddr}</p>}
+              </div>
+            </div>
+
+            {/* Promotion / Coupon */}
+            <div className="bg-white rounded border border-[#ddd] p-4">
+              <p className="text-sm font-bold text-[#0f1111] mb-3">Voucher / Coupon</p>
               {appliedCoupon ? (
                 <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded px-3 py-2 text-sm">
                   <div>
@@ -556,39 +727,21 @@ const CheckoutPage = () => {
                     type="text"
                     value={couponCode}
                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                    placeholder="Enter Store/Daraz Code"
-                    className="flex-1 border border-[#adb1b8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1a94ff] text-[#0f1111] placeholder-gray-400 min-w-0"
+                    placeholder="Enter coupon code"
+                    className="flex-1 border border-[#adb1b8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#E31E24] text-[#0f1111] placeholder-gray-400 min-w-0"
                     onKeyDown={e => e.key === 'Enter' && applyCoupon()}
                   />
-                  <button
-                    onClick={applyCoupon}
-                    disabled={couponLoading || !couponCode.trim()}
-                    className="bg-[#1a94ff] hover:bg-[#0e87f0] disabled:opacity-40 text-white text-xs font-bold px-3 py-2 rounded transition-colors whitespace-nowrap"
-                  >
+                  <button onClick={applyCoupon} disabled={couponLoading || !couponCode.trim()}
+                    className="bg-[#E31E24] hover:bg-[#c41920] disabled:opacity-40 text-white text-xs font-bold px-3 py-2 rounded transition-colors whitespace-nowrap">
                     {couponLoading ? '…' : 'APPLY'}
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Invoice & Contact Info */}
-            <div className="bg-white rounded-sm border border-[#ddd] p-4">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-bold text-[#0f1111]">Invoice and Contact Info</p>
-                <button className="text-[#1a94ff] text-xs font-semibold flex items-center gap-1 hover:underline">
-                  <Pencil className="w-3 h-3" /> Edit
-                </button>
-              </div>
-              <div className="text-xs text-[#565959] space-y-0.5">
-                <p>{fullName || customer?.name || '—'}</p>
-                <p>{phone || customer?.phone || '—'}</p>
-                {(district || division) && <p>{[area, district, division].filter(Boolean).join(', ')}</p>}
-              </div>
-            </div>
-
             {/* Bundle offers */}
             {bundleOffers.length > 0 && (
-              <div className="bg-white rounded-sm border border-purple-200 p-4 space-y-2">
+              <div className="bg-white rounded border border-purple-200 p-4 space-y-2">
                 {bundleOffers.map((offer, i) => (
                   <div key={offer.id ?? i} className="flex items-start gap-2 bg-purple-50 rounded px-2 py-1.5 text-xs">
                     <span>🎁</span>
@@ -602,11 +755,10 @@ const CheckoutPage = () => {
             )}
 
             {/* Order Summary */}
-            <div className="bg-white rounded-sm border border-[#ddd] p-4">
+            <div className="bg-white rounded border border-[#ddd] p-4">
               <p className="text-sm font-bold text-[#0f1111] mb-3">Order Summary</p>
 
-              {/* Product mini list */}
-              <div className="space-y-2 mb-3 max-h-[180px] overflow-y-auto">
+              <div className="space-y-2 mb-3 max-h-[160px] overflow-y-auto">
                 {items.map((item, idx) => (
                   <div key={item._id || idx} className="flex gap-2 items-center">
                     <div className="w-9 h-9 flex-shrink-0 border border-[#e7e7e7] rounded overflow-hidden bg-[#f5f5f5]">
@@ -614,7 +766,7 @@ const CheckoutPage = () => {
                         className="w-full h-full object-cover"
                         onError={e => { e.currentTarget.style.display = 'none'; }} />
                     </div>
-                    <p className="text-xs text-[#0f1111] flex-1 line-clamp-2">{item.name}</p>
+                    <p className="text-xs text-[#0f1111] flex-1 line-clamp-2">{item.name} ×{item.quantity}</p>
                     <p className="text-xs font-semibold text-[#0f1111] flex-shrink-0">{formatPrice(item.price * item.quantity)}</p>
                   </div>
                 ))}
@@ -622,13 +774,16 @@ const CheckoutPage = () => {
 
               <div className="border-t border-[#e7e7e7] pt-3 space-y-2 text-sm">
                 <div className="flex justify-between text-[#565959]">
-                  <span>Items Total ({items.length} {items.length === 1 ? 'Item' : 'Items'})</span>
+                  <span>Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})</span>
                   <span className="font-medium text-[#0f1111]">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-[#565959]">
                   <span>Delivery Fee</span>
-                  <span className="font-medium text-[#0f1111]">
-                    {shippingLoading ? '…' : formatPrice(effectiveShipping)}
+                  <span className={`font-medium ${effectiveShipping === 0 ? 'text-green-600' : 'text-[#0f1111]'}`}>
+                    {shippingLoading ? '…' : shippingCost === null
+                      ? <span className="text-amber-600 text-xs">Select area</span>
+                      : effectiveShipping === 0 ? 'FREE' : formatPrice(effectiveShipping)
+                    }
                   </span>
                 </div>
                 {couponDiscount > 0 && (
@@ -644,24 +799,34 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-[#e7e7e7]">
-                  <span className="font-bold text-[#0f1111]">Total:</span>
-                  <span className="font-bold text-base text-[#f57224]">{formatPrice(total)}</span>
+                  <span className="font-bold text-[#0f1111] text-base">Total</span>
+                  <span className="font-bold text-base text-[#E31E24]">{formatPrice(total)}</span>
                 </div>
                 <p className="text-[10px] text-[#999] text-right">VAT included, where applicable</p>
               </div>
 
-              {/* Proceed to Pay */}
+              {/* Place Order CTA */}
+              {needsArea && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  Select your area/upazila above to confirm delivery fee
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                disabled={loading}
-                className="w-full mt-4 bg-[#f57224] hover:bg-[#e06420] disabled:opacity-60 text-white font-bold text-sm py-3 rounded transition-colors flex items-center justify-center gap-2"
+                disabled={loading || (availableAreas.length > 0 && !selectedAreaObj)}
+                className="w-full mt-3 bg-[#E31E24] hover:bg-[#c41920] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm py-3.5 rounded transition-colors flex items-center justify-center gap-2"
               >
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Placing Order…</> : 'Proceed to Pay'}
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Placing Order…</>
+                  : `Place Order · ${formatPrice(total)}`
+                }
               </button>
 
               <p className="text-[10px] text-[#999] text-center mt-3 leading-relaxed">
-                By placing this order, you agree to our Terms of Service and Privacy Policy.
+                By placing this order you agree to our Terms of Service and Privacy Policy.
               </p>
             </div>
           </div>
