@@ -94,6 +94,7 @@ const CheckoutPage = () => {
   const [areasLoading, setAreasLoading] = useState(true);
   const [selectedAreaObj, setSelectedAreaObj] = useState(null); // full area object from DB
   const [shippingCost, setShippingCost] = useState(null); // null = not yet determined
+  const [rateGroupName, setRateGroupName] = useState(null); // non-null when Rate Group is used
 
   // Cascading location state
   const [division, setDivision] = useState('');
@@ -152,42 +153,50 @@ const CheckoutPage = () => {
     setPhone(customer?.phone || '');
   }, [isAuthenticated, customer]);
 
-  // ── Resolve full area object when DB areas load / location changes ─────
+  // ── Resolve area object from DB areas ────────────────────────────────
   useEffect(() => {
-    if (!district || !areaName || !Object.keys(areasByDistrict).length) {
-      if (!district) {
-        setSelectedAreaObj(null);
-        setShippingCost(null);
-      }
+    if (!district || !Object.keys(areasByDistrict).length) {
+      if (!district) { setSelectedAreaObj(null); setShippingCost(null); setRateGroupName(null); }
       return;
     }
-    const districtAreas = areasByDistrict[district] || [];
-    const found = districtAreas.find(a => a.name === areaName);
-    if (found) {
-      setSelectedAreaObj(found);
-      const charge = Number(found.deliveryCharge || found.delivery_charge || 0);
-      const threshold = Number(found.freeDeliveryThreshold || found.free_delivery_threshold || 0);
-      setShippingCost(threshold > 0 && subtotal >= threshold ? 0 : charge);
-    } else {
-      setSelectedAreaObj(null);
-      setShippingCost(null);
-    }
-  }, [district, areaName, areasByDistrict, subtotal]);
+    if (!areaName) { setSelectedAreaObj(null); return; }
+    const found = (areasByDistrict[district] || []).find(a => a.name === areaName);
+    setSelectedAreaObj(found || null);
+  }, [district, areaName, areasByDistrict]);
 
-  // ── Fallback: use delivery-rates/charge if no area selected but district known ─
+  // ── Shipping fee: Rate Groups first, delivery_areas.charge as fallback ──
+  // Runs whenever district, area, or subtotal changes
   useEffect(() => {
-    if (selectedAreaObj) return; // already resolved
-    if (!district) { setShippingCost(null); return; }
+    if (!district) { setShippingCost(null); setRateGroupName(null); return; }
     setShippingLoading(true);
     fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(areaName || '')}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (d && d.matched) setShippingCost(d.charge);
-        else setShippingCost(null);
+        if (d && d.matched) {
+          // Rate Group configured in admin → use it
+          setShippingCost(d.charge);
+          setRateGroupName(d.groupName || 'Rate Group');
+        } else if (selectedAreaObj) {
+          // No Rate Group → fall back to delivery_areas.delivery_charge
+          const charge = Number(selectedAreaObj.deliveryCharge || selectedAreaObj.delivery_charge || 0);
+          const threshold = Number(selectedAreaObj.freeDeliveryThreshold || selectedAreaObj.free_delivery_threshold || 0);
+          setShippingCost(threshold > 0 && subtotal >= threshold ? 0 : charge);
+          setRateGroupName(null);
+        } else {
+          setShippingCost(null);
+          setRateGroupName(null);
+        }
       })
-      .catch(() => setShippingCost(null))
+      .catch(() => {
+        // Network error: try flat rate from area obj
+        if (selectedAreaObj) {
+          const charge = Number(selectedAreaObj.deliveryCharge || selectedAreaObj.delivery_charge || 0);
+          setShippingCost(charge);
+        } else setShippingCost(null);
+        setRateGroupName(null);
+      })
       .finally(() => setShippingLoading(false));
-  }, [district, areaName, selectedAreaObj]);
+  }, [district, areaName, selectedAreaObj, subtotal]);
 
   // ── Grocery slots ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -506,7 +515,7 @@ const CheckoutPage = () => {
               </div>
 
               {/* Delivery fee preview when area selected */}
-              {selectedAreaObj && (
+              {(selectedAreaObj || (district && shippingCost !== null)) && (
                 <div className="mb-4 bg-green-50 border border-green-200 rounded p-3 flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
@@ -514,9 +523,15 @@ const CheckoutPage = () => {
                       {effectiveShipping === 0
                         ? 'Free Delivery applied!'
                         : `Delivery Fee: ৳${effectiveShipping}`}
+                      {rateGroupName && (
+                        <span className="ml-2 text-xs font-normal text-green-700 bg-green-100 px-1.5 py-0.5 rounded">
+                          {rateGroupName}
+                        </span>
+                      )}
                     </p>
                     <p className="text-green-700 text-xs mt-0.5">
-                      {selectedAreaObj.name}, {district} — Estimated {deliveryDays}–{deliveryDays + 2} days
+                      {selectedAreaObj ? `${selectedAreaObj.name}, ${district}` : district}
+                      {' — '}Estimated {deliveryDays}–{deliveryDays + 2} days
                       {freeThreshold > 0 && effectiveShipping > 0 && (
                         <> &nbsp;·&nbsp; Free above ৳{freeThreshold}</>
                       )}
