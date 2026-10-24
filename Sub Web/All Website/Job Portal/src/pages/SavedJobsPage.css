@@ -1,0 +1,112 @@
+.saved-page { padding: 32px 0 60px; }
+
+.saved-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.saved-page__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.saved-page__sub {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.saved-page__clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--danger);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.saved-page__clear-btn:hover {
+  background: #FFEBE6;
+}
+
+/* Empty state */
+.saved-empty {
+  text-align: center;
+  padding: 80px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+.saved-empty__illustration { margin-bottom: 20px; }
+
+.saved-empty h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.saved-empty p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 400px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+}
+
+.saved-empty__cta {
+  display: inline-block;
+  padding: 12px 32px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.saved-empty__cta:hover { background: var(--primary-dark); }
+
+/* Grid */
+.saved-jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+/* Footer */
+.saved-page__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.saved-page__footer p { font-size: 13px; color: var(--text-muted); }
+.saved-browse-more {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  transition: opacity 0.15s;
+}
+.saved-browse-more:hover { opacity: 0.75; }
+
+@media (max-width: 600px) {
+  .saved-jobs-grid { grid-template-columns: 1fr; }
+}
