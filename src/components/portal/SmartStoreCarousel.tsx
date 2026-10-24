@@ -4,43 +4,34 @@ import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 const SLIDES = [
   {
     id: 1,
-    tagline: "Flash Sale",
-    title: "আপনার পছন্দের\nপণ্য সেরা দামে",
-    titleEn: "Your Favourite\nProducts at Best Price",
-    sub: "সীমিত সময়ের অফার — এখনই কিনুন",
-    subEn: "Limited time offers — shop now",
-    badge: "UP TO 60% OFF",
-    bg: "from-[#0f172a] to-[#1e3a5f]",
-    accent: "#38bdf8",
-    emoji: ["🛒", "🎁", "📦", "💳", "✨"],
+    image: "/smart-store/assets/hero-1-D7Cj3vzY.jpg",
+    eyebrow: "Curated · Spring Edit",
+    title: "Discover what you'll\nlove next.",
+    subtitle: "Smart recommendations from 12,000+ trusted stores — tailored to your taste.",
+    cta: "Shop the edit",
+    overlay: "from-black/60 via-black/30 to-transparent",
   },
   {
     id: 2,
-    tagline: "নতুন আগমন",
-    title: "গ্রীষ্মের সেরা\nকালেকশন এসে গেছে",
-    titleEn: "Summer Best\nCollection is Here",
-    sub: "গ্রীষ্ম মৌসুমের এক্সক্লুসিভ পণ্য সংগ্রহ",
-    subEn: "Exclusive summer season product collection",
-    badge: "NEW ARRIVAL",
-    bg: "from-[#14532d] to-[#16a34a]",
-    accent: "#86efac",
-    emoji: ["👗", "👠", "🕶️", "🧴", "🌞"],
+    image: "/smart-store/assets/hero-2-CpPilVxR.jpg",
+    eyebrow: "Flash Sale · 48 Hours",
+    title: "Up to 60% off\nbest sellers.",
+    subtitle: "Limited drops from your favorite vendors. Move fast — they go quickly.",
+    cta: "See deals",
+    overlay: "from-black/65 via-black/35 to-transparent",
   },
   {
     id: 3,
-    tagline: "বিশেষ অফার",
-    title: "গ্যাজেট &\nইলেকট্রনিক্স ডিল",
-    titleEn: "Gadgets &\nElectronics Deals",
-    sub: "সেরা ব্র্যান্ডের ইলেকট্রনিক্স সর্বনিম্ন মূল্যে",
-    subEn: "Top brand electronics at the lowest prices",
-    badge: "৳৳ SAVE BIG",
-    bg: "from-[#1e1b4b] to-[#4338ca]",
-    accent: "#a5b4fc",
-    emoji: ["💻", "📱", "🎧", "⌚", "🖥️"],
+    image: "/smart-store/assets/hero-3-DljjT5_Y.jpg",
+    eyebrow: "New · Live Shopping",
+    title: "Watch, chat,\nbuy live.",
+    subtitle: "Join interactive streams from top sellers and shop in real-time.",
+    cta: "Go live",
+    overlay: "from-black/60 via-black/30 to-transparent",
   },
 ];
 
-const AUTO_PLAY_MS = 4000;
+const AUTO_PLAY_MS = 4500;
 
 const SmartStoreCarousel = () => {
   const [current, setCurrent] = useState(0);
@@ -107,6 +98,7 @@ const SmartStoreCarousel = () => {
       <a
         href="/smart-store/"
         className="block relative overflow-hidden rounded-2xl select-none cursor-pointer"
+        style={{ aspectRatio: "16/5" }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onTouchStart={handleTouchStart}
@@ -115,89 +107,51 @@ const SmartStoreCarousel = () => {
         {/* Slide */}
         <div
           key={slide.id}
-          className={`bg-gradient-to-r ${slide.bg} min-h-[160px] sm:min-h-[200px]`}
+          className="absolute inset-0"
           style={{
             animation: animDir
               ? `ssSlide${animDir === "right" ? "FromRight" : "FromLeft"} 0.38s cubic-bezier(.4,0,.2,1)`
               : "none",
           }}
         >
-          <div className="max-w-full px-5 sm:px-8 py-6 sm:py-8 flex items-center justify-between gap-4">
-            {/* Text */}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span
-                  className="text-[10px] sm:text-xs font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
-                  style={{ background: slide.accent, color: "#111", opacity: 0.95 }}
-                >
-                  {slide.tagline}
-                </span>
-                <span
-                  className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded border"
-                  style={{ borderColor: slide.accent, color: slide.accent }}
-                >
-                  {slide.badge}
-                </span>
-              </div>
+          {/* Background image */}
+          <img
+            src={slide.image}
+            alt={slide.eyebrow}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
 
-              <h3
-                className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight mb-2"
-                style={{ textShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "pre-line" }}
-              >
-                {slide.title}
-              </h3>
+          {/* Gradient overlay for text legibility */}
+          <div className={`absolute inset-0 bg-gradient-to-r ${slide.overlay}`} />
 
-              <p className="text-sm text-white/70 mb-4 hidden sm:block">{slide.sub}</p>
+          {/* Text content */}
+          <div className="relative h-full flex flex-col justify-center px-6 sm:px-10 py-6 sm:py-8 max-w-lg">
+            <span className="inline-block mb-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/80 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit">
+              {slide.eyebrow}
+            </span>
 
-              <span
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style={{ background: slide.accent, color: "#111" }}
-              >
-                এখনই দেখুন <ChevronRight className="h-4 w-4" />
-              </span>
-            </div>
-
-            {/* Emoji grid — desktop */}
-            <div className="flex-shrink-0 hidden sm:flex flex-col items-center gap-2 pr-2">
-              <div className="flex gap-3 mb-2">
-                {slide.emoji.slice(0, 3).map((em, i) => (
-                  <span
-                    key={i}
-                    className="text-4xl lg:text-5xl drop-shadow-lg"
-                    style={{ animation: `ssFloat 2.5s ease-in-out infinite`, animationDelay: `${i * 0.3}s` }}
-                  >
-                    {em}
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-3 justify-center">
-                {slide.emoji.slice(3).map((em, i) => (
-                  <span
-                    key={i}
-                    className="text-4xl lg:text-5xl drop-shadow-lg"
-                    style={{ animation: `ssFloat 2.5s ease-in-out infinite`, animationDelay: `${(i + 3) * 0.3 + 0.15}s` }}
-                  >
-                    {em}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Single emoji — mobile */}
-            <span
-              className="sm:hidden flex-shrink-0 text-6xl drop-shadow-lg"
-              style={{ animation: "ssFloat 2.5s ease-in-out infinite" }}
+            <h3
+              className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight mb-2 sm:mb-3"
+              style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)", whiteSpace: "pre-line" }}
             >
-              {slide.emoji[0]}
+              {slide.title}
+            </h3>
+
+            <p className="hidden sm:block text-sm text-white/75 mb-4 leading-relaxed">
+              {slide.subtitle}
+            </p>
+
+            <span className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-900 rounded-full font-bold text-sm w-fit transition-all duration-200 hover:scale-105 hover:shadow-lg">
+              {slide.cta} <ChevronRight className="h-4 w-4" />
             </span>
           </div>
 
           {/* Progress bar */}
           {!isPaused && (
-            <div className="h-0.5 w-full bg-white/10">
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
               <div
                 key={`${slide.id}-bar`}
-                className="h-full bg-white/40 origin-left"
+                className="h-full bg-white/50 origin-left"
                 style={{ animation: `ssProgress ${AUTO_PLAY_MS}ms linear forwards` }}
               />
             </div>
@@ -239,10 +193,6 @@ const SmartStoreCarousel = () => {
       </a>
 
       <style>{`
-        @keyframes ssFloat {
-          0%, 100% { transform: translateY(0px) rotate(-2deg); }
-          50%       { transform: translateY(-8px) rotate(2deg); }
-        }
         @keyframes ssProgress {
           from { width: 0%; }
           to   { width: 100%; }
