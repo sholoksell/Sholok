@@ -36,26 +36,18 @@ const AUTO_PLAY_MS = 4500;
 const SmartStoreCarousel = () => {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [animDir, setAnimDir] = useState<"left" | "right" | null>(null);
   const touchStartX = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const go = useCallback((dir: "left" | "right") => {
-    setAnimDir(dir);
     setCurrent((c) =>
       dir === "right" ? (c + 1) % SLIDES.length : (c - 1 + SLIDES.length) % SLIDES.length
     );
-    setTimeout(() => setAnimDir(null), 380);
   }, []);
 
-  const goTo = useCallback(
-    (idx: number) => {
-      setAnimDir(idx > current ? "right" : "left");
-      setCurrent(idx);
-      setTimeout(() => setAnimDir(null), 380);
-    },
-    [current]
-  );
+  const goTo = useCallback((idx: number) => {
+    setCurrent(idx);
+  }, []);
 
   useEffect(() => {
     if (isPaused) return;
@@ -72,8 +64,6 @@ const SmartStoreCarousel = () => {
     if (Math.abs(dx) > 40) go(dx < 0 ? "right" : "left");
     touchStartX.current = null;
   };
-
-  const slide = SLIDES[current];
 
   return (
     <div className="w-full py-4">
@@ -94,88 +84,85 @@ const SmartStoreCarousel = () => {
         </a>
       </div>
 
-      {/* Carousel */}
+      {/* Carousel — fixed height, prevents clipping on mobile */}
       <a
         href="/smart-store/"
-        className="block relative overflow-hidden rounded-2xl select-none cursor-pointer"
-        style={{ aspectRatio: "16/5" }}
+        className="block relative overflow-hidden rounded-2xl select-none cursor-pointer min-h-[200px] sm:min-h-[240px] lg:min-h-[290px]"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Slide */}
-        <div
-          key={slide.id}
-          className="absolute inset-0"
-          style={{
-            animation: animDir
-              ? `ssSlide${animDir === "right" ? "FromRight" : "FromLeft"} 0.38s cubic-bezier(.4,0,.2,1)`
-              : "none",
-          }}
-        >
-          {/* Background image */}
-          <img
-            src={slide.image}
-            alt={slide.eyebrow}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+        {/* All slides rendered together — switching via opacity avoids image re-fetching */}
+        {SLIDES.map((s, i) => (
+          <div
+            key={s.id}
+            className="absolute inset-0 transition-opacity duration-500"
+            style={{ opacity: i === current ? 1 : 0, zIndex: i === current ? 2 : 1 }}
+          >
+            {/* Background image */}
+            <img
+              src={s.image}
+              alt={s.eyebrow}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
 
-          {/* Gradient overlay for text legibility */}
-          <div className={`absolute inset-0 bg-gradient-to-r ${slide.overlay}`} />
+            {/* Gradient overlay */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${s.overlay}`} />
 
-          {/* Text content */}
-          <div className="relative h-full flex flex-col justify-center px-6 sm:px-10 py-6 sm:py-8 max-w-lg">
-            <span className="inline-block mb-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/80 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit">
-              {slide.eyebrow}
-            </span>
+            {/* Text content */}
+            <div className="relative h-full flex flex-col justify-center px-6 sm:px-10 py-6 sm:py-8 max-w-lg">
+              <span className="inline-block mb-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/80 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit">
+                {s.eyebrow}
+              </span>
 
-            <h3
-              className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight mb-2 sm:mb-3"
-              style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)", whiteSpace: "pre-line" }}
-            >
-              {slide.title}
-            </h3>
+              <h3
+                className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight mb-2 sm:mb-3"
+                style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)", whiteSpace: "pre-line" }}
+              >
+                {s.title}
+              </h3>
 
-            <p className="hidden sm:block text-sm text-white/75 mb-4 leading-relaxed">
-              {slide.subtitle}
-            </p>
+              <p className="hidden sm:block text-sm text-white/75 mb-4 leading-relaxed">
+                {s.subtitle}
+              </p>
 
-            <span className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-900 rounded-full font-bold text-sm w-fit transition-all duration-200 hover:scale-105 hover:shadow-lg">
-              {slide.cta} <ChevronRight className="h-4 w-4" />
-            </span>
-          </div>
-
-          {/* Progress bar */}
-          {!isPaused && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
-              <div
-                key={`${slide.id}-bar`}
-                className="h-full bg-white/50 origin-left"
-                style={{ animation: `ssProgress ${AUTO_PLAY_MS}ms linear forwards` }}
-              />
+              <span className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-gray-900 rounded-full font-bold text-sm w-fit transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                {s.cta} <ChevronRight className="h-4 w-4" />
+              </span>
             </div>
-          )}
-        </div>
+          </div>
+        ))}
+
+        {/* Progress bar — keyed to current so animation restarts on each slide */}
+        {!isPaused && (
+          <div className="absolute bottom-0 left-0 right-0 z-20 h-0.5 bg-white/10">
+            <div
+              key={`progress-${current}`}
+              className="h-full bg-white/50 origin-left"
+              style={{ animation: `ssProgress ${AUTO_PLAY_MS}ms linear forwards` }}
+            />
+          </div>
+        )}
 
         {/* Prev / Next arrows */}
         <button
           onClick={(e) => { e.preventDefault(); go("left"); }}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/25 hover:bg-black/50 text-white rounded-full p-1.5 sm:p-2 transition-all hover:scale-110 backdrop-blur-sm"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-black/25 hover:bg-black/50 text-white rounded-full p-1.5 sm:p-2 transition-all hover:scale-110 backdrop-blur-sm"
           aria-label="Previous"
         >
           <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
         <button
           onClick={(e) => { e.preventDefault(); go("right"); }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/25 hover:bg-black/50 text-white rounded-full p-1.5 sm:p-2 transition-all hover:scale-110 backdrop-blur-sm"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-black/25 hover:bg-black/50 text-white rounded-full p-1.5 sm:p-2 transition-all hover:scale-110 backdrop-blur-sm"
           aria-label="Next"
         >
           <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
         {/* Dot navigation */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
           {SLIDES.map((s, i) => (
             <button
               key={s.id}
@@ -196,14 +183,6 @@ const SmartStoreCarousel = () => {
         @keyframes ssProgress {
           from { width: 0%; }
           to   { width: 100%; }
-        }
-        @keyframes ssSlideFromRight {
-          from { opacity: 0; transform: translateX(28px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes ssSlideFromLeft {
-          from { opacity: 0; transform: translateX(-28px); }
-          to   { opacity: 1; transform: translateX(0); }
         }
       `}</style>
     </div>
