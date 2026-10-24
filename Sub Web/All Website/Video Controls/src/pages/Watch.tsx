@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { ThumbsUp, ThumbsDown, Share2, Download, Bookmark, Bell, Loader2, Send, Play } from "lucide-react";
+// Play kept for suggestions panel below
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VideoCard } from "@/components/VideoCard";
@@ -162,15 +163,18 @@ const Watch = () => {
         <div>
           {/* Video Player */}
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-elegant">
-            {video._isMock ? (
+            {video._isMock && !streamUrl ? (
               <div className="relative w-full h-full">
-                {thumbnailSrc && <img src={thumbnailSrc} alt={videoTitle} className="w-full h-full object-cover opacity-60" />}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 text-white px-6 text-center">
-                  <div className="w-16 h-16 rounded-full bg-white/10 border-2 border-white/30 grid place-items-center">
-                    <Play className="w-8 h-8 text-white fill-white" />
-                  </div>
-                  <p className="text-sm font-semibold bg-yellow-500/90 text-black px-3 py-1 rounded-full">⚠️ DEMO CONTENT</p>
-                  <p className="text-xs text-white/80 max-w-sm">This is sample content for preview only. Real video playback is available when the backend server is connected.</p>
+                {thumbnailSrc && (
+                  <img src={thumbnailSrc} alt={videoTitle} className="w-full h-full object-cover opacity-50" />
+                )}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 text-white px-6 text-center">
+                  <span className="text-5xl">🎬</span>
+                  <p className="text-base font-bold">Video Coming Soon</p>
+                  <p className="text-sm text-white/70 max-w-sm leading-relaxed">
+                    Full-length course videos are uploaded by instructors and available once the platform backend is live.
+                    Short clips are available now in the <a href="/VideoPlatform/shorts" className="underline text-primary" onClick={(e) => e.stopPropagation()}>Shorts</a> section.
+                  </p>
                 </div>
               </div>
             ) : (

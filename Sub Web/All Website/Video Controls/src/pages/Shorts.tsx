@@ -1,71 +1,73 @@
 import { Layout } from "@/components/Layout";
-import { Heart, MessageCircle, Share2, Music2, Play, Loader2 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { Heart, MessageCircle, Share2, Play, Pause, Volume2, VolumeX, ChevronUp, ChevronDown } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { videoApi } from "@/lib/api";
+import { shorts as mockShorts, type Short } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const Shorts = () => {
-  const [apiShorts, setApiShorts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [reactions, setReactions] = useState<Record<string, { likes: number; userReaction: string | null }>>({});
+  const [displayShorts, setDisplayShorts] = useState<Short[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [reactions, setReactions] = useState<Record<string, { likes: number; liked: boolean }>>({});
   const { user } = useAuth();
   const { toast } = useToast();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchShorts = async () => {
       try {
         const data = await videoApi.getAll({ limit: 20, isShort: true });
         const videos = data.videos || [];
-        setApiShorts(videos);
-        const initialReactions: Record<string, { likes: number; userReaction: string | null }> = {};
-        videos.forEach((v: any) => {
-          initialReactions[v._id] = { likes: v.likes || 0, userReaction: null };
-        });
-        setReactions(initialReactions);
+        if (videos.length === 0) throw new Error("empty");
+        const mapped: Short[] = videos.map((v: any) => ({
+          id: v._id,
+          title: v.title,
+          thumbnail: v.thumbnailPath ? videoApi.getThumbnailUrl(v._id) : "",
+          channel: v.channel?.name || "Unknown",
+          likes: String(v.likes || 0),
+          duration: v.duration || "0:00",
+          videoUrl: videoApi.getStreamUrl(v._id),
+        }));
+        setDisplayShorts(mapped);
+        const init: Record<string, { likes: number; liked: boolean }> = {};
+        mapped.forEach((s) => { init[s.id] = { likes: parseInt(s.likes) || 0, liked: false }; });
+        setReactions(init);
       } catch {
-        setApiShorts([]);
-      } finally {
-        setLoading(false);
+        setDisplayShorts(mockShorts);
+        const init: Record<string, { likes: number; liked: boolean }> = {};
+        mockShorts.forEach((s) => { init[s.id] = { likes: parseInt(s.likes) || 0, liked: false }; });
+        setReactions(init);
       }
     };
     fetchShorts();
   }, []);
 
-  const handleLike = async (videoId: string) => {
+  const goTo = useCallback((idx: number) => {
+    const clamped = Math.max(0, Math.min(displayShorts.length - 1, idx));
+    setActiveIndex(clamped);
+    const el = containerRef.current?.children[clamped] as HTMLElement;
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [displayShorts.length]);
+
+  const handleLike = async (id: string) => {
     if (!user) {
-      toast({ title: "Please sign in", description: "You need to sign in to like videos.", variant: "destructive" });
+      toast({ title: "Please sign in", description: "Sign in to like videos.", variant: "destructive" });
       return;
     }
-    try {
-      const data = await videoApi.react(videoId, "like");
-      setReactions((prev) => ({
-        ...prev,
-        [videoId]: {
-          likes: data.likes,
-          userReaction: prev[videoId]?.userReaction === "like" ? null : "like",
-        },
-      }));
-    } catch (err: any) {
-      toast({ title: "Failed to like", description: err.message, variant: "destructive" });
-    }
+    setReactions((prev) => ({
+      ...prev,
+      [id]: { likes: prev[id].liked ? prev[id].likes - 1 : prev[id].likes + 1, liked: !prev[id].liked },
+    }));
+    try { await videoApi.react(id, "like"); } catch {}
   };
 
-  const displayShorts = apiShorts.map((v: any) => ({
-      id: v._id,
-      title: v.title,
-      thumbnail: v.thumbnailPath ? videoApi.getThumbnailUrl(v._id) : "",
-      channel: v.channel?.name || "Unknown",
-      likes: reactions[v._id]?.likes ?? v.likes ?? 0,
-      liked: reactions[v._id]?.userReaction === "like",
-      streamUrl: videoApi.getStreamUrl(v._id),
-    }));
-
-  if (loading) {
+  if (displayShorts.length === 0) {
     return (
       <Layout>
-        <div className="flex justify-center items-center h-[60vh]">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-muted-foreground">
+          <span className="text-5xl">📹</span>
+          <p className="font-semibold">Loading Shorts…</p>
         </div>
       </Layout>
     );
@@ -73,33 +75,64 @@ const Shorts = () => {
 
   return (
     <Layout>
-      <div className="h-[calc(100vh-4rem)] overflow-y-auto snap-y snap-mandatory scrollbar-hide">
+      <div
+        ref={containerRef}
+        className="h-[calc(100vh-4rem)] overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const idx = Math.round(el.scrollTop / el.clientHeight);
+          setActiveIndex(idx);
+        }}
+      >
         {displayShorts.map((s, i) => (
-          <section key={s.id} className="snap-start h-[calc(100vh-4rem)] grid place-items-center px-4 py-4">
+          <section key={s.id} className="snap-start h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-4">
             <div className="flex items-end gap-4">
-              <div className="relative w-[340px] h-full max-h-[85vh] aspect-[9/16] rounded-3xl overflow-hidden bg-black shadow-elegant group">
-                <ShortVideo src={s.streamUrl} poster={s.thumbnail} />
-                <div className="absolute bottom-0 inset-x-0 p-5 text-white pointer-events-none">
+              {/* Video player */}
+              <div className="relative w-[320px] md:w-[360px] aspect-[9/16] rounded-3xl overflow-hidden bg-black shadow-elegant">
+                <ShortPlayer
+                  src={s.videoUrl}
+                  poster={s.thumbnail}
+                  active={i === activeIndex}
+                />
+                {/* Info overlay */}
+                <div className="absolute bottom-10 left-0 right-0 px-5 pb-1 text-white pointer-events-none">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-9 h-9 rounded-full gradient-primary grid place-items-center text-sm font-bold">{s.channel[0]}</div>
-                    <span className="font-semibold text-sm">{s.channel}</span>
-                    <button className="ml-2 px-3 py-1 text-xs font-semibold rounded-full border border-white/40 hover:bg-white/10 pointer-events-auto">Follow</button>
+                    <div className="w-8 h-8 rounded-full gradient-primary grid place-items-center text-sm font-bold">
+                      {s.channel[0]}
+                    </div>
+                    <span className="font-semibold text-sm drop-shadow">{s.channel}</span>
                   </div>
-                  <p className="text-sm font-medium mb-2">{s.title}</p>
-                  <div className="flex items-center gap-2 text-xs text-white/80">
-                    <Music2 className="w-3 h-3" /> Original audio • {s.channel}
-                  </div>
+                  <p className="text-sm font-medium drop-shadow leading-snug">{s.title}</p>
+                  <p className="text-xs text-white/60 mt-1">{s.duration}</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-5 mb-4">
-                <button className="flex flex-col items-center gap-1 group" onClick={() => handleLike(s.id)}>
-                  <div className={`w-12 h-12 rounded-full grid place-items-center transition-smooth ${s.liked ? "bg-red-500 shadow-glow" : "bg-secondary group-hover:bg-primary group-hover:shadow-glow"}`}>
-                    <Heart className={`w-5 h-5 ${s.liked ? "fill-white text-white" : ""}`} />
-                  </div>
-                  <span className="text-xs font-semibold">{s.likes}</span>
-                </button>
-                <ActionBtn icon={MessageCircle} label="2.1K" />
+
+              {/* Action buttons */}
+              <div className="flex flex-col gap-4 mb-16">
+                <ActionBtn
+                  icon={Heart}
+                  label={formatCount(reactions[s.id]?.likes ?? 0)}
+                  active={reactions[s.id]?.liked}
+                  activeClass="bg-red-500 shadow-glow"
+                  onClick={() => handleLike(s.id)}
+                />
+                <ActionBtn icon={MessageCircle} label="Comments" />
                 <ActionBtn icon={Share2} label="Share" />
+                {/* Navigation */}
+                <button
+                  onClick={() => goTo(i - 1)}
+                  disabled={i === 0}
+                  className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center disabled:opacity-30 hover:bg-primary hover:shadow-glow transition-smooth"
+                >
+                  <ChevronUp className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => goTo(i + 1)}
+                  disabled={i === displayShorts.length - 1}
+                  className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center disabled:opacity-30 hover:bg-primary hover:shadow-glow transition-smooth"
+                >
+                  <ChevronDown className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </section>
@@ -109,50 +142,149 @@ const Shorts = () => {
   );
 };
 
-const ShortVideo = ({ src, poster }: { src: string; poster: string }) => {
+// ── Per-short video player ──────────────────────────────────────────────────
+
+interface ShortPlayerProps {
+  src: string;
+  poster: string;
+  active: boolean;
+}
+
+const ShortPlayer = ({ src, poster, active }: ShortPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [errored, setErrored] = useState(false);
+
+  // Auto-play / pause when this card enters/leaves viewport
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (active) {
+      video.muted = true;
+      setMuted(true);
+      video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    } else {
+      video.pause();
+      setPlaying(false);
+    }
+  }, [active]);
 
   const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (playing) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    setPlaying(!playing);
+    const video = videoRef.current;
+    if (!video) return;
+    if (playing) { video.pause(); setPlaying(false); }
+    else { video.play().then(() => setPlaying(true)).catch(() => {}); }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !muted;
+    setMuted(!muted);
+  };
+
+  const handleTimeUpdate = () => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    setProgress((video.currentTime / video.duration) * 100);
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    video.currentTime = ratio * video.duration;
   };
 
   return (
-    <>
-      <video
-        ref={videoRef}
-        src={src}
-        poster={poster}
-        loop
-        playsInline
-        className="w-full h-full object-cover"
-        onClick={togglePlay}
-      />
-      {!playing && (
-        <button onClick={togglePlay} className="absolute inset-0 grid place-items-center">
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md grid place-items-center">
-            <Play className="w-7 h-7 fill-white text-white ml-1" />
-          </div>
-        </button>
+    <div className="relative w-full h-full" onClick={togglePlay}>
+      {errored ? (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-zinc-900">
+          {poster && <img src={poster} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />}
+          <span className="text-4xl relative z-10">🎬</span>
+          <p className="text-white/80 text-xs text-center px-4 relative z-10">Video unavailable in preview</p>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          loop
+          muted={muted}
+          playsInline
+          className="w-full h-full object-cover"
+          onTimeUpdate={handleTimeUpdate}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onError={() => setErrored(true)}
+        />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-    </>
+
+      {/* Top controls */}
+      <div className="absolute top-3 right-3 z-20 flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={toggleMute}
+          className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
+        >
+          {muted ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-white" />}
+        </button>
+      </div>
+
+      {/* Play/pause indicator */}
+      {!playing && !errored && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
+            <Play className="w-7 h-7 text-white fill-white ml-1" />
+          </div>
+        </div>
+      )}
+
+      {/* Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 pointer-events-none z-[5]" />
+
+      {/* Progress bar — clickable */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/25 z-20 cursor-pointer"
+        onClick={handleSeek}
+      >
+        <div
+          className="h-full bg-red-500 transition-none"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
   );
 };
 
-const ActionBtn = ({ icon: Icon, label }: { icon: any; label: string | number }) => (
-  <button className="flex flex-col items-center gap-1 group">
-    <div className="w-12 h-12 rounded-full bg-secondary grid place-items-center group-hover:bg-primary group-hover:shadow-glow transition-smooth">
-      <Icon className="w-5 h-5" />
+// ── Helper components ───────────────────────────────────────────────────────
+
+interface ActionBtnProps {
+  icon: React.ElementType;
+  label: string | number;
+  active?: boolean;
+  activeClass?: string;
+  onClick?: () => void;
+}
+
+const ActionBtn = ({ icon: Icon, label, active, activeClass = "", onClick }: ActionBtnProps) => (
+  <button className="flex flex-col items-center gap-1 group" onClick={onClick}>
+    <div className={`w-12 h-12 rounded-full grid place-items-center transition-smooth ${
+      active ? activeClass : "bg-secondary group-hover:bg-primary group-hover:shadow-glow"
+    }`}>
+      <Icon className={`w-5 h-5 ${active ? "fill-white text-white" : ""}`} />
     </div>
     <span className="text-xs font-semibold">{label}</span>
   </button>
 );
+
+function formatCount(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(n);
+}
 
 export default Shorts;
