@@ -1,0 +1,115 @@
+﻿@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff2ff;
+  --color-primary-100: #dbe1fe;
+  --color-primary-200: #bfc9fe;
+  --color-primary-300: #93a4fd;
+  --color-primary-400: #6070fa;
+  --color-primary-500: #3b44f6;
+  --color-primary-600: #2520eb;
+  --color-primary-700: #1d15d8;
+  --color-primary-800: #1a13a5;
+  --color-primary-900: #0f0d6b;
+  --color-primary-950: #0a0842;
+
+  --color-accent-50: #fff1f1;
+  --color-accent-100: #ffe0e0;
+  --color-accent-200: #ffc7c7;
+  --color-accent-300: #ffa0a0;
+  --color-accent-400: #ff6868;
+  --color-accent-500: #f83b3b;
+  --color-accent-600: #e51d1d;
+  --color-accent-700: #c11414;
+  --color-accent-800: #a01414;
+  --color-accent-900: #841818;
+  --color-accent-950: #480707;
+
+  --color-surface-light: #f8f9fc;
+  --color-surface-DEFAULT: #ffffff;
+  --color-surface-dark: #0f172a;
+  --color-surface-dark-card: #1e293b;
+
+  --font-bangla: "Noto Sans Bengali", sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --animate-ticker: ticker 30s linear infinite;
+  --animate-fade-in: fadeIn 0.5s ease-in-out;
+
+  @keyframes ticker {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  @keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+body {
+  background-color: var(--color-surface-light);
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
+
+.dark body {
+  background-color: var(--color-surface-dark);
+  color: #f3f4f6;
+}
+
+.container-news {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-news {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-news {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-left: 4px solid var(--color-accent-700);
+  padding-left: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.card-news {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.card-news:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dark .card-news {
+  background-color: var(--color-surface-dark-card);
+}
+
+.font-bn {
+  font-family: "Noto Sans Bengali", sans-serif;
+}
+
+.ticker-container::-webkit-scrollbar {
+  display: none;
+}
