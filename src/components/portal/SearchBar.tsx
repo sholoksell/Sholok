@@ -41,23 +41,13 @@ const SearchBar = ({ initialQuery = "", hero = false }: SearchBarProps) => {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // Live search + dict hints (debounced 300ms)
+  // Live search (debounced 300ms) — dictionary hint API removed (endpoint not available)
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     if (!query.trim()) { setApi([]); setHints([]); setDrop(false); return; }
 
     timer.current = setTimeout(async () => {
       const { q, qEn } = buildSearchTerms(query.trim(), inputMode);
-      const lastWord = query.trim().split(/\s+/).pop() ?? "";
-      if (lastWord.length >= 2) {
-        try {
-          const res = await fetch(`/api/dictionary/suggest?q=${encodeURIComponent(lastWord.toLowerCase())}&limit=5`);
-          if (res.ok) setHints(await res.json());
-          else setHints([]);
-        } catch { setHints([]); }
-      } else {
-        setHints([]);
-      }
       try {
         const results = await searchService.getSuggestions(q, qEn);
         setApi(results);
