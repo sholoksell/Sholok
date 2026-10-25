@@ -1,234 +1,203 @@
-import { useState, useEffect, useRef } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, ShoppingBag, ShoppingCart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, ShoppingCart, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const SHOPPING_BASE = "https://shopping.sholok.com";
-const PER_PAGE = 10;
-
 interface Product {
-  id: number;
+  _id?: string;
+  id?: string;
   name: string;
-  name_bn: string;
-  slug: string;
-  thumbnail: string | null;
-  regular_price: number | null;
-  sale_price: number | null;
-  category_name: string | null;
+  nameBn?: string;
+  price?: number;
+  salePrice?: number;
+  regularPrice?: number;
+  comparePrice?: number;
+  image?: string;
+  images?: string[];
+  thumbnail?: string;
+  slug?: string;
+  vendor?: { storeName?: string; name?: string } | string;
+  vendorName?: string;
+  category?: { name?: string; slug?: string } | string;
 }
 
+const SHOPPING_API = "https://sholok.com/api";
+
+// Tabs filter by product name keyword (search param) since products are
+// named e.g. "Digital Printed Lawn", "Embroidered Chiffon", "Banarsi Dupatta"
 const TABS = [
-  { key: "featured",    labelEn: "All Items",   labelBn: "সব আইটেম",    query: "lawn"        },
-  { key: "lawn",        labelEn: "Lawn",         labelBn: "লন সুট",      query: "lawn"        },
-  { key: "printed",     labelEn: "Printed",      labelBn: "প্রিন্টেড",   query: "printed"     },
-  { key: "embroidered", labelEn: "Embroidered",  labelBn: "এমব্রয়ডারি", query: "embroidered" },
-  { key: "dupatta",     labelEn: "Dupatta",      labelBn: "দুপাট্টা",    query: "dupatta"     },
+  { label: "All Items",   key: "",           search: "" },
+  { label: "Lawn",        key: "lawn",       search: "lawn" },
+  { label: "Printed",     key: "printed",    search: "printed" },
+  { label: "Embroidered", key: "embroidered",search: "embroidered" },
+  { label: "Dupatta",     key: "dupatta",    search: "dupatta" },
 ];
 
-export default function ShoppingSection() {
-  const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("featured");
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const cache = useRef<Record<string, Product[]>>({});
-  const tabScrollRef = useRef<HTMLDivElement>(null);
+const IMAGE_BASE = "https://shopping.sholok.com";
 
-  const tab = TABS.find(tb => tb.key === activeTab)!;
+function getImageSrc(product: Product): string {
+  const raw = product.image || product.images?.[0] || product.thumbnail || "";
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("/uploads")) return `${IMAGE_BASE}${raw}`;
+  return `${IMAGE_BASE}/uploads/${raw.replace(/^\//, "")}`;
+}
+
+function getVendorName(product: Product): string {
+  if (typeof product.vendor === "object" && product.vendor !== null) {
+    return product.vendor.storeName || product.vendor.name || "";
+  }
+  if (typeof product.vendor === "string") return product.vendor;
+  return product.vendorName || "";
+}
+
+const ProductSkeleton = () => (
+  <div className="rounded-xl border border-border p-4 animate-pulse">
+    <div className="w-full aspect-square mb-4 bg-secondary/70 rounded-lg" />
+    <div className="h-4 bg-secondary/70 rounded mb-2 w-4/5" />
+    <div className="h-4 bg-secondary/70 rounded mb-2 w-3/5" />
+    <div className="h-3 bg-secondary/50 rounded w-2/5" />
+  </div>
+);
+
+const ShoppingSection = () => {
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (cache.current[tab.query]) {
-      setAllProducts(cache.current[tab.query]);
-      setPage(1);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
-    fetch(`/api/search?q=${encodeURIComponent(tab.query)}&limit=20`)
-      .then(r => r.ok ? r.json() : { products: [] })
-      .then(data => {
-        const list: Product[] = (data.products || []).map((p: any) => ({
-          id:            p.id,
-          name:          p.name,
-          name_bn:       p.name_bn || p.name,
-          slug:          p.slug,
-          thumbnail:     p.thumbnail ? (p.thumbnail.startsWith("http") ? p.thumbnail : `https://api.sholok.com${p.thumbnail}`) : null,
-          regular_price: p.regular_price != null ? Number(p.regular_price) : null,
-          sale_price:    p.sale_price   != null ? Number(p.sale_price)    : null,
-          category_name: p.category_name || null,
-        }));
-        cache.current[tab.query] = list;
-        setAllProducts(list);
-        setPage(1);
+    const params = new URLSearchParams({ limit: "10" });
+    if (activeTab.search) params.set("search", activeTab.search);
+    fetch(`${SHOPPING_API}/products/public?${params}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const list: Product[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.products)
+          ? data.products
+          : [];
+        setProducts(list.slice(0, 10));
       })
-      .catch(() => { setAllProducts([]); setPage(1); })
+      .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-  }, [activeTab]);
-
-  const totalPages = Math.max(1, Math.ceil(allProducts.length / PER_PAGE));
-  const pageProducts = allProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
-  const disc = (p: Product) =>
-    p.sale_price && p.regular_price && p.sale_price < p.regular_price
-      ? Math.round((1 - p.sale_price / p.regular_price) * 100)
-      : null;
-
-  const switchTab = (key: string) => {
-    setActiveTab(key);
-  };
+  }, [activeTab.key]);
 
   return (
-    <div className="w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-
-      {/* ── Top header bar ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/30">
+    <div className="w-full py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <ShoppingCart className="w-4 h-4 text-primary" />
-          <span className="font-bold text-sm text-foreground">{t("shoppingToday")}</span>
-          <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">{t("hot")}</span>
+          <ShoppingCart className="w-6 h-6 text-foreground" />
+          <h2 className="text-xl font-bold text-foreground">{t("shoppingToday")}</h2>
+          <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{t("hot")}</span>
         </div>
-        <a href={SHOPPING_BASE} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
-          {t("viewAll")} <ArrowRight className="w-3 h-3" />
+        <a
+          href="https://shopping.sholok.com/"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          {t("viewAll")} <ArrowRight className="w-4 h-4" />
         </a>
       </div>
 
-      {/* ── Category nav tabs ──────────────────────────────────────────────── */}
-      <div className="border-b border-border bg-background">
-        <div
-          ref={tabScrollRef}
-          className="flex items-center gap-0 overflow-x-auto"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {TABS.map((tb, i) => (
-            <button
-              key={tb.key}
-              onClick={() => switchTab(tb.key)}
-              className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-                activeTab === tb.key
-                  ? "border-primary text-primary bg-primary/5"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-              } ${i > 0 ? "border-l border-l-border/40" : ""}`}
-            >
-              {language === "BN" ? tb.labelBn : tb.labelEn}
-            </button>
-          ))}
-        </div>
+      {/* Category tabs */}
+      <div className="flex gap-1 mb-5 border-b border-border overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+              activeTab.key === tab.key
+                ? "border-portal-green text-portal-green"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* ── Product grid ───────────────────────────────────────────────────── */}
-      <div className="p-3">
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="bg-secondary/30 rounded-lg p-2 animate-pulse">
-                <div className="w-full aspect-square bg-secondary rounded mb-2" />
-                <div className="h-2.5 bg-secondary rounded mb-1.5 w-full" />
-                <div className="h-2.5 bg-secondary rounded w-2/3" />
-              </div>
-            ))}
-          </div>
-        ) : pageProducts.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            <a href={SHOPPING_BASE} className="text-primary hover:underline">
-              {language === "BN" ? "সব প্রোডাক্ট দেখুন →" : "Browse all products →"}
-            </a>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {pageProducts.map(p => {
-              const d = disc(p);
-              const price = p.sale_price ?? p.regular_price;
-              const name = language === "BN" ? (p.name_bn || p.name) : p.name;
+      {/* Product grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {loading
+          ? Array.from({ length: 10 }).map((_, i) => <ProductSkeleton key={i} />)
+          : products.length > 0
+          ? products.map((product) => {
+              const pid = product._id || product.id || "";
+              const imgSrc = getImageSrc(product);
+              const price = product.price || product.salePrice || product.regularPrice || 0;
+              const comparePrice = product.comparePrice || product.regularPrice;
+              const discount =
+                comparePrice && comparePrice > price
+                  ? Math.round(((comparePrice - price) / comparePrice) * 100)
+                  : null;
+              const vendorName = getVendorName(product);
+              const href = product.slug
+                ? `https://shopping.sholok.com/product/${product.slug}`
+                : "https://shopping.sholok.com/";
+
               return (
                 <a
-                  key={p.id}
-                  href={`${SHOPPING_BASE}/product/${p.slug}`}
-                  className="group flex flex-col bg-background rounded-lg border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all overflow-hidden"
+                  key={pid}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block bg-card rounded-xl border border-border p-3 hover:shadow-md transition-all"
                 >
-                  <div className="relative w-full aspect-square bg-secondary/30 overflow-hidden">
-                    {d !== null && (
-                      <span className="absolute top-1 left-1 z-10 px-1 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded leading-none">
-                        -{d}%
+                  <div className="relative w-full aspect-square mb-3 bg-secondary/50 rounded-lg flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
+                    {discount && (
+                      <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded">
+                        -{discount}%
                       </span>
                     )}
-                    {p.thumbnail ? (
+                    {imgSrc ? (
                       <img
-                        src={p.thumbnail}
-                        alt={name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        src={imgSrc}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                          (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute("hidden");
+                        }}
                       />
-                    ) : (
-                      <ShoppingBag className="w-8 h-8 text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    ) : null}
+                    <ShoppingBag
+                      className="w-12 h-12 text-muted-foreground"
+                      hidden={!!imgSrc}
+                    />
+                  </div>
+
+                  <h3 className="text-sm font-medium text-foreground mb-1 line-clamp-2 min-h-[36px]">
+                    {product.nameBn || product.name}
+                  </h3>
+
+                  <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
+                    <span className="text-base font-bold text-portal-green">
+                      ৳{price.toLocaleString()}
+                    </span>
+                    {comparePrice && comparePrice > price && (
+                      <span className="text-xs text-muted-foreground line-through">
+                        ৳{comparePrice.toLocaleString()}
+                      </span>
                     )}
                   </div>
-                  <div className="p-2 flex flex-col gap-0.5 flex-1">
-                    <h3 className="text-[11px] leading-4 font-medium text-foreground line-clamp-2 min-h-[32px]">
-                      {name}
-                    </h3>
-                    <div className="flex items-baseline gap-1 mt-auto flex-wrap">
-                      {price != null && (
-                        <span className="text-xs font-bold text-portal-green">৳{price.toLocaleString()}</span>
-                      )}
-                      {d !== null && p.regular_price && (
-                        <span className="text-[9px] text-muted-foreground line-through">৳{p.regular_price.toLocaleString()}</span>
-                      )}
-                    </div>
-                    {p.category_name && (
-                      <p className="text-[9px] text-muted-foreground truncate">{p.category_name}</p>
-                    )}
-                  </div>
+
+                  {vendorName && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {t("from")} <span className="font-semibold text-foreground">{vendorName}</span>
+                    </p>
+                  )}
                 </a>
               );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Today's Benefits strip ─────────────────────────────────────────── */}
-      {!loading && allProducts.length > 0 && (
-        <div className="mx-3 mb-3 px-3 py-2 bg-gradient-to-r from-primary/10 to-portal-green/10 rounded-lg border border-primary/20 flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-bold text-primary whitespace-nowrap">
-            {language === "BN" ? "আজকের অফার" : "Today's Benefits"}
-          </span>
-          <span className="text-[10px] text-muted-foreground">·</span>
-          <span className="text-[10px] text-foreground font-medium truncate">
-            {language === "BN"
-              ? "সেরা দামে লন, প্রিন্টেড ও এমব্রয়ডারি কালেকশন"
-              : "Best prices on Lawn, Printed & Embroidered collections"}
-          </span>
-          <a href={SHOPPING_BASE} className="ml-auto text-[10px] text-primary font-medium hover:underline whitespace-nowrap">
-            {language === "BN" ? "শপিং করুন →" : "Shop Now →"}
-          </a>
-        </div>
-      )}
-
-      {/* ── Pagination ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-border bg-secondary/20">
-        <button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1 || loading}
-          className="p-1.5 rounded-full border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Previous page"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-        </button>
-
-        <span className="text-xs text-muted-foreground">
-          {language === "BN"
-            ? `আরও শপিং আইটেম ${page} / ${totalPages}`
-            : `More shopping items ${page} / ${totalPages}`}
-        </span>
-
-        <button
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages || loading}
-          className="p-1.5 rounded-full border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Next page"
-        >
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+            })
+          : (
+            <div className="col-span-5 text-center py-10 text-muted-foreground text-sm">
+              No products found.
+            </div>
+          )}
       </div>
     </div>
   );
-}
+};
+
+export default ShoppingSection;
