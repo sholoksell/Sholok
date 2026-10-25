@@ -16,13 +16,14 @@ import SearchBar from "@/components/portal/SearchBar";
 const EXTERNAL_PATHS = new Set([
   "/shopping/", "/job-portal/", "/home/admin/", "/webtoon/",
   "/mail/", "/series/", "/sports/", "/music/",
+  "https://shopping.sholok.com",
 ]);
 
 const ALL_SERVICES = [
   { icon: Mail,        label: "mail",        color: "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",             path: "/mail/" },
   { icon: Coffee,      label: "cafe",         color: "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",         path: "/cafe" },
   { icon: FileText,    label: "blog",         color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",  path: "/blog" },
-  { icon: CartIcon,    label: "shopping",     color: "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",             path: "/shopping/" },
+  { icon: CartIcon,    label: "shopping",     color: "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",             path: "https://shopping.sholok.com" },
   { icon: Newspaper,   label: "news",         color: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400",         path: "/news" },
   { icon: MapPin,      label: "maps",         color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400",             path: "/maps" },
   { icon: BookOpen,    label: "webtoon",      color: "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400",     path: "/webtoon/" },
@@ -128,7 +129,7 @@ const Header = () => {
             </button>
 
             {/* Cart */}
-            <a href="/shopping/" className="p-1.5 sm:p-2 relative hover:bg-secondary rounded-full transition-colors">
+            <a href="https://shopping.sholok.com" className="p-1.5 sm:p-2 relative hover:bg-secondary rounded-full transition-colors">
               <ShoppingCart className="w-5 h-5 text-muted-foreground" />
               {cartItems.length > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]">

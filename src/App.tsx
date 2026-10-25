@@ -16,11 +16,16 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
-// Shopping page (lazy loaded)
-const Shopping = lazy(() => import("./pages/Shopping"));
+// Shopping redirect — lives at shopping.sholok.com (base: '/'), strip /shopping prefix
+const ShoppingRedirect = () => {
+  const subPath = window.location.pathname.replace(/^\/shopping/, '') || '/';
+  window.location.replace('https://shopping.sholok.com' + subPath + window.location.search + window.location.hash);
+  return null;
+};
 
+// Blog redirect — lives at blog.sholok.com with base: '/blog/', preserve full pathname
 const BlogRedirect = () => {
-  window.location.replace('https://blog.sholok.com');
+  window.location.replace('https://blog.sholok.com' + window.location.pathname + window.location.search + window.location.hash);
   return null;
 };
 
@@ -125,8 +130,8 @@ const App = () => (
                 {/* Public Routes */}
                 <Route path="/news" element={<NewsRedirect />} />
                 <Route path="/news/*" element={<NewsRedirect />} />
-                <Route path="/shopping" element={<Shopping />} />
-                <Route path="/shopping/*" element={<Shopping />} />
+                <Route path="/shopping" element={<ShoppingRedirect />} />
+                <Route path="/shopping/*" element={<ShoppingRedirect />} />
                 <Route path="/qna" element={<QnA />} />
                 <Route path="/blog" element={<BlogRedirect />} />
                 <Route path="/blog/*" element={<BlogRedirect />} />
