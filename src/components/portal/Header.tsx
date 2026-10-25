@@ -48,7 +48,7 @@ const Header = () => {
   const { items: cartItems } = useAppSelector((state) => state.cart);
   const { isAuthenticated }  = useAppSelector((state) => state.auth);
   const location = useLocation();
-  const isHome = location.pathname === "/" || location.pathname === "/home";
+  const isHome = location.pathname === "/" || location.pathname === "/home" || location.pathname === "/search";
   const [servicesOpen, setServicesOpen] = useState(false);
 
   useEffect(() => {
