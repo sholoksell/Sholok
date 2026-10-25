@@ -850,7 +850,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
               </section>
 
               {/* ── MAIN GRID ────────────────────────────────────────────────────────── */}
-              <div className="grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_350px]">
+              <div className="grid gap-5 grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px]">
 
                 {/* ═══ LEFT COLUMN ══════════════════════════════════════════════════ */}
                 <div className="space-y-5">
@@ -1139,7 +1139,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                 </div>
 
                 {/* ═══ RIGHT SIDEBAR ════════════════════════════════════════════════ */}
-                <div className="space-y-5 lg:sticky lg:top-4 lg:self-start">
+                <div className="space-y-5 md:sticky md:top-4 md:self-start">
 
                   {/* Order Summary */}
                   <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
