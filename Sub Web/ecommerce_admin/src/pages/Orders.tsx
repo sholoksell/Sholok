@@ -1139,7 +1139,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                 </div>
 
                 {/* ═══ RIGHT SIDEBAR ════════════════════════════════════════════════ */}
-                <div className="space-y-5">
+                <div className="space-y-5 lg:sticky lg:top-4 lg:self-start">
 
                   {/* Order Summary */}
                   <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
