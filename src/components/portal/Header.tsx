@@ -82,12 +82,12 @@ const Header = () => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-1.5 sm:gap-2">
+        <div className={`w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 flex gap-1.5 sm:gap-2 ${isHome ? "items-center" : "items-start pt-2.5"}`}>
 
           {/* ── All-services hamburger — far left ── */}
           <button
             onClick={() => setServicesOpen((v) => !v)}
-            className="p-1.5 rounded-full hover:bg-secondary transition-colors flex-shrink-0"
+            className="p-1.5 rounded-full hover:bg-secondary transition-colors flex-shrink-0 mt-px"
             aria-label="সব সার্ভিস"
           >
             {servicesOpen
@@ -110,12 +110,12 @@ const Header = () => {
             </>
           ) : (
             <div className="flex-1 min-w-0">
-              <SearchBar />
+              <SearchBar hero />
             </div>
           )}
 
           {/* ── Right-side actions ── */}
-          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+          <div className={`flex items-center gap-0.5 sm:gap-1 flex-shrink-0 ${isHome ? "" : "mt-px"}`}>
 
             {/* Bell */}
             <button className="p-1.5 sm:p-2 relative hover:bg-secondary rounded-full transition-colors">
