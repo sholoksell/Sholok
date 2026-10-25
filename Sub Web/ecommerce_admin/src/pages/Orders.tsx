@@ -96,6 +96,7 @@ export default function Orders() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteOrder, setNoteOrder] = useState<Order | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [inlineNoteText, setInlineNoteText] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
 
   // Shipment state
@@ -248,6 +249,7 @@ export default function Orders() {
     try {
       const full = await orderApi.getById(order._id);
       setViewOrder(full);
+      setInlineNoteText('');
       await loadShipmentsForOrder(full._id, full.items, full.shippingAddress);
       setViewOpen(true);
     } catch { toast.error('Failed to load order details'); }
@@ -821,7 +823,10 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                     <Button size="sm" onClick={() => openCreateShipmentDialog()}>
                       + Create Shipment
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setViewOpen(false); openNoteDialog(viewOrder); }}>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      document.getElementById('orderNotesSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => (document.getElementById('orderNoteTA') as HTMLTextAreaElement)?.focus(), 350);
+                    }}>
                       <StickyNote className="w-3.5 h-3.5 mr-1" />Add Note
                     </Button>
                     <Button size="sm" variant="destructive" onClick={() => {
@@ -1088,30 +1093,76 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                   </div>
 
                   {/* ── Order Notes ──────────────────────────────────────────────────── */}
-                  <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-                    <div className="px-5 py-4 border-b border-border">
-                      <h3 className="font-bold text-sm">Order Notes</h3>
-                      <p className="text-xs text-muted-foreground">Visible only to Admin</p>
+                  <div id="orderNotesSection" className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                      <div>
+                        <h3 className="font-bold text-sm">Order Notes</h3>
+                        <p className="text-xs text-muted-foreground">Visible only to Admin</p>
+                      </div>
+                      {(() => {
+                        let count = 0;
+                        try { const a = JSON.parse(viewOrder.notes || '[]'); count = Array.isArray(a) ? a.length : (viewOrder.notes ? 1 : 0); } catch { count = viewOrder.notes ? 1 : 0; }
+                        return count > 0 ? <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-bold">{count} Note{count !== 1 ? 's' : ''}</span> : null;
+                      })()}
                     </div>
-                    <div className="p-5">
-                      <textarea
-                        className="w-full border border-border rounded-lg p-3 bg-background text-foreground text-sm min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        defaultValue={viewOrder.notes || ''}
-                        placeholder="Write an order note..."
-                        id="viewOrderNoteTA"
-                      />
-                      <div className="flex justify-end mt-3">
-                        <Button size="sm" onClick={async () => {
-                          const el = document.getElementById('viewOrderNoteTA') as HTMLTextAreaElement;
-                          if (!el) return;
-                          try {
-                            await orderApi.updateNote(viewOrder._id, el.value);
-                            toast.success('Note saved');
-                            setOrders(prev => prev.map(o => o._id === viewOrder._id ? { ...o, notes: el.value } : o));
-                          } catch { toast.error('Failed to save note'); }
-                        }}>
-                          Add order Note
-                        </Button>
+                    <div className="p-5 space-y-4">
+                      {/* Saved notes list */}
+                      {(() => {
+                        let notes: { text: string; ts: string }[] = [];
+                        try {
+                          const arr = JSON.parse(viewOrder.notes || '[]');
+                          if (Array.isArray(arr)) notes = arr;
+                          else if (viewOrder.notes?.trim()) notes = [{ text: viewOrder.notes, ts: '' }];
+                        } catch { if (viewOrder.notes?.trim()) notes = [{ text: viewOrder.notes, ts: '' }]; }
+                        return notes.length > 0 ? (
+                          <div className="space-y-2">
+                            {notes.map((n, i) => (
+                              <div key={i} className="p-3.5 rounded-xl border border-border bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40">
+                                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{n.text}</p>
+                                {n.ts && (
+                                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                    <StickyNote className="w-3 h-3" /> Admin · {n.ts}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-3 text-muted-foreground text-xs">No notes yet</div>
+                        );
+                      })()}
+                      {/* New note input */}
+                      <div className="space-y-2">
+                        <textarea
+                          id="orderNoteTA"
+                          className="w-full border border-border rounded-lg p-3 bg-background text-foreground text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          value={inlineNoteText}
+                          onChange={e => setInlineNoteText(e.target.value)}
+                          placeholder="Write an internal note..."
+                        />
+                        <div className="flex justify-end">
+                          <Button size="sm" disabled={!inlineNoteText.trim()} onClick={async () => {
+                            if (!inlineNoteText.trim() || !viewOrder) return;
+                            const ts = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                            let existing: { text: string; ts: string }[] = [];
+                            try {
+                              const arr = JSON.parse(viewOrder.notes || '[]');
+                              if (Array.isArray(arr)) existing = arr;
+                              else if (viewOrder.notes?.trim()) existing = [{ text: viewOrder.notes, ts: '' }];
+                            } catch { if (viewOrder.notes?.trim()) existing = [{ text: viewOrder.notes, ts: '' }]; }
+                            const updated = [...existing, { text: inlineNoteText.trim(), ts }];
+                            const combined = JSON.stringify(updated);
+                            try {
+                              await orderApi.updateNote(viewOrder._id, combined);
+                              setViewOrder(v => v ? { ...v, notes: combined } : null);
+                              setOrders(prev => prev.map(o => o._id === viewOrder._id ? { ...o, notes: combined } : o));
+                              setInlineNoteText('');
+                              toast.success('Note added');
+                            } catch { toast.error('Failed to save note'); }
+                          }}>
+                            <StickyNote className="w-3.5 h-3.5 mr-1.5" /> Add Note
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
