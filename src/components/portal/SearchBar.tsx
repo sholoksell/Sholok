@@ -8,6 +8,15 @@ import { ImageSearchModal } from "@/components/portal/ImageSearchModal";
 
 interface SearchBarProps { initialQuery?: string; hero?: boolean; }
 type InputMode = "EN" | "BN";
+
+const SHOPPING_BASE = "https://shopping.sholok.com";
+
+function getThumbSrc(thumbnail?: string): string {
+  if (!thumbnail) return "";
+  if (thumbnail.startsWith("http://") || thumbnail.startsWith("https://")) return thumbnail;
+  if (thumbnail.startsWith("/uploads")) return `${SHOPPING_BASE}${thumbnail}`;
+  return `${SHOPPING_BASE}/uploads/${thumbnail.replace(/^\//, "")}`;
+}
 const MODE_KEY = "sholok_search_input_mode";
 const getMode = (): InputMode => {
   try { const v = localStorage.getItem(MODE_KEY); return v === "BN" ? "BN" : "EN"; } catch { return "EN"; }
@@ -113,7 +122,7 @@ const SearchBar = ({ initialQuery = "", hero = false }: SearchBarProps) => {
   const pickApiSuggestion = (s: SuggestionItem) => {
     setDrop(false);
     if (s.type === "category") navigate(`/search?q=${encodeURIComponent(getLocalizedName(s, "EN"))}`);
-    else window.location.href = `/shopping/product/${s.slug}`;
+    else window.location.href = `https://shopping.sholok.com/product/${s.slug}`;
   };
 
   const pickDictHint = (bn: string) => {
@@ -149,7 +158,7 @@ const SearchBar = ({ initialQuery = "", hero = false }: SearchBarProps) => {
           <button key={i} type="button" onMouseDown={() => pickApiSuggestion(s)}
             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors text-left">
             {s.type === "product" && s.thumbnail
-              ? <img src={s.thumbnail} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 bg-secondary" />
+              ? <img src={getThumbSrc(s.thumbnail)} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 bg-secondary" />
               : <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 text-base">
                   {s.type === "category"
                     ? (s.icon || <LayoutGrid className="w-4 h-4 text-muted-foreground" />)
