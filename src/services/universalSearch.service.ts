@@ -115,6 +115,37 @@ export function formatDuration(seconds?: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// ─── Normalizer (Shopping /api/search returns snake_case MySQL fields) ────────
+
+function normalizeProduct(raw: any): ProductResult {
+  const thumb = raw.thumbnail ?? "";
+  return {
+    _id:          String(raw._id ?? raw.id ?? ""),
+    name:         raw.name ?? "",
+    nameBn:       raw.nameBn ?? raw.name_bn ?? undefined,
+    slug:         raw.slug ?? "",
+    // Thumbnail: keep absolute URLs; prepend host for relative /uploads/ paths
+    thumbnail:    thumb
+      ? (thumb.startsWith("http://") || thumb.startsWith("https://")
+          ? thumb
+          : `https://shopping.sholok.com${thumb.startsWith("/") ? thumb : "/" + thumb}`)
+      : undefined,
+    // Price mapping: API uses snake_case, fall back to camelCase for future
+    price:         raw.price ?? undefined,
+    regularPrice:  raw.regularPrice ?? raw.regular_price ?? undefined,
+    salePrice:     raw.salePrice !== undefined ? raw.salePrice
+                   : raw.sale_price !== undefined ? raw.sale_price : undefined,
+    brand:         raw.brand ?? raw.brand_name ?? undefined,
+    rating:        raw.rating ?? undefined,
+    reviewCount:   raw.reviewCount ?? raw.review_count ?? undefined,
+    stock:         raw.stock ?? undefined,
+    // Category: API may send flat fields or a nested object
+    categoryId:    raw.categoryId ?? (raw.category_name
+      ? { name: raw.category_name, nameBn: raw.category_name_bn ?? undefined, slug: raw.category_slug ?? "" }
+      : null),
+  };
+}
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 const EMPTY: UniversalSearchResults = {
@@ -134,7 +165,7 @@ export const universalSearchService = {
 
     const [shopRes, jobRes, blogRes, videoRes, mvProductRes, storeRes] =
       await Promise.allSettled([
-        safeFetch<{ products: ProductResult[]; categories: CategoryResult[]; total: number }>(
+        safeFetch<{ products: any[]; categories: CategoryResult[]; total: number }>(
           `/api/search?q=${enc}&limit=${limit}`,
           { products: [], categories: [], total: 0 }
         ),
@@ -168,7 +199,7 @@ export const universalSearchService = {
     const store = storeRes.status     === 'fulfilled' ? storeRes.value     : { success: false, stores: [], total: 0 };
 
     return {
-      products:              shop.products         ?? [],
+      products:              (shop.products         ?? []).map(normalizeProduct),
       categories:            shop.categories        ?? [],
       totalProducts:         shop.total             ?? 0,
       jobs:                  job.jobs               ?? [],
@@ -202,11 +233,11 @@ export const universalSearchService = {
   },
 
   async searchProducts(q: string, page = 1, limit = 12): Promise<{ products: ProductResult[]; total: number }> {
-    const res = await safeFetch<{ products: ProductResult[]; total: number }>(
+    const res = await safeFetch<{ products: any[]; total: number }>(
       `/api/search?q=${encodeURIComponent(q)}&limit=${limit}&page=${page}`,
       { products: [], total: 0 }
     );
-    return { products: res.products ?? [], total: res.total ?? 0 };
+    return { products: (res.products ?? []).map(normalizeProduct), total: res.total ?? 0 };
   },
 
   async searchVideos(q: string, page = 1, limit = 12): Promise<{ videos: VideoResult[]; total: number }> {
