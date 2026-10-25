@@ -780,9 +780,8 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
 
       {/* ── Full-screen Order Details ────────────────────────────────────────────── */}
       {viewOpen && viewOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f6f8fb] dark:bg-background">
+        <div className="fixed inset-y-0 left-64 right-0 z-50 overflow-y-auto bg-[#f6f8fb] dark:bg-background">
           <div className="min-h-full p-4 md:p-6">
-            <div className="max-w-[1400px] mx-auto">
 
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
@@ -1355,7 +1354,6 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
 
                 </div>
               </div>
-            </div>
           </div>
         </div>
       )}
