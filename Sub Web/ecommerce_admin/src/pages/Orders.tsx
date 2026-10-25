@@ -875,6 +875,15 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                           { icon: '📞', label: 'Mobile Number', content: <span className="font-bold text-sm">{(viewOrder.customerId as any)?.phone ?? '—'}</span> },
                           { icon: '✉', label: 'Email', content: <span className="font-bold text-sm break-all">{(viewOrder.customerId as any)?.email ?? '—'}</span> },
                           { icon: '#', label: 'Customer ID', content: <span className="font-bold text-sm font-mono">{(viewOrder.customerId as any)?._id ? `CUS-${String((viewOrder.customerId as any)._id).slice(-6).toUpperCase()}` : '—'}</span> },
+                          {
+                            icon: '📍', label: 'Address',
+                            content: (() => {
+                              const a = viewOrder.shippingAddress;
+                              if (!a) return <span className="font-bold text-sm text-muted-foreground">—</span>;
+                              const parts = [a.street, a.state, a.city, a.zipCode, a.country].filter(Boolean);
+                              return <span className="font-bold text-sm">{parts.join(', ') || '—'}</span>;
+                            })(),
+                          },
                         ].map((row, i) => (
                           <div key={i} className="flex items-start gap-3">
                             <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 text-base">{row.icon}</div>
