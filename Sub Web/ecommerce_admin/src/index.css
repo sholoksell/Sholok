@@ -4,56 +4,59 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* ── White / Light Admin Theme ─────────────────────────────────────────── */
+    --background: 210 17% 98%;          /* near-white cool background          */
+    --foreground: 222 39% 11%;          /* dark navy-charcoal text             */
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%;                  /* pure white cards                    */
+    --card-foreground: 222 39% 11%;
 
-    --popover: 222 47% 10%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;               /* pure white dropdowns / modals       */
+    --popover-foreground: 222 39% 11%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 6%;
+    --primary: 217 91% 53%;             /* blue accent                         */
+    --primary-foreground: 0 0% 100%;    /* white text on blue                  */
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 214 32% 95%;           /* light blue-grey chip / badge        */
+    --secondary-foreground: 222 39% 11%;
 
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 214 32% 96%;               /* very light grey surface             */
+    --muted-foreground: 215 16% 47%;    /* medium grey hint / label text       */
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 214 32% 93%;              /* hover highlight                     */
+    --accent-foreground: 222 39% 11%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;           /* red — kept as-is                    */
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
+    --success: 142 69% 38%;             /* green — kept as-is                  */
+    --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 6%;
+    --warning: 38 92% 50%;              /* amber — kept as-is                  */
+    --warning-foreground: 222 39% 11%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --border: 214 32% 91%;              /* subtle grey border                  */
+    --input: 214 32% 91%;               /* input border                        */
+    --ring: 217 91% 53%;                /* focus ring                          */
 
     --radius: 0.75rem;
 
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 217 33% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 217 91% 60%;
+    /* ── Sidebar ───────────────────────────────────────────────────────────── */
+    --sidebar-background: 220 20% 97%;  /* very light blue-grey sidebar        */
+    --sidebar-foreground: 222 39% 11%;
+    --sidebar-primary: 217 91% 53%;     /* blue active nav item                */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 32% 92%;      /* sidebar hover                       */
+    --sidebar-accent-foreground: 222 39% 11%;
+    --sidebar-border: 214 32% 89%;      /* sidebar divider                     */
+    --sidebar-ring: 217 91% 53%;
 
-    --chart-1: 217 91% 60%;
-    --chart-2: 142 76% 36%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 0 84% 60%;
+    /* ── Charts — stay colorful ────────────────────────────────────────────── */
+    --chart-1: 217 91% 53%;   /* blue    */
+    --chart-2: 142 69% 44%;   /* green   */
+    --chart-3: 38 92% 50%;    /* amber   */
+    --chart-4: 280 65% 60%;   /* purple  */
+    --chart-5: 0 84% 60%;     /* red     */
   }
 }
 
@@ -70,15 +73,15 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-border/50;
+    @apply bg-card border border-border shadow-sm;
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(280 65% 60%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 65%) 100%);
   }
 
   .gradient-success {
-    background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(160 84% 39%) 100%);
+    background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(160 69% 42%) 100%);
   }
 
   .gradient-warning {
@@ -87,7 +90,7 @@
 
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(280 65% 60%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 65%) 100%);
   }
 
   .animate-fade-in {
@@ -118,17 +121,17 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Quill Editor Customization */
+/* Quill Editor — light theme */
 .ql-toolbar.ql-snow {
   border-color: hsl(var(--border)) !important;
-  background-color: hsl(var(--muted)/0.5);
+  background-color: hsl(var(--muted));
   border-top-left-radius: var(--radius);
   border-top-right-radius: var(--radius);
 }
 
 .ql-container.ql-snow {
   border-color: hsl(var(--border)) !important;
-  background-color: hsl(var(--secondary)/0.3);
+  background-color: hsl(var(--card));
   border-bottom-left-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
   font-family: inherit !important;
@@ -141,20 +144,21 @@
 }
 
 .ql-snow .ql-stroke {
-  stroke: hsl(var(--muted-foreground)) !important;
+  stroke: hsl(var(--foreground)) !important;
 }
 
 .ql-snow .ql-fill {
-  fill: hsl(var(--muted-foreground)) !important;
+  fill: hsl(var(--foreground)) !important;
 }
 
 .ql-snow .ql-picker {
-  color: hsl(var(--muted-foreground)) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
 .ql-snow .ql-picker-options {
   background-color: hsl(var(--popover)) !important;
   border-color: hsl(var(--border)) !important;
+  box-shadow: 0 4px 16px 0 hsl(214 32% 11% / 0.08);
 }
 
 .ql-snow .ql-picker.ql-expanded .ql-picker-options {
