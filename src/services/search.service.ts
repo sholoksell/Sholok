@@ -1,39 +1,6 @@
 // All calls go through Vite's proxy: /api → http://localhost:5001/api
 const HOME_API = '/api';
 
-function resizeImageToBase64(file: File, maxPx = 400, quality = 0.6): Promise<{ base64: string; mimeType: string }> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const ratio = Math.min(maxPx / img.width, maxPx / img.height, 1);
-      const canvas = document.createElement('canvas');
-      canvas.width  = Math.round(img.width  * ratio);
-      canvas.height = Math.round(img.height * ratio);
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      canvas.toBlob(blob => {
-        const reader = new FileReader();
-        reader.onload = e => resolve({
-          base64:   (e.target!.result as string).split(',')[1],
-          mimeType: 'image/jpeg',
-        });
-        reader.readAsDataURL(blob!);
-      }, 'image/jpeg', quality);
-    };
-    img.onerror = () => {
-      // Fallback: read file as-is
-      const reader = new FileReader();
-      reader.onload = e => resolve({
-        base64:   (e.target!.result as string).split(',')[1],
-        mimeType: file.type || 'image/jpeg',
-      });
-      reader.readAsDataURL(file);
-    };
-    img.src = url;
-  });
-}
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface SuggestionItem {
@@ -79,21 +46,12 @@ export interface SearchResponse {
   limit: number;
 }
 
-export interface AISearchResponse {
-  success: boolean;
-  answer?: string | null;
-  products: SuggestionItem[];
-  categories: SuggestionItem[];
-  interpretedQuery?: string;
-  originalQuery?: string;
-  message?: string;
-  configError?: boolean;
-}
-
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 /**
  * Returns the localised display name.
+ * - lang = 'BN' → Bengali, falls back to English if BN is empty
+ * - lang = 'EN' → English, falls back to Bengali if EN is empty
  * The search keyword language does NOT affect this — only the site language does.
  */
 export function getLocalizedName(
@@ -109,14 +67,21 @@ export function getLocalizedName(
 export const searchService = {
   /**
    * Full search — queries MongoDB across all bilingual product & category fields.
-   * @param q     Primary search term (user's raw input)
+   * @param q     Primary search term (Bangla if BN mode was used)
    * @param page  Page number
    * @param limit Results per page
-   * @param qEn   Secondary search term (e.g. Bengali transliteration of Banglish)
+   * @param qEn   Original English term (passed when BN mode converts it)
+   *              The backend searches BOTH q and qEn to maximise results.
    */
   search: async (q: string, page = 1, limit = 20, qEn?: string): Promise<SearchResponse> => {
-    if (!q.trim()) return { products: [], categories: [], total: 0, page: 1, limit };
-    const params = new URLSearchParams({ q: q.trim(), page: String(page), limit: String(limit) });
+    if (!q.trim()) {
+      return { products: [], categories: [], total: 0, page: 1, limit };
+    }
+    const params = new URLSearchParams({
+      q: q.trim(),
+      page: String(page),
+      limit: String(limit),
+    });
     if (qEn?.trim()) params.set('qEn', qEn.trim());
     const res = await fetch(`${HOME_API}/search?${params.toString()}`);
     if (!res.ok) throw new Error(`Search failed: ${res.status}`);
@@ -125,58 +90,42 @@ export const searchService = {
 
   /**
    * Autocomplete suggestions — debounced on the component side.
-   * @param q       Partial query (user's raw text)
-   * @param qEn     Bengali equivalent for bilingual matching
-   * @param signal  AbortSignal for request cancellation
+   * @param q    Partial query (Bangla or English)
+   * @param qEn  Optional English equivalent for BN-mode typing
    */
-  getSuggestions: async (q: string, qEn?: string, signal?: AbortSignal): Promise<SuggestionItem[]> => {
+  getSuggestions: async (q: string, qEn?: string): Promise<SuggestionItem[]> => {
     if (!q.trim()) return [];
     const params = new URLSearchParams({ q: q.trim() });
     if (qEn?.trim()) params.set('qEn', qEn.trim());
     try {
-      const res = await fetch(`${HOME_API}/search/suggestions?${params.toString()}`, { signal });
+      const res = await fetch(`${HOME_API}/search/suggestions?${params.toString()}`);
       if (!res.ok) return [];
       const data = await res.json();
+      // Flat array already shaped as SuggestionItem[]
       if (Array.isArray(data)) return data;
+      // API returns { products, categories, ... } with snake_case fields — map to SuggestionItem
+      if (Array.isArray(data?.products) || Array.isArray(data?.categories)) {
+        const products: SuggestionItem[] = (data.products ?? []).map((p: any) => ({
+          type: 'product' as const,
+          name:         p.name     || '',
+          nameBn:       p.name_bn  || p.nameBn || '',
+          slug:         p.slug     || '',
+          thumbnail:    p.thumbnail || undefined,
+          regularPrice: p.regular_price ?? p.regularPrice,
+          salePrice:    p.sale_price    ?? p.salePrice ?? null,
+        }));
+        const categories: SuggestionItem[] = (data.categories ?? []).map((c: any) => ({
+          type: 'category' as const,
+          name:  c.name    || '',
+          nameBn: c.name_bn || c.nameBn || '',
+          slug:  c.slug    || '',
+          icon:  c.icon    || undefined,
+        }));
+        return [...categories, ...products];
+      }
       if (Array.isArray(data?.suggestions)) return data.suggestions;
-      if (Array.isArray(data?.products)) return data.products;
       return [];
-    } catch (err: any) {
-      if (err?.name === 'AbortError') throw err;  // re-throw so caller can detect cancellation
-      return [];
-    }
-  },
-
-  /**
-   * AI-powered natural language search.
-   * Falls back gracefully if the AI endpoint is not available.
-   */
-  aiSearch: async (query: string, language: 'EN' | 'BN' = 'EN'): Promise<AISearchResponse> => {
-    const res = await fetch(`${HOME_API}/search/ai`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: query.trim(), language }),
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!res.ok) throw new Error(`AI search failed: ${res.status}`);
-    return res.json();
-  },
-
-  /**
-   * Image-based search — uploads an image file.
-   * Returns a query string and/or results if image recognition is available.
-   */
-  imageSearch: async (file: File): Promise<{ success: boolean; query?: string; message?: string; products?: SuggestionItem[]; categories?: SuggestionItem[] }> => {
-    // Resize to ≤400px before encoding — keeps base64 payload ~20-40 KB
-    const { base64, mimeType } = await resizeImageToBase64(file, 400, 0.6);
-    const res = await fetch(`${HOME_API}/search/image`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64, mimeType }),
-      signal: AbortSignal.timeout(30000),
-    });
-    if (res.status === 404) return { success: false, message: 'Image search coming soon' };
-    if (!res.ok) throw new Error(`Image search failed: ${res.status}`);
-    return res.json();
+    } catch { return []; }
   },
 };
+
