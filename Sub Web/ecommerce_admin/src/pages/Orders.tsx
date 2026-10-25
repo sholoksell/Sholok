@@ -271,7 +271,79 @@ export default function Orders() {
   };
 
   const openInvoice = (order: Order) => {
-    window.open(`${import.meta.env.VITE_API_URL}/orders/invoice/${order.orderNumber}`, '_blank');
+    window.open(`${import.meta.env.VITE_API_URL}/invoice/${order.orderNumber}`, '_blank');
+  };
+
+  const openPackingSlip = (order: Order) => {
+    const shp = shipments[0];
+    const addr = order.shippingAddress;
+    const addrLines = [
+      addr?.street, addr?.city && `District: ${addr.city}`,
+      addr?.state && `Area: ${addr.state}`,
+      addr?.zipCode && `Postcode: ${addr.zipCode}`,
+    ].filter(Boolean).join('<br>');
+    const rows = (shp ? shp.products : order.items.map(i => ({ name: i.productName, qty: i.quantity })))
+      .map((p, i) => `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.qty}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>Packing Slip — ${order.orderNumber}</title>
+<style>body{font-family:sans-serif;max-width:600px;margin:30px auto;padding:20px;color:#111}
+h2{margin-bottom:4px}p{margin:4px 0}table{width:100%;border-collapse:collapse;margin-top:16px}
+th,td{border:1px solid #ddd;padding:8px 10px;text-align:left}th{background:#f5f5f5;font-size:12px}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px}
+.logo{font-size:22px;font-weight:800;letter-spacing:1px}
+.section{margin:14px 0}.label{font-size:11px;color:#666;text-transform:uppercase;font-weight:700}
+.no-print{margin-bottom:16px}
+@media print{.no-print{display:none}}
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">🖨️ Print</button></div>
+<div class="header"><div class="logo">SHOLOK</div><div style="text-align:right"><h2 style="margin:0">PACKING SLIP</h2><p style="color:#666">#${order.orderNumber}</p></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div><div class="label">Ship To</div>
+<p><strong>${addr?.name || (order.customerId as any)?.name || '—'}</strong></p>
+<p>${addr?.phone || ''}</p><p>${addrLines}</p></div>
+<div><div class="label">Order Details</div>
+<p>Order: <strong>#${order.orderNumber}</strong></p>
+<p>Date: ${new Date(order.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</p>
+${shp ? `<p>Courier: <strong>${shp.courier}</strong></p><p>Tracking: <strong>${shp.trackingNumber}</strong></p>` : ''}
+</div></div>
+<table><thead><tr><th>#</th><th>Product</th><th>Qty</th></tr></thead><tbody>${rows}</tbody></table>
+<p style="margin-top:24px;font-size:12px;color:#999;border-top:1px solid #eee;padding-top:12px">Thank you for shopping with Sholok! · support@sholok.com</p>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
+  const openShippingLabel = (order: Order) => {
+    const shp = shipments[0];
+    const addr = order.shippingAddress;
+    const toName = addr?.name || (order.customerId as any)?.name || '—';
+    const toAddr = [addr?.street, addr?.state, addr?.city].filter(Boolean).join(', ');
+    const html = `<!DOCTYPE html><html><head><title>Shipping Label — ${order.orderNumber}</title>
+<style>body{font-family:sans-serif;margin:0;padding:20px;color:#111}
+.label-box{border:2px solid #000;max-width:400px;padding:0;border-radius:4px;margin:0 auto}
+.from{background:#f5f5f5;padding:12px 16px;border-bottom:2px solid #000;font-size:12px}
+.to{padding:16px;border-bottom:1px dashed #999}
+.to h2{margin:0 0 8px;font-size:28px;font-weight:900}
+.barcode{font-family:monospace;font-size:14px;letter-spacing:3px;text-align:center;padding:10px 16px;font-weight:700;border-bottom:1px solid #ddd}
+.footer{padding:12px 16px;font-size:11px;color:#666;display:flex;justify-content:space-between}
+.no-print{margin-bottom:16px}@media print{.no-print{display:none}}
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">🖨️ Print Label</button></div>
+<div class="label-box">
+<div class="from"><strong>FROM: SHOLOK</strong><br>Dhaka, Bangladesh · support@sholok.com</div>
+<div class="to"><h2>TO:</h2>
+<p style="margin:0;font-size:16px;font-weight:700">${toName}</p>
+<p style="margin:4px 0;font-size:13px">${addr?.phone || ''}</p>
+<p style="margin:4px 0;font-size:13px">${toAddr}</p>
+${addr?.zipCode ? `<p style="margin:4px 0;font-size:13px">Postcode: ${addr.zipCode}</p>` : ''}
+</div>
+<div class="barcode">| ${order.orderNumber} |</div>
+<div class="footer">
+<span>Order: #${order.orderNumber}</span>
+${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok Fulfillment</span>'}
+</div>
+</div></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
   };
 
 
@@ -660,7 +732,7 @@ export default function Orders() {
               </section>
 
               {/* ── MAIN GRID ────────────────────────────────────────────────────────── */}
-              <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0,1fr) 350px' }}>
+              <div className="grid gap-5 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_350px]">
 
                 {/* ═══ LEFT COLUMN ══════════════════════════════════════════════════ */}
                 <div className="space-y-5">
@@ -702,7 +774,6 @@ export default function Orders() {
                     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
                       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                         <h3 className="font-bold text-sm">Delivery Address</h3>
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground">✏ Change Address</Button>
                       </div>
                       <div className="p-5 space-y-3">
                         <div className="flex items-start gap-3">
@@ -1004,9 +1075,9 @@ export default function Orders() {
                           Cash on Delivery: Payment remains Pending until delivery is completed.
                         </p>
                       )}
-                      <Button size="sm" variant="outline" className="w-full mt-3 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
-                        ✎ Update Payment Status
-                      </Button>
+                      <p className="text-xs text-muted-foreground mt-3 p-2.5 rounded-lg bg-muted/40 leading-relaxed">
+                        Click the payment status badge above to change it.
+                      </p>
                     </div>
                   </div>
 
@@ -1095,9 +1166,18 @@ export default function Orders() {
                     </div>
                     <div className="p-5 space-y-3">
                       {[
-                        { icon: '📦', name: 'Packing Slips', desc: '1 Packing Slip — 1 per Shipment' },
-                        { icon: '🚚', name: 'Shipping Labels', desc: '1 Shipping Label — 1 per Shipment' },
-                        { icon: '💳', name: 'Payment Receipt', desc: '1 Receipt — Order-level' },
+                        {
+                          icon: '📦', name: 'Packing Slips', desc: `${Math.max(shipments.length,1)} Packing Slip — 1 per Shipment`,
+                          onOpen: () => openPackingSlip(viewOrder),
+                        },
+                        {
+                          icon: '🚚', name: 'Shipping Labels', desc: `${Math.max(shipments.length,1)} Shipping Label — 1 per Shipment`,
+                          onOpen: () => openShippingLabel(viewOrder),
+                        },
+                        {
+                          icon: '💳', name: 'Payment Receipt', desc: '1 Receipt — Order-level',
+                          onOpen: () => openInvoice(viewOrder),
+                        },
                       ].map((doc, i) => (
                         <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30">
                           <div className="flex items-center gap-2.5">
@@ -1108,10 +1188,10 @@ export default function Orders() {
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={doc.onOpen}>
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={doc.onOpen}>
                               ↓
                             </Button>
                           </div>
