@@ -850,7 +850,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
               </section>
 
               {/* ── MAIN GRID ────────────────────────────────────────────────────────── */}
-              <div className="grid gap-5 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_350px]">
+              <div className="grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_350px]">
 
                 {/* ═══ LEFT COLUMN ══════════════════════════════════════════════════ */}
                 <div className="space-y-5">
