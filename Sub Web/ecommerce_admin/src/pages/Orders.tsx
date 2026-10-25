@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { orderApi, Order } from '@/services/orderService';
 import { customerApi, Customer } from '@/services/customerService';
+import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -99,9 +100,8 @@ export default function Orders() {
 
   // Shipment state
   interface Shipment {
-    id: string; type: string; status: string; warehouse?: string;
-    vendor?: string; courier: string; trackingNumber: string;
-    weight?: string; packages?: number; deliveryCharge?: number;
+    dbId: number; id: string; type: string; status: string;
+    courier: string; trackingNumber: string;
     dispatchDate?: string; eta?: string; destination?: string;
     products: { name: string; qty: number }[];
   }
@@ -109,6 +109,18 @@ export default function Orders() {
   const [shipStatusOpen, setShipStatusOpen] = useState(false);
   const [activeShipIdx, setActiveShipIdx] = useState<number>(0);
   const [shipStatusVal, setShipStatusVal] = useState('');
+  const [shipStatusSaving, setShipStatusSaving] = useState(false);
+
+  // Edit Delivery Address state
+  const [editAddrOpen, setEditAddrOpen] = useState(false);
+  const [editAddrSaving, setEditAddrSaving] = useState(false);
+  const [editAddrForm, setEditAddrForm] = useState({ name: '', phone: '', street: '', city: '', state: '', zipCode: '', country: 'Bangladesh' });
+
+  // Create Shipment state
+  const [createShipOpen, setCreateShipOpen] = useState(false);
+  const [createShipLoading, setCreateShipLoading] = useState(false);
+  const defaultShipForm = () => ({ courierName: '', trackingNumber: '', dispatchDate: '', estimatedDeliveryDate: '', notes: '', selectedItems: [] as number[] });
+  const [createShipForm, setCreateShipForm] = useState(defaultShipForm());
 
   // Customer details
   const [custOpen, setCustOpen] = useState(false);
@@ -205,30 +217,38 @@ export default function Orders() {
     } catch { toast.error('Failed to delete order'); }
   };
 
+  const loadShipmentsForOrder = async (orderId: string, orderItems: Order['items'], shippingAddress: Order['shippingAddress']) => {
+    try {
+      const res = await api.get(`/shipments/order/${orderId}`);
+      const rows: any[] = Array.isArray(res.data) ? res.data : [];
+      if (rows.length > 0) {
+        setShipments(rows.map(r => ({
+          dbId: r._id,
+          id: r.shipmentNumber || `SHP-${r._id}`,
+          type: r.sourceLabel || r.sourceType || 'Sholok Fulfillment',
+          status: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).replace(/_/g, ' ') : 'Pending',
+          courier: r.courierName || '—',
+          trackingNumber: r.trackingNumber || '—',
+          dispatchDate: r.dispatchDate ? new Date(r.dispatchDate).toLocaleDateString('en-BD') : '—',
+          eta: r.estimatedDeliveryDate ? new Date(r.estimatedDeliveryDate).toLocaleDateString('en-BD') : '—',
+          destination: [shippingAddress?.city, shippingAddress?.state].filter(Boolean).join(', ') || '—',
+          products: (r.items || []).length > 0
+            ? r.items.map((it: any) => ({ name: it.product_name || it.productName || '—', qty: it.quantity || 1 }))
+            : orderItems.map(i => ({ name: i.productName, qty: i.quantity })),
+        })));
+      } else {
+        setShipments([]);
+      }
+    } catch {
+      setShipments([]);
+    }
+  };
+
   const handleViewOrder = async (order: Order) => {
     try {
       const full = await orderApi.getById(order._id);
       setViewOrder(full);
-      // Derive shipments from order tracking data
-      const ex = full as any;
-      if (ex.trackingNumber) {
-        const smap: Record<string, string> = {
-          delivered: 'Delivered', shipped: 'In Transit', out_for_delivery: 'Out for Delivery',
-          processing: 'Processing', confirmed: 'Confirmed', pending: 'Pending',
-          cancelled: 'Cancelled', refunded: 'Refunded',
-        };
-        setShipments([{
-          id: 'SHP-001', type: 'Sholok Fulfillment',
-          status: smap[full.status] || 'Pending',
-          courier: ex.courierName || '—', trackingNumber: ex.trackingNumber,
-          dispatchDate: new Date(full.updatedAt).toLocaleDateString('en-BD'),
-          eta: ex.estimatedDeliveryDate ? new Date(ex.estimatedDeliveryDate).toLocaleDateString('en-BD') : '—',
-          destination: [full.shippingAddress?.city, full.shippingAddress?.state].filter(Boolean).join(', ') || '—',
-          products: full.items.map(i => ({ name: i.productName, qty: i.quantity })),
-        }]);
-      } else {
-        setShipments([]);
-      }
+      await loadShipmentsForOrder(full._id, full.items, full.shippingAddress);
       setViewOpen(true);
     } catch { toast.error('Failed to load order details'); }
   };
@@ -346,6 +366,104 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
     if (w) { w.document.write(html); w.document.close(); }
   };
 
+  // ── Edit Delivery Address ────────────────────────────────────────────────────
+
+  const openEditAddr = () => {
+    if (!viewOrder) return;
+    const a = viewOrder.shippingAddress;
+    setEditAddrForm({
+      name: a?.name || (viewOrder.customerId as any)?.name || '',
+      phone: a?.phone || (viewOrder.customerId as any)?.phone || '',
+      street: a?.street || '',
+      city: a?.city || '',
+      state: a?.state || '',
+      zipCode: a?.zipCode || '',
+      country: a?.country || 'Bangladesh',
+    });
+    setEditAddrOpen(true);
+  };
+
+  const handleSaveAddress = async () => {
+    if (!viewOrder) return;
+    setEditAddrSaving(true);
+    try {
+      const updated = await orderApi.update(viewOrder._id, { shippingAddress: editAddrForm as any });
+      setViewOrder(updated);
+      setOrders(prev => prev.map(o => o._id === updated._id ? { ...o, shippingAddress: updated.shippingAddress } : o));
+      toast.success('Delivery address updated');
+      setEditAddrOpen(false);
+    } catch { toast.error('Failed to update address'); }
+    finally { setEditAddrSaving(false); }
+  };
+
+  // ── Create Shipment ──────────────────────────────────────────────────────────
+
+  const openCreateShipmentDialog = () => {
+    if (!viewOrder) return;
+    setCreateShipForm({
+      ...defaultShipForm(),
+      selectedItems: viewOrder.items.map((_, idx) => idx),
+    });
+    setCreateShipOpen(true);
+  };
+
+  const handleCreateShipment = async () => {
+    if (!viewOrder) return;
+    if (!createShipForm.courierName.trim()) { toast.error('Courier name is required'); return; }
+    setCreateShipLoading(true);
+    try {
+      const items = createShipForm.selectedItems.map(idx => {
+        const it = viewOrder.items[idx];
+        return {
+          product_id: it.productId || null,
+          product_name: it.productName,
+          quantity: it.quantity,
+          weight_kg: 0.5,
+        };
+      });
+      await api.post('/shipments', {
+        order_id: viewOrder._id,
+        courier_name: createShipForm.courierName,
+        tracking_number: createShipForm.trackingNumber || null,
+        dispatch_date: createShipForm.dispatchDate || null,
+        estimated_delivery_date: createShipForm.estimatedDeliveryDate || null,
+        notes: createShipForm.notes || null,
+        items,
+      });
+      toast.success('Shipment created successfully');
+      setCreateShipOpen(false);
+      await loadShipmentsForOrder(viewOrder._id, viewOrder.items, viewOrder.shippingAddress);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to create shipment');
+    } finally { setCreateShipLoading(false); }
+  };
+
+  const toggleShipItem = (idx: number) => {
+    setCreateShipForm(f => ({
+      ...f,
+      selectedItems: f.selectedItems.includes(idx)
+        ? f.selectedItems.filter(i => i !== idx)
+        : [...f.selectedItems, idx],
+    }));
+  };
+
+  const handleUpdateShipmentStatus = async () => {
+    if (!shipments[activeShipIdx]?.dbId) {
+      // fallback: local only
+      setShipments(prev => prev.map((s, i) => i === activeShipIdx ? { ...s, status: shipStatusVal } : s));
+      toast.success(`Shipment status updated to "${shipStatusVal}"`);
+      setShipStatusOpen(false);
+      return;
+    }
+    setShipStatusSaving(true);
+    try {
+      await api.put(`/shipments/${shipments[activeShipIdx].dbId}/status`, { status: shipStatusVal.toLowerCase().replace(/ /g, '_'), description: '' });
+      setShipments(prev => prev.map((s, i) => i === activeShipIdx ? { ...s, status: shipStatusVal } : s));
+      toast.success(`Shipment status updated to "${shipStatusVal}"`);
+      setShipStatusOpen(false);
+    } catch { toast.error('Failed to update shipment status'); }
+    finally { setShipStatusSaving(false); }
+  };
 
   const toggleSelect = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleSelectAll = () => {
@@ -701,7 +819,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                     <Button size="sm" variant="outline" onClick={() => { setViewOpen(false); openInvoice(viewOrder); }}>
                       📄 Invoice
                     </Button>
-                    <Button size="sm" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
+                    <Button size="sm" onClick={() => openCreateShipmentDialog()}>
                       + Create Shipment
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { setViewOpen(false); openNoteDialog(viewOrder); }}>
@@ -794,7 +912,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                         ) : <p className="text-sm text-muted-foreground">No address on file</p>}
                         <span className="inline-flex px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-bold">✓ Delivery Area Covered</span>
                         <div className="pt-1">
-                          <Button size="sm" variant="outline" className="w-full text-xs h-8">✏ Edit Delivery Address</Button>
+                          <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={openEditAddr}>✏ Edit Delivery Address</Button>
                         </div>
                       </div>
                     </div>
@@ -863,7 +981,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                           {shipments.length} Shipment{shipments.length !== 1 ? 's' : ''} created for this Order
                         </p>
                       </div>
-                      <Button size="sm" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
+                      <Button size="sm" onClick={() => openCreateShipmentDialog()}>
                         + Create Shipment
                       </Button>
                     </div>
@@ -872,7 +990,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                         <div className="text-center py-8 text-muted-foreground">
                           <Truck className="w-8 h-8 mx-auto mb-2 opacity-30" />
                           <p className="text-sm">No shipments created yet</p>
-                          <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>
+                          <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => openCreateShipmentDialog()}>
                             + Create First Shipment
                           </Button>
                         </div>
@@ -928,7 +1046,7 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
                                 setShipStatusVal(shp.status);
                                 setShipStatusOpen(true);
                               }}>Change Status</Button>
-                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setViewOpen(false); openTrackingDialog(viewOrder); }}>Tracking</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openCreateShipmentDialog()}>Tracking</Button>
                             </div>
                           </div>
                         </div>
@@ -1160,46 +1278,78 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
 
                   {/* Order Documents */}
                   <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-                    <div className="px-5 py-4 border-b border-border">
-                      <h3 className="font-bold text-sm">Order Documents</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">Shipment-level packing slips &amp; shipping labels; order-level payment receipt</p>
+                    <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-primary" />
+                      <div>
+                        <h3 className="font-bold text-sm">Order Documents</h3>
+                        <p className="text-xs text-muted-foreground">Print or download packing slips, shipping labels, and payment receipt</p>
+                      </div>
                     </div>
-                    <div className="p-5 space-y-3">
-                      {[
-                        {
-                          icon: '📦', name: 'Packing Slips', desc: `${Math.max(shipments.length,1)} Packing Slip — 1 per Shipment`,
-                          onOpen: () => openPackingSlip(viewOrder),
-                        },
-                        {
-                          icon: '🚚', name: 'Shipping Labels', desc: `${Math.max(shipments.length,1)} Shipping Label — 1 per Shipment`,
-                          onOpen: () => openShippingLabel(viewOrder),
-                        },
-                        {
-                          icon: '💳', name: 'Payment Receipt', desc: '1 Receipt — Order-level',
-                          onOpen: () => openInvoice(viewOrder),
-                        },
-                      ].map((doc, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-base">{doc.icon}</span>
-                            <div>
-                              <p className="text-sm font-semibold">{doc.name}</p>
-                              <p className="text-xs text-muted-foreground">{doc.desc}</p>
-                            </div>
+                    <div className="p-4 space-y-2.5">
+                      {/* Packing Slip */}
+                      <div className="group flex items-center justify-between p-3.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/3 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                            <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </div>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={doc.onOpen}>
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={doc.onOpen}>
-                              ↓
-                            </Button>
+                          <div>
+                            <p className="text-sm font-semibold">Packing Slip</p>
+                            <p className="text-xs text-muted-foreground">
+                              {shipments.length > 0 ? `${shipments.length} slip${shipments.length > 1 ? 's' : ''} — 1 per shipment` : 'Order-level slip'}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                      <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                        Document Rule: Each Packing Slip and Shipping Label contains only its own Shipment's products/details. Payment Receipt remains 1 per Order.
-                      </p>
+                        <div className="flex items-center gap-1.5">
+                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs gap-1" onClick={() => openPackingSlip(viewOrder)}>
+                            <Eye className="w-3 h-3" /> View
+                          </Button>
+                          <Button size="sm" className="h-7 px-2.5 text-xs gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-white" onClick={() => openPackingSlip(viewOrder)}>
+                            <Printer className="w-3 h-3" /> Print
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Shipping Label */}
+                      <div className="group flex items-center justify-between p-3.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/3 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+                            <Truck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">Shipping Label</p>
+                            <p className="text-xs text-muted-foreground">
+                              {shipments.length > 0 ? `${shipments.length} label${shipments.length > 1 ? 's' : ''} — 1 per shipment` : 'Order-level label'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs gap-1" onClick={() => openShippingLabel(viewOrder)}>
+                            <Eye className="w-3 h-3" /> View
+                          </Button>
+                          <Button size="sm" className="h-7 px-2.5 text-xs gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-white" onClick={() => openShippingLabel(viewOrder)}>
+                            <Printer className="w-3 h-3" /> Print
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Payment Receipt */}
+                      <div className="group flex items-center justify-between p-3.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/3 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center flex-shrink-0">
+                            <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">Payment Receipt</p>
+                            <p className="text-xs text-muted-foreground">1 receipt — order-level invoice</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs gap-1" onClick={() => openInvoice(viewOrder)}>
+                            <Eye className="w-3 h-3" /> View
+                          </Button>
+                          <Button size="sm" className="h-7 px-2.5 text-xs gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-white" onClick={() => openInvoice(viewOrder)}>
+                            <Printer className="w-3 h-3" /> Print
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1236,11 +1386,9 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShipStatusOpen(false)}>Cancel</Button>
-            <Button onClick={() => {
-              setShipments(prev => prev.map((s, i) => i === activeShipIdx ? { ...s, status: shipStatusVal } : s));
-              toast.success(`Shipment status updated to "${shipStatusVal}"`);
-              setShipStatusOpen(false);
-            }}>Update Status</Button>
+            <Button onClick={handleUpdateShipmentStatus} disabled={shipStatusSaving}>
+              {shipStatusSaving ? 'Saving…' : 'Update Status'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1374,6 +1522,136 @@ ${shp ? `<span>${shp.courier} · ${shp.trackingNumber}</span>` : '<span>Sholok F
           )}
           <DialogFooter>
             <Button onClick={() => setCustOpen(false)}>{t('close')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Delivery Address Modal ───────────────────────────────────────── */}
+      <Dialog open={editAddrOpen} onOpenChange={setEditAddrOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" /> Edit Delivery Address
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Full Name *</label>
+                <Input value={editAddrForm.name} onChange={e => setEditAddrForm(f => ({ ...f, name: e.target.value }))} placeholder="Recipient name" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Phone *</label>
+                <Input value={editAddrForm.phone} onChange={e => setEditAddrForm(f => ({ ...f, phone: e.target.value }))} placeholder="01XXXXXXXXX" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">House / Road / Village</label>
+              <Input value={editAddrForm.street} onChange={e => setEditAddrForm(f => ({ ...f, street: e.target.value }))} placeholder="House #, Road #, Village" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">District</label>
+                <Input value={editAddrForm.city} onChange={e => setEditAddrForm(f => ({ ...f, city: e.target.value }))} placeholder="e.g. Dhaka" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Area / Upazila</label>
+                <Input value={editAddrForm.state} onChange={e => setEditAddrForm(f => ({ ...f, state: e.target.value }))} placeholder="e.g. Mirpur" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Postcode</label>
+                <Input value={editAddrForm.zipCode} onChange={e => setEditAddrForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="1216" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Country</label>
+                <Input value={editAddrForm.country} onChange={e => setEditAddrForm(f => ({ ...f, country: e.target.value }))} placeholder="Bangladesh" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAddrOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveAddress} disabled={editAddrSaving || !editAddrForm.name.trim() || !editAddrForm.phone.trim()}>
+              {editAddrSaving ? 'Saving…' : 'Save Address'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Create Shipment Modal ─────────────────────────────────────────────── */}
+      <Dialog open={createShipOpen} onOpenChange={setCreateShipOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="w-4 h-4" /> Create Shipment — {viewOrder?.orderNumber}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Courier / Delivery Partner *</label>
+                <Input
+                  value={createShipForm.courierName}
+                  onChange={e => setCreateShipForm(f => ({ ...f, courierName: e.target.value }))}
+                  placeholder="e.g. Pathao, RedX, Steadfast"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Tracking Number</label>
+                <Input
+                  value={createShipForm.trackingNumber}
+                  onChange={e => setCreateShipForm(f => ({ ...f, trackingNumber: e.target.value }))}
+                  placeholder="Optional tracking ID"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Dispatch Date</label>
+                <Input type="date" value={createShipForm.dispatchDate} onChange={e => setCreateShipForm(f => ({ ...f, dispatchDate: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Est. Delivery Date</label>
+                <Input type="date" value={createShipForm.estimatedDeliveryDate} onChange={e => setCreateShipForm(f => ({ ...f, estimatedDeliveryDate: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Items in this Shipment</label>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                {viewOrder?.items.map((item, idx) => (
+                  <label key={idx} className="flex items-center gap-2 p-2 rounded hover:bg-muted/30 cursor-pointer">
+                    <Checkbox
+                      checked={createShipForm.selectedItems.includes(idx)}
+                      onCheckedChange={() => toggleShipItem(idx)}
+                    />
+                    <span className="flex-1 text-xs">{item.productName}{item.variantName ? ` — ${item.variantName}` : ''}</span>
+                    <span className="text-xs text-muted-foreground font-semibold">Qty: {item.quantity}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{createShipForm.selectedItems.length} item(s) selected</p>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">Notes (optional)</label>
+              <Input value={createShipForm.notes} onChange={e => setCreateShipForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes" />
+            </div>
+            {viewOrder && (
+              <div className="p-3 rounded-lg bg-muted/40 text-xs space-y-1">
+                <p className="font-semibold text-muted-foreground">Shipping To:</p>
+                <p>{viewOrder.shippingAddress?.name}</p>
+                <p>{viewOrder.shippingAddress?.phone}</p>
+                <p>{[viewOrder.shippingAddress?.street, viewOrder.shippingAddress?.state, viewOrder.shippingAddress?.city].filter(Boolean).join(', ')}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateShipOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateShipment} disabled={createShipLoading || !createShipForm.courierName.trim() || createShipForm.selectedItems.length === 0}>
+              {createShipLoading ? 'Creating…' : (
+                <><Truck className="w-4 h-4 mr-1.5" />Create Shipment</>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
