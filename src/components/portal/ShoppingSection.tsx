@@ -108,7 +108,7 @@ const ShoppingSection = () => {
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
               activeTab.key === tab.key
-                ? "border-portal-green text-portal-green"
+                ? "border-portal-purple text-portal-purple"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -172,7 +172,7 @@ const ShoppingSection = () => {
                   </h3>
 
                   <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
-                    <span className="text-base font-bold text-portal-green">
+                    <span className="text-base font-bold text-portal-purple">
                       ৳{price.toLocaleString()}
                     </span>
                     {comparePrice && comparePrice > price && (

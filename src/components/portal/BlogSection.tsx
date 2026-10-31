@@ -77,7 +77,7 @@ const BlogSection = () => {
                                 {article.icon}
                             </div>
                             <div>
-                                <span className="text-xs font-semibold text-portal-green mb-1 block">{t(article.category)}</span>
+                                <span className="text-xs font-semibold text-portal-purple mb-1 block">{t(article.category)}</span>
                                 <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2">{article.title}</h3>
                                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {article.time}</span>

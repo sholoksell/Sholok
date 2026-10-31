@@ -41,7 +41,7 @@ const Media = () => {
                             <div className="aspect-video bg-gray-800 rounded-xl mb-3 relative overflow-hidden">
                                 <span className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-xs rounded">12:45</span>
                             </div>
-                            <h3 className="font-bold line-clamp-2 mb-1 group-hover:text-portal-green transition-colors">Amazing Nature Documentary 4K</h3>
+                            <h3 className="font-bold line-clamp-2 mb-1 group-hover:text-portal-purple transition-colors">Amazing Nature Documentary 4K</h3>
                             <div className="text-sm text-gray-400">
                                 <p>NatGeo Wild</p>
                                 <p>1.2M views • 2 days ago</p>

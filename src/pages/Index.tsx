@@ -48,7 +48,7 @@ const Index = () => {
             </div>
 
             <div className="bg-secondary/30 rounded-xl border border-border p-4 flex-1 min-h-[120px] flex items-center justify-center relative overflow-hidden group cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-br from-portal-blue/10 to-portal-green/10" />
+              <div className="absolute inset-0 bg-gradient-to-br from-portal-blue/10 to-portal-purple/10" />
               <span className="relative font-bold text-muted-foreground group-hover:scale-105 transition-transform">
                 {t("adSpace")}
               </span>

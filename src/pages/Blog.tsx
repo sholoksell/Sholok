@@ -92,7 +92,7 @@ const Blog = () => {
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-portal-green/10 to-portal-blue/10 border border-border rounded-xl p-6">
+                        <div className="bg-gradient-to-br from-portal-purple/10 to-portal-blue/10 border border-border rounded-xl p-6">
                             <h3 className="font-bold mb-2">Join the Community</h3>
                             <p className="text-sm text-muted-foreground mb-4">Connect with thousands of writers and readers on Sholok.</p>
                             <button className="w-full py-2 bg-background border border-border hover:bg-secondary rounded-lg font-medium transition-colors">

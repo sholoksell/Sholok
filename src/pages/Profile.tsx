@@ -13,7 +13,7 @@ const Profile = () => {
             <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
                 <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                     {/* Cover Photo */}
-                    <div className="h-32 bg-gradient-to-r from-portal-green to-portal-blue"></div>
+                    <div className="h-32 bg-gradient-to-r from-portal-purple to-portal-blue"></div>
 
                     <div className="px-8 pb-8">
                         {/* Avatar & Header */}

@@ -21,7 +21,7 @@ const TrendingWidget = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-6 h-6 text-portal-green" />
+          <TrendingUp className="w-6 h-6 text-portal-purple" />
           <h2 className="text-xl font-bold text-foreground">{t("trendingNow")}</h2>
         </div>
         <Link to="/trending" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -38,7 +38,7 @@ const TrendingWidget = () => {
             className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-secondary transition-colors group"
           >
             <div className="flex items-center gap-4">
-              <span className="text-xl font-bold text-portal-green w-6 font-primary">{trend.rank}</span>
+              <span className="text-xl font-bold text-portal-purple w-6 font-primary">{trend.rank}</span>
               <div>
                 <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                   {trend.title}
@@ -46,7 +46,7 @@ const TrendingWidget = () => {
                 <p className="text-xs text-muted-foreground">{t(trend.category)}</p>
               </div>
             </div>
-            <div className="px-2 py-1 bg-portal-green/10 text-portal-green text-xs font-bold rounded">
+            <div className="px-2 py-1 bg-portal-purple/10 text-portal-purple text-xs font-bold rounded">
               {trend.change}
             </div>
           </Link>

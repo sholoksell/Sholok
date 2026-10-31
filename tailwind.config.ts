@@ -51,8 +51,8 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         portal: {
-          green: "hsl(var(--portal-green))",
-          "green-light": "hsl(var(--portal-green-light))",
+          purple: "hsl(var(--portal-purple))",
+          "purple-light": "hsl(var(--portal-purple-light))",
           blue: "hsl(var(--portal-blue))",
           red: "hsl(var(--portal-red))",
           orange: "hsl(var(--portal-orange))",

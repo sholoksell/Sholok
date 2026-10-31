@@ -58,7 +58,7 @@ const Health = () => {
 
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8">
                 {/* Page Title for Context */}
-                <h1 className="text-3xl font-bold mb-6 border-l-4 border-portal-green pl-3">
+                <h1 className="text-3xl font-bold mb-6 border-l-4 border-portal-purple pl-3">
                     {language === 'BN' ? "স্বাস্থ্য" : "Health"}
                 </h1>
 

@@ -19,7 +19,7 @@ interface Product {
 }
 
 const CATEGORIES = [
-  { key: "all",          labelEn: "All Items",    labelBn: "সব আইটেম",       query: "suit"        },
+  { key: "all",          labelEn: "All Items",    labelBn: "সব আইটেম",       query: ""            },
   { key: "lawn",         labelEn: "Lawn",          labelBn: "লন সুট",         query: "lawn"        },
   { key: "printed",      labelEn: "Printed",       labelBn: "প্রিন্টেড",      query: "printed"     },
   { key: "embroidered",  labelEn: "Embroidered",   labelBn: "এমব্রয়ডারি",    query: "embroidered" },
@@ -290,7 +290,7 @@ const Shopping = () => {
 
         {/* Link to full store */}
         {!loading && allProducts.length > 0 && (
-          <div className="mt-8 p-4 bg-gradient-to-r from-primary/10 to-portal-green/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="mt-8 p-4 bg-gradient-to-r from-primary/10 to-portal-purple/10 rounded-xl border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
               <p className="font-semibold text-sm text-foreground">
                 {t("Explore more on our full store", "আমাদের সম্পূর্ণ স্টোরে আরও দেখুন")}

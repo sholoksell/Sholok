@@ -43,7 +43,7 @@ const Register = () => {
 
                 {/* Decorative elements */}
                 <div className="absolute top-10 right-10 w-24 h-24 bg-portal-orange/20 rounded-full blur-2xl" />
-                <div className="absolute bottom-10 left-10 w-32 h-32 bg-portal-green/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-10 left-10 w-32 h-32 bg-portal-purple/20 rounded-full blur-3xl" />
             </div>
 
             {/* Right Side - Register Form */}
