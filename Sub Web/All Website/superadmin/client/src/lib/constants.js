@@ -1,0 +1,72 @@
+export const SERVICE_URLS = {
+  'Main Portal': 'https://sholok.com',
+  'Cafe': 'https://cafe.sholok.com',
+  'Blog': 'https://blog.sholok.com',
+  'Shopping': 'https://shopping.sholok.com',
+  'News': 'https://news.sholok.com',
+  'Smart Store': 'https://smartstore.sholok.com',
+  'Map': 'https://map.sholok.com',
+  'Knowledge': 'https://knowledge.sholok.com',
+  'Webtoon': 'https://webtoon.sholok.com',
+  'Series': 'https://series.sholok.com',
+  'TV / Videos': 'https://tv.sholok.com',
+  'Music': 'https://music.sholok.com',
+  'Translator': 'https://translate.sholok.com',
+  'Dictionary': 'https://dictionary.sholok.com',
+  'Finance': 'https://finance.sholok.com',
+  'Sports': 'https://sports.sholok.com',
+  'Weather': 'https://weather.sholok.com',
+  'My Account': 'https://account.sholok.com',
+  'Real Estate': 'https://realestate.sholok.com',
+  'Search': 'https://search.sholok.com',
+}
+
+export const SERVICES = [
+  { name: 'Cafe', desc: 'Community groups, memberships, discussions and moderation', icon: 'MessagesSquare', status: 'Active', category: 'Community' },
+  { name: 'Blog', desc: 'Bloggers, articles, comments, categories and SEO', icon: 'NotebookPen', status: 'Active', category: 'Publishing' },
+  { name: 'Shopping', desc: 'Central marketplace for products, campaigns, orders and checkout', icon: 'ShoppingBag', status: 'Active', category: 'Commerce' },
+  { name: 'News', desc: 'Publisher accounts, editorial workflows and news distribution', icon: 'Newspaper', status: 'Active', category: 'Publishing' },
+  { name: 'Smart Store', desc: 'Seller public stores, listings, inventory, commissions and settlements', icon: 'Store', status: 'Active', category: 'Commerce' },
+  { name: 'Map', desc: 'Places, verified businesses, reviews and map data quality', icon: 'MapPinned', status: 'Active', category: 'Location' },
+  { name: 'Knowledge', desc: 'Questions, answers, experts and knowledge quality', icon: 'CircleHelp', status: 'Active', category: 'Community' },
+  { name: 'Webtoon', desc: 'Creators, digital comics, episodes, age ratings and copyright', icon: 'BookOpen', status: 'Active', category: 'Entertainment' },
+  { name: 'Series', desc: 'Novels, eBooks, comics, release schedules and rights', icon: 'LibraryBig', status: 'Active', category: 'Entertainment' },
+  { name: 'TV / Videos', desc: 'Video creators, channels, streaming and content safety', icon: 'Clapperboard', status: 'Active', category: 'Entertainment' },
+  { name: 'Music', desc: 'Artists, tracks, playlists, licensing and streaming', icon: 'Music2', status: 'Active', category: 'Entertainment' },
+  { name: 'Translator', desc: 'Translation services, supported languages and provider quality', icon: 'Languages', status: 'Active', category: 'Language' },
+  { name: 'Dictionary', desc: 'Dictionary data, definitions, pronunciation and lookup', icon: 'BookA', status: 'Active', category: 'Language' },
+  { name: 'Finance', desc: 'Financial information, data feeds, market insights and disclaimers', icon: 'ChartNoAxesCombined', status: 'Active', category: 'Data Services' },
+  { name: 'Sports', desc: 'Leagues, fixtures, scores, statistics and live feeds', icon: 'Trophy', status: 'Active', category: 'Data Services' },
+  { name: 'Weather', desc: 'Forecasts, location coverage and severe weather alerts', icon: 'CloudSun', status: 'Active', category: 'Data Services' },
+  { name: 'Real Estate', desc: 'Property listings, agents, locations and listing moderation', icon: 'House', status: 'Active', category: 'Marketplace' },
+]
+
+export const USER_TYPES = ['Customer', 'Seller', 'Blogger', 'Freelancer', 'Employer', 'Job Seeker', 'Creator', 'Service']
+
+export const ADMIN_ROLES = [
+  'Platform Administrator', 'Service Administrator', 'Service Manager',
+  'Operations Administrator', 'Security Administrator', 'Content Manager',
+  'Content Moderator', 'Finance Administrator', 'Finance Manager',
+  'Support Manager', 'Support Agent', 'Data Analyst', 'Auditor',
+  'Integration Manager', 'Backup Operator', 'Viewer',
+]
+
+export const NAV_ITEMS = [
+  { path: '/overview', label: 'Overview', icon: 'LayoutDashboard', group: 'MAIN' },
+  { path: '/services', label: 'Service Management', icon: 'Layers', group: 'MAIN' },
+  { path: '/users', label: 'User Management', icon: 'Users', group: 'MAIN' },
+  { path: '/service-admins', label: 'Service Admins', icon: 'ShieldUser', group: 'ACCESS' },
+  { path: '/roles', label: 'Roles & Permissions', icon: 'KeyRound', group: 'ACCESS' },
+  { path: '/content', label: 'Content & Moderation', icon: 'FileText', group: 'OPERATIONS' },
+  { path: '/commerce', label: 'Commerce & Marketplace', icon: 'ShoppingCart', group: 'OPERATIONS' },
+  { path: '/approvals', label: 'Approval Workflows', icon: 'GitPullRequest', group: 'OPERATIONS' },
+  { path: '/analytics', label: 'Analytics & Reports', icon: 'ChartNoAxesCombined', group: 'INTELLIGENCE' },
+  { path: '/security', label: 'Security Center', icon: 'ShieldCheck', group: 'INTELLIGENCE', badge: 'alert' },
+  { path: '/audit', label: 'Audit Logs', icon: 'ClipboardList', group: 'INTELLIGENCE' },
+  { path: '/system', label: 'System Health', icon: 'Activity', group: 'INFRASTRUCTURE' },
+  { path: '/integrations', label: 'Integrations & APIs', icon: 'Plug', group: 'INFRASTRUCTURE' },
+  { path: '/notifications', label: 'Notification Center', icon: 'BellRing', group: 'INFRASTRUCTURE', badge: 'count' },
+  { path: '/backup', label: 'Backup & Recovery', icon: 'DatabaseBackup', group: 'INFRASTRUCTURE' },
+  { path: '/settings', label: 'Global Settings', icon: 'Settings', group: 'PLATFORM' },
+  { path: '/support', label: 'Support Center', icon: 'LifeBuoy', group: 'PLATFORM' },
+]

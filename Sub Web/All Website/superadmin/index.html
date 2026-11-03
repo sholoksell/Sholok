@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#5D0096">
+  <meta name="description" content="Sholok Control Center — centralized Super Admin frontend for the Sholok ecosystem.">
+  <title>SHOLOK CONTROL CENTER | Super Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div class="brand-copy"><strong class="archivo-black-regular text-uppercase ">Sholok</strong><span>SUPER ADMIN</span></div>
+        <button class="icon-btn sidebar-close" id="sidebarClose" aria-label="Close navigation">×</button>
+      </div>
+      <!--<div class="workspace-switch">
+        <div class="workspace-icon"><i data-lucide="layers"></i></div>
+        <div><strong>Sholok Ecosystem</strong><small>Central Control Center</small></div>
+        <i data-lucide="chevrons-up-down" class="switch-icon"></i>
+      </div>-->
+      <nav id="mainNav" aria-label="Main navigation">
+        <div class="nav-label">WORKSPACE</div>
+        <button class="nav-item active" data-page="overview"><i data-lucide="layout-dashboard"></i><span>Overview</span></button>
+        <button class="nav-item" data-page="services"><i data-lucide="grid-2x2"></i><span>Service Management</span><b class="nav-count">17</b></button>
+        <button class="nav-item" data-page="users"><i data-lucide="users"></i><span>User Management</span></button>
+        <button class="nav-item" data-page="serviceAdmins"><i data-lucide="shield-user"></i><span>Service Admins</span></button>
+        <button class="nav-item" data-page="roles"><i data-lucide="key-round"></i><span>Roles & Permissions</span></button>
+        <button class="nav-item" data-page="content"><i data-lucide="file-text"></i><span>Content & Moderation</span><b class="nav-dot"></b></button>
+        <button class="nav-item" data-page="commerce"><i data-lucide="shopping-bag"></i><span>Commerce & Marketplace</span></button>
+        <button class="nav-item" data-page="pay"><i data-lucide="wallet-cards"></i><span>Pay & Finance</span></button>
+        <button class="nav-item" data-page="approvals"><i data-lucide="git-pull-request"></i><span>Approval Workflows</span><b class="nav-count">6</b></button>
+        <div class="nav-label nav-label-spaced">OPERATIONS</div>
+        <button class="nav-item" data-page="analytics"><i data-lucide="chart-no-axes-combined"></i><span>Analytics & Reports</span></button>
+        <button class="nav-item" data-page="security"><i data-lucide="shield-check"></i><span>Security Center</span><b class="nav-dot red"></b></button>
+        <button class="nav-item" data-page="audit"><i data-lucide="clipboard-list"></i><span>Audit Logs</span></button>
+        <button class="nav-item" data-page="system"><i data-lucide="server"></i><span>System Health</span></button>
+        <button class="nav-item" data-page="integrations"><i data-lucide="plug"></i><span>Integrations & APIs</span></button>
+        <button class="nav-item" data-page="notifications"><i data-lucide="bell-ring"></i><span>Notifications</span></button>
+        <button class="nav-item" data-page="backup"><i data-lucide="database-backup"></i><span>Backup & Recovery</span></button>
+        <div class="nav-label nav-label-spaced">CONFIGURATION</div>
+        <button class="nav-item" data-page="settings"><i data-lucide="settings-2"></i><span>Global Settings</span></button>
+        <button class="nav-item" data-page="support"><i data-lucide="life-buoy"></i><span>Support Center</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="help-card"><div class="help-icon"><i data-lucide="book-open-check"></i></div><strong>Need a hand?</strong><p>Explore admin guides and system documentation.</p><button id="helpBtn">Open Help Center <i data-lucide="arrow-up-right"></i></button></div>
+        <button class="profile-mini" id="profileBtn"><div class="avatar">SA</div><div class="profile-text"><strong>Super Admin</strong><small>Full access</small></div><i data-lucide="more-horizontal"></i></button>
+      </div>
+    </aside>
+    <div class="sidebar-scrim" id="sidebarScrim"></div>
+    <main class="main-area">
+      <header class="topbar">
+        <div class="topbar-left"><button class="icon-btn menu-toggle" id="menuToggle" aria-label="Open navigation"><i data-lucide="menu"></i></button><div class="breadcrumb"><span>Sholok</span><i data-lucide="chevron-right"></i><strong id="breadcrumbCurrent">Overview</strong></div></div>
+        <div class="topbar-actions">
+          <label class="global-search"><i data-lucide="search"></i><input id="globalSearch" type="search" placeholder="Search anything..."><kbd>⌘ K</kbd></label>
+          <button class="icon-btn top-action" id="quickActionBtn" aria-label="Quick actions" title="Quick actions"><i data-lucide="zap"></i></button>
+          <button class="icon-btn top-action notification-trigger" id="notificationBtn" aria-label="Notifications" title="Notifications"><i data-lucide="bell"></i><span class="notification-pip"></span></button>
+          <button class="profile-top" id="topProfileBtn"><span class="avatar">SA</span><span class="profile-top-copy"><strong>Super Admin</strong><small>Administrator</small></span><i data-lucide="chevron-down"></i></button>
+        </div>
+      </header>
+      <div class="page-content" id="pageContent" tabindex="-1"></div>
+      <footer class="footer"><span>© <span id="year"></span> Sholok. All rights reserved.</span><span><i class="status-dot"></i> Control center operational <span class="footer-sep">·</span> <button id="footerPrivacy">Privacy & security</button></span></footer>
+    </main>
+  </div>
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head"><div><p class="eyebrow" id="modalEyebrow">SHOLOK ADMIN</p><h2 id="modalTitle">Action</h2></div><button class="icon-btn" id="modalClose" aria-label="Close dialog"><i data-lucide="x"></i></button></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot" id="modalFoot"></div>
+    </section>
+  </div>
+  <div class="popover-menu" id="quickMenu" hidden></div>
+  <div class="popover-menu notification-menu" id="notificationMenu" hidden></div>
+  <div class="popover-menu profile-menu" id="profileMenu" hidden></div>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="script.js"></script>
+</body>
+</html>
