@@ -8,8 +8,8 @@ const HomeHero = () => {
         {/* Brand */}
         <div className="text-center mb-5">
           <a href="/home" className="select-none group">
-            <span className="text-5xl sm:text-6xl font-black text-primary tracking-tight group-hover:opacity-90 transition-opacity">
-              Sholok
+            <span className="font-logo text-5xl sm:text-6xl font-black text-[#5D0096] tracking-tight group-hover:opacity-90 transition-opacity leading-none">
+              SHOLOK
             </span>
           </a>
         </div>
