@@ -12,7 +12,8 @@ const NAV_LINKS = [
   { to: "/search", label: "All Products" },
 ];
 
-type Category = { id: string | number; name: string; slug?: string };
+type Category = { id?: string | number; _id?: string | number; name: string; slug?: string };
+const catId = (c: Category) => c._id ?? c.id ?? c.slug ?? "";
 
 export default function NavBar() {
   const [catOpen, setCatOpen] = useState(false);
@@ -63,9 +64,9 @@ export default function NavBar() {
                 ) : (
                   <ul className="py-1">
                     {categories.map((cat) => (
-                      <li key={cat.id}>
+                      <li key={String(catId(cat))}>
                         <Link
-                          to={`/search?categoryId=${cat.id}`}
+                          to={`/search?categoryId=${catId(cat)}`}
                           onClick={() => setCatOpen(false)}
                           className="flex items-center px-4 h-10 text-sm hover:bg-secondary hover:text-primary transition-colors"
                         >

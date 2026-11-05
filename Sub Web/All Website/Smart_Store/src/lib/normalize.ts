@@ -1,19 +1,28 @@
 import type { Product } from "@/data/mockData";
 
+const API_ORIGIN = import.meta.env.VITE_API_URL?.replace(/\/api.*/, "") || "http://localhost:5000";
+
+function toAbsolute(path: string | undefined | null): string {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `${API_ORIGIN}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 /** Convert backend product (MySQL regularPrice/salePrice or MongoDB price) → frontend Product shape */
 export function normalizeProduct(raw: any): Product | null {
   if (!raw) return null;
-  const img = raw.thumbnail
+  const imgPath = raw.thumbnail
     || raw.image
     || raw.images?.[0]?.url
     || (typeof raw.images?.[0] === "string" ? raw.images[0] : "")
     || "";
-  const isOnSale = raw.onSale || (raw.salePrice !== null && raw.salePrice !== undefined && raw.salePrice > 0);
+  const img = toAbsolute(imgPath);
+  const isOnSale = raw.onSale || (raw.salePrice !== null && raw.salePrice !== undefined && Number(raw.salePrice) > 0);
   const price = isOnSale
-    ? (raw.salePrice ?? raw.regularPrice ?? raw.price ?? 0)
-    : (raw.regularPrice ?? raw.price ?? 0);
+    ? (parseFloat(raw.salePrice) || parseFloat(raw.regularPrice) || raw.price || 0)
+    : (parseFloat(raw.regularPrice) || raw.price || 0);
   const originalPrice = isOnSale
-    ? (raw.regularPrice ?? raw.originalPrice)
+    ? (parseFloat(raw.regularPrice) || raw.originalPrice)
     : (raw.originalPrice ?? undefined);
   return {
     id:            raw.id || raw._id || raw.slug || "",
@@ -23,7 +32,7 @@ export function normalizeProduct(raw: any): Product | null {
     price,
     originalPrice,
     image:         img,
-    gallery:       (raw.gallery && raw.gallery.length ? raw.gallery : (raw.images || []).map((i: any) => i.url || i)).filter(Boolean),
+    gallery:       ((raw.gallery?.length ? raw.gallery : raw.images || []).map((i: any) => toAbsolute(i?.url || (typeof i === "string" ? i : "")))).filter(Boolean),
     rating:        raw.rating ?? raw.ratings?.average ?? 0,
     reviews:       raw.reviews ?? raw.ratings?.count ?? 0,
     badge:         raw.badge || undefined,

@@ -34,7 +34,8 @@ const SLIDES = [
   },
 ];
 
-type Category = { id: string | number; name: string; slug?: string };
+type Category = { id?: string | number; _id?: string | number; name: string; slug?: string };
+const catId = (c: Category) => c._id ?? c.id ?? c.slug ?? "";
 
 export default function HeroSection() {
   const [slide, setSlide] = useState(0);
@@ -71,9 +72,9 @@ export default function HeroSection() {
                   <li key={i} className="mx-2 my-0.5 h-9 rounded bg-muted animate-pulse" />
                 ))
               : categories.map((cat) => (
-                  <li key={cat.id}>
+                  <li key={String(catId(cat))}>
                     <Link
-                      to={`/search?categoryId=${cat.id}`}
+                      to={`/search?categoryId=${catId(cat)}`}
                       className="flex items-center justify-between px-4 h-10 text-sm hover:bg-secondary hover:text-primary transition-colors group"
                     >
                       <span>{cat.name}</span>

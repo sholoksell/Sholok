@@ -4,7 +4,7 @@
  * Falls back gracefully to mock data if the API is unavailable.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // ── Token storage ────────────────────────────────────────────
 const TOKEN_KEY = "sholok_token";
@@ -52,10 +52,10 @@ export const authApi = {
 export const productsApi = {
   list: (params: Record<string, string | number> = {}) => {
     const qs = new URLSearchParams(params as any).toString();
-    return apiFetch<any>(`/products${qs ? "?" + qs : ""}`);
+    return apiFetch<any>(`/products/public${qs ? "?" + qs : ""}`);
   },
-  get:        (id: string)        => apiFetch<any>(`/products/${id}`),
-  featured:   ()                  => apiFetch<any>("/products/featured"),
+  get:        (id: string)        => apiFetch<any>(`/products/public/slug/${id}`),
+  featured:   ()                  => apiFetch<any>("/products/public?featured=true"),
   seasonal:   (season: string)    => apiFetch<any>(`/products?season=${season}&limit=12`),
   flashSale:  ()                  => apiFetch<any>("/flash-sales/active"),
   myProducts: ()                  => apiFetch<any>("/products/seller/my-products"),
@@ -78,8 +78,8 @@ export const storesApi = {
 
 // ── Categories ────────────────────────────────────────────────
 export const categoriesApi = {
-  list: ()              => apiFetch<any>("/categories"),
-  get:  (slug: string)  => apiFetch<any>(`/categories/${slug}`),
+  list: ()              => apiFetch<any>("/categories/public/all"),
+  get:  (slug: string)  => apiFetch<any>(`/categories/public/slug/${slug}`),
 };
 
 // ── Cart ──────────────────────────────────────────────────────

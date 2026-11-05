@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
   base: '/',
   build: { outDir: 'dist', emptyOutDir: true },
   define: mode === 'production' ? {
-    'import.meta.env.VITE_API_URL': JSON.stringify('https://api.sholok.com/api/v1'),
+    'import.meta.env.VITE_API_URL': JSON.stringify('https://api.sholok.com/api'),
   } : {},
   server: {
     host: "::",
