@@ -19,7 +19,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const token = tokenStore.get();
   const res   = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    credentials: "include",
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
