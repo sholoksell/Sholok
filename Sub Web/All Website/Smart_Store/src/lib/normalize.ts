@@ -1,19 +1,27 @@
 import type { Product } from "@/data/mockData";
 
-/** Convert backend MongoDB product → frontend Product shape */
+/** Convert backend product (MySQL regularPrice/salePrice or MongoDB price) → frontend Product shape */
 export function normalizeProduct(raw: any): Product | null {
   if (!raw) return null;
-  const img = raw.image
+  const img = raw.thumbnail
+    || raw.image
     || raw.images?.[0]?.url
     || (typeof raw.images?.[0] === "string" ? raw.images[0] : "")
     || "";
+  const isOnSale = raw.onSale || (raw.salePrice !== null && raw.salePrice !== undefined && raw.salePrice > 0);
+  const price = isOnSale
+    ? (raw.salePrice ?? raw.regularPrice ?? raw.price ?? 0)
+    : (raw.regularPrice ?? raw.price ?? 0);
+  const originalPrice = isOnSale
+    ? (raw.regularPrice ?? raw.originalPrice)
+    : (raw.originalPrice ?? undefined);
   return {
     id:            raw.id || raw._id || raw.slug || "",
     name:          raw.name || "",
     brand:         raw.brand || "",
     storeId:       raw.storeId || raw.store?._id || raw.store || "",
-    price:         raw.price ?? 0,
-    originalPrice: raw.originalPrice || undefined,
+    price,
+    originalPrice,
     image:         img,
     gallery:       (raw.gallery && raw.gallery.length ? raw.gallery : (raw.images || []).map((i: any) => i.url || i)).filter(Boolean),
     rating:        raw.rating ?? raw.ratings?.average ?? 0,

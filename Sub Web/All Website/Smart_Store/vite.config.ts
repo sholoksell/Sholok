@@ -5,8 +5,11 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: '/smart-store/',
+  base: '/',
   build: { outDir: 'dist', emptyOutDir: true },
+  define: mode === 'production' ? {
+    'import.meta.env.VITE_API_URL': JSON.stringify('https://api.sholok.com/api/v1'),
+  } : {},
   server: {
     host: "::",
     port: 8080,
