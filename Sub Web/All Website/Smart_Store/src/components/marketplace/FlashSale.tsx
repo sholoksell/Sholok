@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Zap, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { products } from "@/data/mockData";
 import { productsApi } from "@/lib/api";
 import { normalizeProduct } from "@/lib/normalize";
 import ProductCard from "./ProductCard";
+import type { Product } from "@/data/mockData";
 
 function useCountdownFromEnd(endTime: string | null) {
   const getSeconds = () => {
@@ -28,9 +28,8 @@ function useCountdownFromEnd(endTime: string | null) {
 
 export default function FlashSale() {
   const [endTime, setEndTime] = useState<string | null>(null);
-  const [saleProducts, setSaleProducts] = useState(() =>
-    products.filter((p) => p.originalPrice).slice(0, 4),
-  );
+  const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (productsApi as any).flashSale?.()
@@ -40,12 +39,20 @@ export default function FlashSale() {
       })
       .catch(() => {});
 
-    productsApi.list({ onSale: true, limit: 4 } as any)
+    // Try on-sale products first, fallback to latest products
+    productsApi.list({ onSale: "true", limit: 4 } as any)
       .then((r: any) => {
-        const list = (r?.products || r?.data || []).map(normalizeProduct).filter(Boolean);
-        if (list.length) setSaleProducts(list as any);
+        const list = (r?.products || r?.data || []).map(normalizeProduct).filter(Boolean) as Product[];
+        if (list.length >= 2) { setSaleProducts(list); setLoading(false); return; }
+        return productsApi.list({ limit: 4 } as any);
       })
-      .catch(() => {});
+      .then((r: any) => {
+        if (!r) return;
+        const list = (r?.products || r?.data || []).map(normalizeProduct).filter(Boolean) as Product[];
+        if (list.length) setSaleProducts(list);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   const { h, m, s } = useCountdownFromEnd(endTime);
@@ -95,9 +102,13 @@ export default function FlashSale() {
 
         {/* Product grid */}
         <div className="px-4 pb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-          {saleProducts.map((p, i) => (
-            <ProductCard key={p.id} product={p} index={i} />
-          ))}
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white/10 rounded-lg h-64 animate-pulse" />
+              ))
+            : saleProducts.map((p, i) => (
+                <ProductCard key={p.id} product={p} index={i} />
+              ))}
         </div>
       </div>
     </section>
