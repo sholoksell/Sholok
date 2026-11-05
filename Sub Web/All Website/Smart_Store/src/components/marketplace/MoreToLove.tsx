@@ -1,22 +1,21 @@
 import { useEffect, useState, useRef } from "react";
-import { RefreshCw, ChevronRight } from "lucide-react";
+import { RefreshCw, ChevronRight, Flame } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { productsApi } from "@/lib/api";
 import { normalizeProducts } from "@/lib/normalize";
-import { products as mockProducts } from "@/data/mockData";
 import ProductCard from "./ProductCard";
 import type { Product } from "@/data/mockData";
 
 export default function MoreToLove() {
   const location = useLocation();
-  const [items, setItems] = useState<Product[]>(mockProducts.slice(0, 8) as Product[]);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [label, setLabel] = useState("Popular picks for you");
   const mounted = useRef(true);
 
   const load = (extra?: Record<string, unknown>) => {
     setLoading(true);
-    productsApi.list({ limit: 8, featured: 1, ...(extra || {}) } as any)
+    productsApi.list({ limit: 8, ...(extra || {}) } as any)
       .then((r: any) => {
         if (!mounted.current) return;
         const list = normalizeProducts(r);
@@ -42,11 +41,12 @@ export default function MoreToLove() {
 
   return (
     <section className="container py-8" id="more-love">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3 border-b border-border pb-3">
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-1">Picked for discovery</p>
-          <h2 className="text-2xl font-bold text-foreground">More to Love</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{label}</p>
+          <h2 className="flex items-center gap-2 text-xl font-extrabold text-foreground sm:text-2xl">
+            <Flame className="h-6 w-6 text-[#D31710]" /> More to Love
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">{label}</p>
         </div>
         <div className="flex items-center gap-3">
           <button

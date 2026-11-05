@@ -40,6 +40,15 @@ export default {
           amber: "hsl(var(--accent-amber))",
           mint: "hsl(var(--accent-mint))",
         },
+        sale: {
+          DEFAULT: "hsl(var(--sale))",
+          foreground: "hsl(var(--sale-foreground))",
+          soft: "hsl(var(--sale-soft))",
+        },
+        "primary-soft": "hsl(var(--primary-soft))",
+        "primary-deep": "hsl(var(--primary-deep))",
+        star: "hsl(var(--star))",
+        success: "hsl(var(--success))",
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -62,6 +71,7 @@ export default {
         'elegant': 'var(--shadow-elegant)',
         'glow': 'var(--shadow-glow)',
         'card': 'var(--shadow-card)',
+        'lift': '0 18px 40px -16px hsla(280, 100%, 29%, 0.35)',
       },
       borderRadius: {
         '3xl': '1.75rem',

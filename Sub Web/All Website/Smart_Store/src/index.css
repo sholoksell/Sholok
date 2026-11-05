@@ -24,9 +24,14 @@
     --accent-amber: 35 100% 60%;
     --accent-mint: 160 70% 55%;
 
+    /* Extended primary tokens */
+    --primary-soft: 280 50% 95%;
+    --primary-deep: 280 100% 20%;
+
     /* Sale red: #D31710 */
     --sale: 1 86% 45%;
     --sale-foreground: 0 0% 100%;
+    --sale-soft: 1 100% 95%;
 
     --secondary: 280 20% 95%;
     --secondary-foreground: 280 100% 29%;
@@ -36,6 +41,10 @@
 
     --destructive: 1 86% 45%;
     --destructive-foreground: 0 0% 100%;
+
+    /* Additional semantic tokens */
+    --star: 42 90% 55%;
+    --success: 142 70% 40%;
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
@@ -122,6 +131,28 @@
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* ── Shared utility classes ─────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#5D0096] text-white font-bold px-5 py-2.5 transition-all duration-200 hover:bg-[#4a0078] hover:-translate-y-px active:scale-[0.97];
+  }
+  .btn-sale {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#D31710] text-white font-bold px-5 py-2.5 transition-all duration-200 hover:brightness-90 hover:-translate-y-px active:scale-[0.97];
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-[#5D0096] text-[#5D0096] font-bold px-5 py-2.5 transition-all duration-200 hover:bg-[#5D0096] hover:text-white;
+  }
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes shimmer {
