@@ -33,7 +33,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename="/smart-store">
+        <BrowserRouter>
           <AuthProvider>
             <CartProvider>
               <QuickViewProvider>
