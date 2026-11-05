@@ -100,11 +100,8 @@ const Header = () => {
           {/* ── Logo (home) | SearchBar (other pages) ── */}
           {isHome ? (
             <>
-              <Link to="/home" className="flex items-center gap-1.5 flex-shrink-0 select-none">
-                <span className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl leading-none">
-                  S
-                </span>
-                <span className="font-black text-lg text-primary tracking-tight hidden sm:block">Sholok</span>
+              <Link to="/home" className="flex-shrink-0 select-none">
+                <span className="font-logo text-2xl font-black text-[#5D0096] tracking-tight leading-none">SHOLOK</span>
               </Link>
               {/* flex-1 spacer — pushes right-side actions to the edge */}
               <div className="flex-1" />
