@@ -1,6 +1,12 @@
 import type { Product } from "@/data/mockData";
 
-const API_ORIGIN = import.meta.env.VITE_API_URL?.replace(/\/api.*/, "") || "http://localhost:5000";
+const API_ORIGIN = (() => {
+  try {
+    return new URL(import.meta.env.VITE_API_URL || "http://localhost:5000/api").origin;
+  } catch {
+    return "http://localhost:5000";
+  }
+})();
 
 function toAbsolute(path: string | undefined | null): string {
   if (!path) return "";
