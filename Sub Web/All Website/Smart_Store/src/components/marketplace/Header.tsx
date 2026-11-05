@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, ShieldCheck, Palette } from "lucide-react";
+import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/store/cartContext";
 import { useAuth } from "@/store/authContext";
@@ -21,29 +21,42 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-white border-b border-border shadow-sm">
-        <div className="container flex items-center gap-4 h-16">
+        <div className="container flex items-center gap-3 h-[70px]">
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="sm:hidden w-9 h-9 rounded-lg hover:bg-secondary flex items-center justify-center shrink-0"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-[#5D0096] flex items-center justify-center">
-              <span className="text-white font-bold text-base leading-none">S</span>
-            </div>
-            <span className="font-bold text-lg whitespace-nowrap">
-              Sholok <span className="text-[#5D0096]">Shopping</span>
-            </span>
+          <Link to="/" className="shrink-0 mr-1">
+            <span className="font-logo text-[2rem] font-black text-[#5D0096] tracking-tight leading-none">SHOLOK</span>
           </Link>
 
+          {/* Deliver to */}
+          <button className="hidden lg:flex flex-col items-start px-3 py-1 rounded-lg hover:bg-secondary transition-colors shrink-0">
+            <span className="text-[10px] text-muted-foreground leading-none">Deliver to</span>
+            <span className="flex items-center gap-1 text-sm font-semibold text-foreground leading-tight mt-0.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              Dhaka
+            </span>
+          </button>
+
           {/* Search */}
-          <form onSubmit={submitSearch} className="flex-1 max-w-2xl mx-2 hidden sm:flex">
+          <form onSubmit={submitSearch} className="flex-1 max-w-2xl hidden sm:flex">
             <div className="relative w-full flex">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for products, brands and more..."
-                className="w-full h-10 pl-4 pr-0 border border-border rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096] transition-colors bg-muted/30"
+                className="w-full h-11 pl-4 pr-0 border border-border border-r-0 rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096] transition-colors bg-background"
               />
               <button
                 type="submit"
-                className="h-10 px-5 bg-[#5D0096] hover:bg-[#4a0078] text-white rounded-r-lg flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+                className="h-11 px-5 bg-[#5D0096] hover:bg-[#4a0078] text-white rounded-r-lg flex items-center gap-1.5 text-sm font-semibold transition-colors whitespace-nowrap"
               >
                 <Search className="w-4 h-4" />
                 <span className="hidden md:inline">Search</span>
@@ -52,33 +65,16 @@ export default function Header() {
           </form>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 ml-auto shrink-0">
-            {/* Wishlist */}
-            <Link
-              to="/account?tab=wishlist"
-              className="hidden sm:flex flex-col items-center px-2 py-1 rounded hover:bg-secondary transition-colors relative"
-              aria-label="Wishlist"
-            >
-              <div className="relative">
-                <Heart className="w-5 h-5 text-foreground/70" />
-                {wishlist.size > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D31710] text-white text-[9px] font-bold flex items-center justify-center">
-                    {wishlist.size}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] text-muted-foreground leading-tight">Wishlist</span>
-            </Link>
-
+          <div className="flex items-center gap-0.5 ml-auto shrink-0">
             {/* Account */}
             <div className="relative hidden sm:block">
               <button
                 onClick={() => setUserOpen((v) => !v)}
-                className="flex flex-col items-center px-2 py-1 rounded hover:bg-secondary transition-colors"
+                className="flex flex-col items-center px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors min-w-[64px]"
                 aria-label="Account"
               >
                 <User className="w-5 h-5 text-foreground/70" />
-                <span className="text-[10px] text-muted-foreground leading-tight whitespace-nowrap">
+                <span className="text-[10px] text-muted-foreground leading-tight whitespace-nowrap mt-0.5">
                   {user ? (user.name?.split(" ")[0] || "Account") : "Sign in"}
                 </span>
               </button>
@@ -101,14 +97,9 @@ export default function Header() {
                           <User className="w-3.5 h-3.5" /> My Account
                         </Link>
                         {(user.role === "seller" || user.role === "admin") && (
-                          <>
-                            <Link to="/seller" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
-                              <LayoutDashboard className="w-3.5 h-3.5" /> Seller Console
-                            </Link>
-                            <Link to="/seller/customize" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
-                              <Palette className="w-3.5 h-3.5" /> Customize Store
-                            </Link>
-                          </>
+                          <Link to="/seller" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
+                            <LayoutDashboard className="w-3.5 h-3.5" /> Seller Console
+                          </Link>
                         )}
                         {user.role === "admin" && (
                           <Link to="/admin" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
@@ -139,10 +130,27 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
+            {/* Wishlist */}
+            <Link
+              to="/account?tab=wishlist"
+              className="hidden sm:flex flex-col items-center px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors relative min-w-[64px]"
+              aria-label="Wishlist"
+            >
+              <div className="relative">
+                <Heart className="w-5 h-5 text-foreground/70" />
+                {wishlist.size > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D31710] text-white text-[9px] font-bold flex items-center justify-center">
+                    {wishlist.size}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">Wishlist</span>
+            </Link>
+
             {/* Cart */}
             <button
               onClick={open}
-              className="flex flex-col items-center px-2 py-1 rounded hover:bg-secondary transition-colors relative"
+              className="flex flex-col items-center px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors relative min-w-[64px]"
               aria-label="Open cart"
             >
               <div className="relative">
@@ -153,18 +161,9 @@ export default function Header() {
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground leading-tight">
+              <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                 {total > 0 ? `৳${total.toLocaleString()}` : "Cart"}
               </span>
-            </button>
-
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="sm:hidden w-9 h-9 rounded-lg hover:bg-secondary flex items-center justify-center"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -199,7 +198,7 @@ export default function Header() {
               className="fixed right-0 top-0 z-50 h-full w-72 bg-background shadow-elegant flex flex-col sm:hidden"
             >
               <div className="flex items-center justify-between p-4 border-b border-border">
-                <span className="font-bold text-lg">Menu</span>
+                <span className="font-logo text-xl text-[#5D0096] font-black">SHOLOK</span>
                 <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center">
                   <X className="w-4 h-4" />
                 </button>

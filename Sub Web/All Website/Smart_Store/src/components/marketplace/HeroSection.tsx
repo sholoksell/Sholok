@@ -78,7 +78,7 @@ const catId = (c: Category) => c._id ?? c.id ?? c.slug ?? "";
 
 function CategorySidebar({ categories }: { categories: Category[] }) {
   return (
-    <aside className="hidden lg:flex flex-col w-[270px] shrink-0 bg-white border border-border border-t-0 rounded-b-xl overflow-hidden">
+    <aside className="hidden lg:flex flex-col w-[270px] shrink-0 bg-card border border-border border-t-0 rounded-b-xl overflow-hidden self-start">
       <ul className="py-1 flex-1">
         {categories.length === 0
           ? Array.from({ length: 10 }).map((_, i) => (
@@ -155,15 +155,15 @@ export default function HeroSection() {
   const s = SLIDES[slide];
 
   return (
-    <section className="pt-4 pb-2">
+    <section className="pb-2">
       <div className="container">
-        {/* Main hero area */}
-        <div className="flex gap-0 overflow-hidden rounded-xl border border-border shadow-card" style={{ minHeight: 420 }}>
+        {/* Main hero area — sidebar adjacent to slider */}
+        <div className="flex gap-5 pt-4" style={{ minHeight: 420 }}>
           <CategorySidebar categories={categories} />
 
           {/* Hero slider */}
           <div
-            className="relative flex-1 overflow-hidden"
+            className="relative flex-1 overflow-hidden rounded-xl border border-border shadow-card"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
           >
@@ -245,4 +245,5 @@ export default function HeroSection() {
       </div>
     </section>
   );
+
 }

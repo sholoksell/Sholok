@@ -8,8 +8,9 @@ export default {
     container: { center: true, padding: "1.5rem", screens: { "2xl": "1400px" } },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Inter', 'sans-serif'],
+        logo: ['"Archivo Black"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

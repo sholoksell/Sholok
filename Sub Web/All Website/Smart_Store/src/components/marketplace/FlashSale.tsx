@@ -6,11 +6,10 @@ import { normalizeProduct } from "@/lib/normalize";
 import ProductCard from "./ProductCard";
 import type { Product } from "@/data/mockData";
 
-function useCountdownFromEnd(endTime: string | null) {
+function useCountdown(endTime: string | null) {
   const getSeconds = () => {
-    if (!endTime) return 8 * 3600 + 42 * 60;
-    const diff = Math.max(0, Math.floor((new Date(endTime).getTime() - Date.now()) / 1000));
-    return diff;
+    if (!endTime) return 2 * 86400 + 8 * 3600 + 42 * 60;
+    return Math.max(0, Math.floor((new Date(endTime).getTime() - Date.now()) / 1000));
   };
   const [remaining, setRemaining] = useState(getSeconds);
 
@@ -20,10 +19,23 @@ function useCountdownFromEnd(endTime: string | null) {
     return () => clearInterval(i);
   }, [endTime]);
 
-  const h = Math.floor(remaining / 3600);
-  const m = Math.floor((remaining % 3600) / 60);
-  const s = remaining % 60;
-  return { h, m, s };
+  return {
+    d: Math.floor(remaining / 86400),
+    h: Math.floor((remaining % 86400) / 3600),
+    m: Math.floor((remaining % 3600) / 60),
+    s: remaining % 60,
+  };
+}
+
+function CountUnit({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-w-[52px] h-14 bg-card border border-sale/20 rounded-lg">
+      <span className="text-xl font-bold text-foreground tabular-nums leading-none">
+        {String(value).padStart(2, "0")}
+      </span>
+      <span className="text-[10px] text-muted-foreground uppercase font-semibold mt-0.5">{label}</span>
+    </div>
+  );
 }
 
 export default function FlashSale() {
@@ -39,12 +51,11 @@ export default function FlashSale() {
       })
       .catch(() => {});
 
-    // Try on-sale products first, fallback to latest products
-    productsApi.list({ onSale: "true", limit: 4 } as any)
+    productsApi.list({ onSale: "true", limit: 6 } as any)
       .then((r: any) => {
         const list = (r?.products || r?.data || []).map(normalizeProduct).filter(Boolean) as Product[];
         if (list.length >= 2) { setSaleProducts(list); setLoading(false); return; }
-        return productsApi.list({ limit: 4 } as any);
+        return productsApi.list({ limit: 6 } as any);
       })
       .then((r: any) => {
         if (!r) return;
@@ -55,56 +66,50 @@ export default function FlashSale() {
       .catch(() => setLoading(false));
   }, []);
 
-  const { h, m, s } = useCountdownFromEnd(endTime);
+  const { d, h, m, s } = useCountdown(endTime);
 
   return (
-    <section className="container py-8" id="flash-sale">
-      <div className="bg-gradient-night rounded-lg overflow-hidden">
+    <section className="container py-6" id="flash-sale">
+      <div className="rounded-2xl border border-sale/20 bg-sale-soft p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4 px-6 pt-6 pb-4">
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#D31710] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-[#D31710] flex items-center justify-center shrink-0">
               <Zap className="w-5 h-5 text-white fill-white" />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-white/50 font-semibold">Don't miss out</p>
-              <h2 className="text-2xl font-bold text-white">Flash Sale</h2>
+              <h2 className="text-2xl font-bold text-foreground leading-tight">Flash Sale</h2>
+              <p className="text-xs text-muted-foreground">Don't miss these amazing deals!</p>
             </div>
           </div>
 
           {/* Countdown */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-white/60 mr-1">Ends in</span>
-            {[
-              { v: h, l: "H" },
-              { v: m, l: "M" },
-              { v: s, l: "S" },
-            ].map((u, idx) => (
-              <div key={u.l} className="flex items-center gap-1.5">
-                <div className="min-w-[48px] h-12 bg-white/10 rounded flex flex-col items-center justify-center">
-                  <span className="text-xl font-bold text-white tabular-nums leading-none">
-                    {String(u.v).padStart(2, "0")}
-                  </span>
-                  <span className="text-[9px] text-white/50 uppercase">{u.l}</span>
-                </div>
-                {idx < 2 && <span className="text-white/40 font-bold">:</span>}
-              </div>
-            ))}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Ends in</span>
+            <div className="flex items-center gap-1.5">
+              <CountUnit value={d} label="Days" />
+              <span className="text-muted-foreground font-bold">:</span>
+              <CountUnit value={h} label="Hrs" />
+              <span className="text-muted-foreground font-bold">:</span>
+              <CountUnit value={m} label="Min" />
+              <span className="text-muted-foreground font-bold">:</span>
+              <CountUnit value={s} label="Sec" />
+            </div>
           </div>
 
           <Link
             to="/search?onSale=1"
-            className="hidden lg:flex items-center gap-2 px-4 h-9 rounded bg-white text-foreground text-sm font-semibold hover:bg-white/90 transition-colors"
+            className="hidden lg:flex items-center gap-2 px-4 h-9 rounded-lg bg-[#D31710] text-white text-sm font-semibold hover:brightness-90 transition-all"
           >
             View all <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {/* Product grid */}
-        <div className="px-4 pb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {loading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white/10 rounded-lg h-64 animate-pulse" />
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg h-64 animate-pulse border border-border" />
               ))
             : saleProducts.map((p, i) => (
                 <ProductCard key={p.id} product={p} index={i} />
