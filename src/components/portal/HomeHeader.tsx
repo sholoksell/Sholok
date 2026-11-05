@@ -43,27 +43,12 @@ const HomeHeader = ({ initialQuery = "" }: HomeHeaderProps) => {
           </button>
 
           {/* Logo */}
-          <Link to="/home" aria-label="Sholok home" className="flex items-center gap-1.5 flex-shrink-0 group">
-            <span className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-base select-none group-hover:bg-primary/90 transition-colors">
-              S
-            </span>
-            {/* Hide "Sholok" text on mobile when compact search bar is in the header */}
-            <span className={`font-bold text-base text-foreground tracking-tight leading-none ${initialQuery ? "hidden sm:inline" : ""}`}>
-              Sholok
-            </span>
+          <Link to="/home" aria-label="Sholok home" className="flex-shrink-0">
+            <span className="font-logo text-2xl font-black text-[#5D0096] tracking-tight leading-none select-none">SHOLOK</span>
           </Link>
 
-          {/* Compact search bar — mobile only, only on search/results pages */}
-          {initialQuery ? (
-            <div className="flex-1 sm:hidden min-w-0 mx-1">
-              <SearchBar variant="default" initialQuery={initialQuery} />
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* Desktop spacer when search bar is in header */}
-          {initialQuery && <div className="hidden sm:flex flex-1" />}
+          {/* Spacer — search bar lives in the hero section below (both mobile & desktop) */}
+          <div className="flex-1" />
 
           {/* Controls */}
           <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
@@ -127,13 +112,11 @@ const HomeHeader = ({ initialQuery = "" }: HomeHeaderProps) => {
         </div>
       </header>
 
-      {/* ── Hero search area (scrolls with page) ────────────────────────── */}
-      {/* On mobile search pages: hidden (compact search bar is in the sticky header).
-          On desktop search pages + all homepage: always visible. */}
-      <div className={`w-full bg-background border-b border-border/40 py-5 sm:py-10 lg:py-12 ${initialQuery ? "hidden sm:block" : ""}`}>
-        <div className="max-w-[750px] mx-auto px-4 sm:px-6">
+      {/* ── Hero search area — always visible on all screen sizes ────────── */}
+      <div className={`w-full bg-background border-b border-border/40 ${initialQuery ? "py-4 sm:py-10 lg:py-12" : "py-6 sm:py-10 lg:py-12"}`}>
+        <div className="w-full max-w-[750px] mx-auto px-4 sm:px-6">
           <SearchBar variant="hero" initialQuery={initialQuery} />
-          <ServiceShortcuts />
+          {!initialQuery && <ServiceShortcuts />}
         </div>
       </div>
 
