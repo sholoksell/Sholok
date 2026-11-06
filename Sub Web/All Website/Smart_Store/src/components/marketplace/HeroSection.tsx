@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight, Package, Shirt, SprayCan, Home, Baby, Dumbbell, Gift, Camera, Book, Utensils, Gem, Leaf, Briefcase, Coffee, Bike, Laptop } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { categoriesApi } from "@/lib/api";
+import { AnimatePresence, motion } from "framer-motion";
 
 const CAT_ICON_MAP: Record<string, any> = {
   women: Shirt, "women's": Shirt, ladies: Shirt,
@@ -73,13 +74,26 @@ const SLIDES = [
   },
 ];
 
-type Category = { id?: string | number; _id?: string | number; name: string; slug?: string };
-const catId = (c: Category) => c._id ?? c.id ?? c.slug ?? "";
+type SubCat = { id?: string | number; _id?: string | number; name: string; slug?: string };
+type Category = { id?: string | number; _id?: string | number; name: string; slug?: string; children?: SubCat[] };
+const catId = (c: { id?: string | number; _id?: string | number; slug?: string }) => String(c._id ?? c.id ?? c.slug ?? "");
 
 function CategorySidebar({ categories }: { categories: Category[] }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleRowClick = (cat: Category) => {
+    const id = catId(cat);
+    if ((cat.children?.length ?? 0) > 0) {
+      setExpandedId((prev) => (prev === id ? null : id));
+    } else {
+      navigate(`/search?categoryId=${id}`);
+    }
+  };
+
   return (
     <aside className="hidden lg:flex flex-col w-[270px] shrink-0 bg-card border border-border border-t-0 rounded-b-xl overflow-hidden self-start">
-      <ul className="py-1 flex-1">
+      <ul className="py-1 flex-1 max-h-[calc(420px-2px)] overflow-y-auto">
         {categories.length === 0
           ? Array.from({ length: 10 }).map((_, i) => (
               <li key={i} className="mx-3 my-1 h-10 rounded-lg bg-muted animate-pulse" />
@@ -87,18 +101,56 @@ function CategorySidebar({ categories }: { categories: Category[] }) {
           : categories.map((cat, idx) => {
               const Icon = getCatIcon(cat.name);
               const colorCls = CAT_COLORS[idx % CAT_COLORS.length];
+              const hasChildren = (cat.children?.length ?? 0) > 0;
+              const id = catId(cat);
+              const isExpanded = expandedId === id;
+
               return (
-                <li key={String(catId(cat))}>
-                  <Link
-                    to={`/search?categoryId=${catId(cat)}`}
-                    className="group flex items-center gap-3 px-4 py-[0.55rem] text-sm font-medium text-foreground transition-all hover:bg-primary-soft hover:text-primary"
+                <li key={id}>
+                  <button
+                    onClick={() => handleRowClick(cat)}
+                    className="group w-full flex items-center gap-3 px-4 py-[0.55rem] text-sm font-medium text-foreground transition-all hover:bg-[#5D0096]/5 hover:text-[#5D0096] text-left"
                   >
                     <span className={`grid h-7 w-7 place-items-center rounded-md shrink-0 transition-all group-hover:bg-[#5D0096] group-hover:text-white ${colorCls}`}>
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="flex-1 truncate">{cat.name}</span>
-                    <ChevronRight className="h-3.5 w-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-                  </Link>
+                    {hasChildren && (
+                      <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform duration-200 group-hover:text-[#5D0096] ${isExpanded ? "rotate-90" : ""}`} />
+                    )}
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isExpanded && hasChildren && (
+                      <motion.ul
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        className="overflow-hidden bg-[#5D0096]/[0.03]"
+                      >
+                        {cat.children!.map((sub) => (
+                          <li key={catId(sub)}>
+                            <Link
+                              to={`/search?categoryId=${catId(sub)}`}
+                              className="flex items-center gap-2.5 pl-[52px] pr-4 h-9 text-sm text-gray-600 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#5D0096]/40 shrink-0" />
+                              {sub.name}
+                            </Link>
+                          </li>
+                        ))}
+                        <li>
+                          <Link
+                            to={`/search?categoryId=${id}`}
+                            className="flex items-center gap-2.5 pl-[52px] pr-4 h-9 text-xs text-[#5D0096] font-semibold hover:bg-[#5D0096]/5 transition-colors"
+                          >
+                            View all →
+                          </Link>
+                        </li>
+                      </motion.ul>
+                    )}
+                  </AnimatePresence>
                 </li>
               );
             })}
