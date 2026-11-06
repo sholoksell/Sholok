@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  ChevronDown, AlignJustify, ArrowUpRight, Zap, TrendingUp, Tag, LayoutGrid, Home,
+  ChevronDown, ChevronRight, AlignJustify, ArrowUpRight, Zap, TrendingUp, Tag, LayoutGrid, Home,
   ShoppingBag, Briefcase, Star, Heart, Activity, Smile, Layers, BookOpen, Gift, Car,
   ShoppingCart, Package, Cpu, Coffee, Dumbbell,
 } from "lucide-react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { categoriesApi } from "@/lib/api";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -54,7 +54,9 @@ const cid = (c: { _id?: string | number; id?: string | number; slug?: string }) 
 export default function NavBar() {
   const [catOpen, setCatOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     categoriesApi.list().then((r: any) => {
@@ -67,13 +69,23 @@ export default function NavBar() {
     const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setCatOpen(false);
+        setExpandedId(null);
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const closeAll = () => { setCatOpen(false); };
+  const closeAll = () => { setCatOpen(false); setExpandedId(null); };
+
+  const handleCatRowClick = (id: string, hasChildren: boolean, slug?: string) => {
+    if (hasChildren) {
+      setExpandedId((prev) => (prev === id ? null : id));
+    } else {
+      closeAll();
+      navigate(`/search?categoryId=${id}`);
+    }
+  };
 
   return (
     <nav className="bg-[#5D0096] text-white relative z-30">
@@ -97,12 +109,12 @@ export default function NavBar() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.15 }}
-                className="absolute left-0 top-full w-[270px] bg-white text-foreground shadow-elegant border border-border border-t-0 rounded-b-xl z-50 max-h-[75vh] overflow-y-auto"
+                className="absolute left-0 top-full w-[270px] bg-white text-foreground shadow-elegant border border-border border-t-0 rounded-b-xl z-50 max-h-[80vh] overflow-y-auto"
               >
                 {categories.length === 0 ? (
                   <div className="px-4 py-3 text-sm text-muted-foreground">Loading categories…</div>
                 ) : (
-                  <ul className="py-2">
+                  <ul className="py-1">
                     {categories.map((cat, idx) => {
                       const style = CAT_STYLES[cat.name] ?? {
                         Icon: FB_ICONS[idx % FB_ICONS.length],
@@ -111,41 +123,66 @@ export default function NavBar() {
                       const { Icon, bg, fg } = style;
                       const hasChildren = (cat.children?.length ?? 0) > 0;
                       const id = cid(cat);
+                      const isExpanded = expandedId === id;
 
                       return (
                         <li key={id}>
-                          {/* Root category row */}
-                          <Link
-                            to={`/search?categoryId=${id}`}
-                            onClick={closeAll}
-                            className="flex items-center gap-3 pl-4 pr-4 h-11 hover:bg-gray-50 transition-colors"
+                          {/* Root category row — full row clickable */}
+                          <button
+                            onClick={() => handleCatRowClick(id, hasChildren, cat.slug)}
+                            className="w-full flex items-center gap-3 pl-3 pr-3 h-[46px] hover:bg-[#5D0096]/5 transition-colors text-left group"
                           >
                             <span
                               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                               style={{ background: bg }}
                             >
-                              <Icon className="w-4 h-4" style={{ color: fg }} />
+                              <Icon className="w-[18px] h-[18px]" style={{ color: fg }} />
                             </span>
-                            <span className="text-sm font-medium text-gray-800 flex-1 truncate">{cat.name}</span>
-                          </Link>
+                            <span className="text-sm font-medium text-gray-800 flex-1 truncate group-hover:text-[#5D0096] transition-colors">
+                              {cat.name}
+                            </span>
+                            {hasChildren && (
+                              <ChevronRight
+                                className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 group-hover:text-[#5D0096] ${isExpanded ? "rotate-90" : ""}`}
+                              />
+                            )}
+                          </button>
 
-                          {/* Sub-categories — always visible */}
-                          {hasChildren && (
-                            <ul className="border-l-2 ml-7 border-[#5D0096]/15 mb-1">
-                              {cat.children!.map((sub) => (
-                                <li key={cid(sub)}>
+                          {/* Sub-categories — expand/collapse */}
+                          <AnimatePresence initial={false}>
+                            {isExpanded && hasChildren && (
+                              <motion.ul
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: "easeInOut" }}
+                                className="overflow-hidden bg-[#5D0096]/[0.03]"
+                              >
+                                {cat.children!.map((sub) => (
+                                  <li key={cid(sub)}>
+                                    <Link
+                                      to={`/search?categoryId=${cid(sub)}`}
+                                      onClick={closeAll}
+                                      className="flex items-center gap-2.5 pl-[52px] pr-4 h-9 text-sm text-gray-600 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#5D0096]/40 shrink-0" />
+                                      {sub.name}
+                                    </Link>
+                                  </li>
+                                ))}
+                                {/* "View all" link */}
+                                <li>
                                   <Link
-                                    to={`/search?categoryId=${cid(sub)}`}
+                                    to={`/search?categoryId=${id}`}
                                     onClick={closeAll}
-                                    className="flex items-center gap-2 pl-4 pr-3 h-8 text-xs text-gray-500 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
+                                    className="flex items-center gap-2.5 pl-[52px] pr-4 h-9 text-xs text-[#5D0096] font-medium hover:bg-[#5D0096]/5 transition-colors"
                                   >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
-                                    {sub.name}
+                                    View all →
                                   </Link>
                                 </li>
-                              ))}
-                            </ul>
-                          )}
+                              </motion.ul>
+                            )}
+                          </AnimatePresence>
                         </li>
                       );
                     })}
