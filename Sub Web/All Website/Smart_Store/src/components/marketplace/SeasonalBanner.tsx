@@ -1,18 +1,19 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import bannerWoman from "@/assets/banner-woman.jpg";
 
 export default function SeasonalBanner() {
   return (
     <section className="container py-6">
-      <div className="relative overflow-hidden rounded-xl bg-[#f5ede8] min-h-[200px] sm:min-h-[240px] flex items-center">
+      <div className="relative overflow-hidden rounded-xl bg-[#f5ede8] min-h-[200px] sm:min-h-[280px] flex items-center">
         {/* Background model image — right side */}
         <img
-          src="https://images.unsplash.com/photo-1594938298603-c8148c4b4f74?w=1200&q=80&auto=format&fit=crop&crop=top"
+          src={bannerWoman}
           alt="Everyday Style"
-          className="absolute right-0 top-0 h-full w-1/2 object-cover object-top"
+          className="absolute right-0 top-0 h-full w-[55%] object-cover object-left-top"
         />
-        {/* Light gradient overlay so text stays readable */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#f5ede8] via-[#f5ede8]/90 to-transparent" />
+        {/* Gradient overlay — fades from left (text area) to transparent, revealing the woman */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#f5ede8] from-30% via-[#f5ede8]/60 via-45% to-transparent to-60%" />
 
         {/* Content */}
         <div className="relative z-10 px-8 sm:px-14 max-w-lg py-10">
