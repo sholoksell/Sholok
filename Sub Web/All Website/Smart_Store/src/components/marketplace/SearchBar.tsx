@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { productsApi, API_ORIGIN } from "@/lib/api";
+import { productsApi } from "@/lib/api";
 import { useLang } from "@/store/languageContext";
 
 interface Product {
@@ -40,22 +40,43 @@ async function getProducts(): Promise<Product[]> {
 function filterProducts(all: Product[], q: string): Product[] {
   const lq = q.toLowerCase().trim();
   if (!lq) return [];
+  const words = lq.split(/\s+/).filter(Boolean);
   return all
     .filter(p => {
-      const cat = typeof p.categoryId === "object" ? p.categoryId?.name : "";
-      return (
-        p.name?.toLowerCase().includes(lq) ||
-        (p.nameBn && p.nameBn.includes(lq)) ||
-        (cat && cat.toLowerCase().includes(lq))
-      );
+      const name = p.name?.toLowerCase() ?? "";
+      const nameBn = p.nameBn ?? "";
+      const cat = typeof p.categoryId === "object" ? (p.categoryId?.name?.toLowerCase() ?? "") : "";
+      // All words must appear somewhere in name or category
+      return words.every(w => name.includes(w) || nameBn.includes(w) || cat.includes(w));
     })
-    .slice(0, 8);
+    .slice(0, 10);
 }
 
-function imgSrc(thumbnail?: string) {
-  if (!thumbnail) return "";
-  if (thumbnail.startsWith("http")) return thumbnail;
-  return `${API_ORIGIN}${thumbnail.startsWith("/") ? "" : "/"}${thumbnail}`;
+// Highlight the matched portion of a product name
+function highlight(name: string, query: string): React.ReactNode {
+  const q = query.trim();
+  if (!q) return name;
+  const idx = name.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) {
+    // Try highlighting first word match
+    const word = q.split(/\s+/)[0];
+    const wi = name.toLowerCase().indexOf(word.toLowerCase());
+    if (wi === -1) return name;
+    return (
+      <>
+        {name.slice(0, wi)}
+        <span className="font-semibold text-foreground">{name.slice(wi, wi + word.length)}</span>
+        {name.slice(wi + word.length)}
+      </>
+    );
+  }
+  return (
+    <>
+      {name.slice(0, idx)}
+      <span className="font-semibold text-foreground">{name.slice(idx, idx + q.length)}</span>
+      {name.slice(idx + q.length)}
+    </>
+  );
 }
 
 interface SearchBarProps {
@@ -69,40 +90,77 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
   const wrap = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
+  // Debounced filter
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (!query.trim()) { setSuggestions([]); setOpen(false); return; }
+    if (!query.trim()) { setSuggestions([]); setOpen(false); setActiveIdx(-1); return; }
     timer.current = setTimeout(async () => {
       setBusy(true);
       const all = await getProducts();
       setSuggestions(filterProducts(all, query));
       setBusy(false);
       setOpen(true);
+      setActiveIdx(-1);
     }, 300);
     return () => clearTimeout(timer.current);
   }, [query]);
 
+  // Close on click outside
   useEffect(() => {
     const fn = (e: MouseEvent) => {
-      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false);
+      if (wrap.current && !wrap.current.contains(e.target as Node)) {
+        setOpen(false);
+        setActiveIdx(-1);
+      }
     };
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
   }, []);
 
+  // Scroll active item into view
+  useEffect(() => {
+    if (activeIdx < 0 || !listRef.current) return;
+    const item = listRef.current.children[activeIdx] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: "nearest" });
+  }, [activeIdx]);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeIdx >= 0 && suggestions[activeIdx]) {
+      pick(suggestions[activeIdx]);
+      return;
+    }
     setOpen(false);
+    setActiveIdx(-1);
     navigate(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : "/search");
   };
 
   const pick = (p: Product) => {
     setOpen(false);
+    setActiveIdx(-1);
     setQuery(p.name);
     navigate(`/product/${p.slug}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx(i => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx(i => Math.max(i - 1, -1));
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      setActiveIdx(-1);
+      inputRef.current?.blur();
+    }
   };
 
   const h = mobile ? "h-10" : "h-11";
@@ -111,11 +169,15 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
     <div ref={wrap} className="relative w-full">
       <form onSubmit={submit} className="flex">
         <input
+          ref={inputRef}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onFocus={() => { if (!_cache) getProducts(); }}
+          onKeyDown={handleKeyDown}
           placeholder={mobile ? t("search_ph_mob") : t("search_ph")}
           autoComplete="off"
+          aria-autocomplete="list"
+          aria-expanded={open}
           className={`w-full ${h} pl-4 pr-0 border border-border border-r-0 rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096] transition-colors bg-background`}
         />
         <button
@@ -127,45 +189,45 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
         </button>
       </form>
 
+      {/* Shwapno-style suggestion dropdown */}
       {open && (
-        <div className="absolute top-full left-0 right-0 z-[60] mt-1 bg-white dark:bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+        <div
+          ref={listRef}
+          role="listbox"
+          className="absolute top-full left-0 right-0 z-[60] mt-1 bg-white dark:bg-card border border-border rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.10)] overflow-hidden"
+        >
           {suggestions.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground text-center">No products found</p>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">No products found</p>
+            </div>
           ) : (
-            suggestions.map(p => {
-              const sale = p.salePrice;
-              const reg = p.regularPrice ?? p.price ?? 0;
-              const src = imgSrc(p.thumbnail);
-              return (
-                <button
-                  key={p._id}
-                  type="button"
-                  onMouseDown={() => pick(p)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#5D0096]/5 transition-colors text-left border-b border-border/50 last:border-0"
-                >
-                  <div className="w-10 h-10 rounded-md bg-secondary overflow-hidden shrink-0 flex items-center justify-center">
-                    {src ? (
-                      <img src={src} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full bg-secondary" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                    <div className="flex items-center gap-2">
-                      {sale && sale < reg ? (
-                        <>
-                          <span className="text-xs font-semibold text-[#D31710]">৳{sale.toLocaleString()}</span>
-                          <span className="text-xs text-muted-foreground line-through">৳{reg.toLocaleString()}</span>
-                        </>
-                      ) : (
-                        <span className="text-xs font-semibold text-[#5D0096]">৳{reg.toLocaleString()}</span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })
+            suggestions.map((p, i) => (
+              <button
+                key={p._id}
+                role="option"
+                aria-selected={i === activeIdx}
+                type="button"
+                onMouseDown={() => pick(p)}
+                onMouseEnter={() => setActiveIdx(i)}
+                className={`w-full flex items-center gap-3 px-4 py-[11px] transition-colors text-left group ${
+                  i === activeIdx
+                    ? "bg-[#5D0096]/8 dark:bg-[#5D0096]/15"
+                    : "hover:bg-[#5D0096]/5 dark:hover:bg-[#5D0096]/10"
+                }`}
+              >
+                {/* Search icon */}
+                <Search className="w-[15px] h-[15px] text-muted-foreground shrink-0 group-hover:text-[#5D0096] transition-colors" />
+
+                {/* Product name with highlighted match */}
+                <span className="flex-1 text-sm text-muted-foreground truncate group-hover:text-foreground transition-colors">
+                  {highlight(p.name, query)}
+                </span>
+
+                {/* Arrow redirect icon */}
+                <ArrowUpRight className="w-[15px] h-[15px] text-muted-foreground/50 shrink-0 group-hover:text-[#5D0096] transition-colors" />
+              </button>
+            ))
           )}
         </div>
       )}
