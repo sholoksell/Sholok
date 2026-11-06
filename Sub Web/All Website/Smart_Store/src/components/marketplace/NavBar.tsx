@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   ChevronDown, AlignJustify, ArrowUpRight, Zap, TrendingUp, Tag, LayoutGrid, Home,
   ShoppingBag, Briefcase, Star, Heart, Activity, Smile, Layers, BookOpen, Gift, Car,
-  ShoppingCart, ChevronRight, Package, Cpu, Coffee, Dumbbell,
+  ShoppingCart, Package, Cpu, Coffee, Dumbbell,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { categoriesApi } from "@/lib/api";
@@ -54,7 +54,6 @@ const cid = (c: { _id?: string | number; id?: string | number; slug?: string }) 
 export default function NavBar() {
   const [catOpen, setCatOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,17 +73,7 @@ export default function NavBar() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const toggleExpand = (id: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const closeAll = () => { setCatOpen(false); setExpandedIds(new Set()); };
+  const closeAll = () => { setCatOpen(false); };
 
   return (
     <nav className="bg-[#5D0096] text-white relative z-30">
@@ -122,63 +111,41 @@ export default function NavBar() {
                       const { Icon, bg, fg } = style;
                       const hasChildren = (cat.children?.length ?? 0) > 0;
                       const id = cid(cat);
-                      const isExpanded = expandedIds.has(id);
 
                       return (
                         <li key={id}>
                           {/* Root category row */}
-                          <div className="flex items-center group">
-                            <Link
-                              to={`/search?categoryId=${id}`}
-                              onClick={closeAll}
-                              className="flex items-center gap-3 pl-4 pr-2 h-11 flex-1 hover:bg-gray-50 transition-colors min-w-0"
+                          <Link
+                            to={`/search?categoryId=${id}`}
+                            onClick={closeAll}
+                            className="flex items-center gap-3 pl-4 pr-4 h-11 hover:bg-gray-50 transition-colors"
+                          >
+                            <span
+                              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                              style={{ background: bg }}
                             >
-                              <span
-                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                                style={{ background: bg }}
-                              >
-                                <Icon className="w-4 h-4" style={{ color: fg }} />
-                              </span>
-                              <span className="text-sm text-gray-700 flex-1 truncate">{cat.name}</span>
-                            </Link>
-                            {hasChildren && (
-                              <button
-                                onClick={(e) => toggleExpand(id, e)}
-                                className="shrink-0 w-9 h-11 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                                aria-label={isExpanded ? "Collapse" : "Expand"}
-                              >
-                                <ChevronRight
-                                  className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-                                />
-                              </button>
-                            )}
-                          </div>
+                              <Icon className="w-4 h-4" style={{ color: fg }} />
+                            </span>
+                            <span className="text-sm font-medium text-gray-800 flex-1 truncate">{cat.name}</span>
+                          </Link>
 
-                          {/* Sub-categories (expanded) */}
-                          <AnimatePresence>
-                            {isExpanded && hasChildren && (
-                              <motion.ul
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="overflow-hidden border-l-2 ml-7 border-gray-100"
-                              >
-                                {cat.children!.map((sub) => (
-                                  <li key={cid(sub)}>
-                                    <Link
-                                      to={`/search?categoryId=${cid(sub)}`}
-                                      onClick={closeAll}
-                                      className="flex items-center gap-2 pl-4 pr-3 h-9 text-sm text-gray-600 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
-                                    >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />
-                                      {sub.name}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </motion.ul>
-                            )}
-                          </AnimatePresence>
+                          {/* Sub-categories — always visible */}
+                          {hasChildren && (
+                            <ul className="border-l-2 ml-7 border-[#5D0096]/15 mb-1">
+                              {cat.children!.map((sub) => (
+                                <li key={cid(sub)}>
+                                  <Link
+                                    to={`/search?categoryId=${cid(sub)}`}
+                                    onClick={closeAll}
+                                    className="flex items-center gap-2 pl-4 pr-3 h-8 text-xs text-gray-500 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
+                                    {sub.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </li>
                       );
                     })}
