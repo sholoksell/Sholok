@@ -16,7 +16,6 @@ const NAV_LINKS = [
   { to: "/search?onSale=1", label: "Offers", icon: Tag },
 ];
 
-/* Icon + color mapping by category name */
 const CAT_STYLES: Record<string, { Icon: React.ElementType; bg: string; fg: string }> = {
   "Women's Clothing":    { Icon: ShoppingBag,  bg: "#EDE9FE", fg: "#7C3AED" },
   "Men's Clothing":      { Icon: Briefcase,    bg: "#FEE2E2", fg: "#DC2626" },
@@ -55,9 +54,8 @@ const cid = (c: { _id?: string | number; id?: string | number; slug?: string }) 
 export default function NavBar() {
   const [catOpen, setCatOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     categoriesApi.list().then((r: any) => {
@@ -70,15 +68,23 @@ export default function NavBar() {
     const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setCatOpen(false);
-        setHoveredId(null);
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const hoveredCat = categories.find((c) => cid(c) === hoveredId);
-  const subCats: SubCat[] = hoveredCat?.children ?? [];
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const closeAll = () => { setCatOpen(false); setExpandedIds(new Set()); };
 
   return (
     <nav className="bg-[#5D0096] text-white relative z-30">
@@ -86,7 +92,7 @@ export default function NavBar() {
         {/* Shop by category */}
         <div ref={ref} className="relative shrink-0">
           <button
-            onClick={() => { setCatOpen((v) => !v); setHoveredId(null); }}
+            onClick={() => setCatOpen((v) => !v)}
             aria-expanded={catOpen}
             className="flex items-center gap-2 h-11 w-[220px] lg:w-[270px] px-4 font-semibold text-sm bg-[#4a0078] hover:bg-[#3d0063] transition-colors whitespace-nowrap"
           >
@@ -102,80 +108,81 @@ export default function NavBar() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.15 }}
-                className="absolute left-0 top-full flex shadow-elegant border border-border border-t-0 rounded-b-xl z-50 bg-white overflow-hidden"
-                onMouseLeave={() => {
-                  closeTimer.current = setTimeout(() => setHoveredId(null), 100);
-                }}
+                className="absolute left-0 top-full w-[270px] bg-white text-foreground shadow-elegant border border-border border-t-0 rounded-b-xl z-50 max-h-[75vh] overflow-y-auto"
               >
-                {/* Root categories */}
-                <ul className="w-[220px] lg:w-[270px] py-2 max-h-[70vh] overflow-y-auto">
-                  {categories.length === 0 ? (
-                    <li className="px-4 py-3 text-sm text-muted-foreground">Loading categories…</li>
-                  ) : (
-                    categories.map((cat, idx) => {
+                {categories.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-muted-foreground">Loading categories…</div>
+                ) : (
+                  <ul className="py-2">
+                    {categories.map((cat, idx) => {
                       const style = CAT_STYLES[cat.name] ?? {
                         Icon: FB_ICONS[idx % FB_ICONS.length],
                         ...FB_COLORS[idx % FB_COLORS.length],
                       };
                       const { Icon, bg, fg } = style;
                       const hasChildren = (cat.children?.length ?? 0) > 0;
-                      const isHovered = cid(cat) === hoveredId;
+                      const id = cid(cat);
+                      const isExpanded = expandedIds.has(id);
 
                       return (
-                        <li key={cid(cat)}>
-                          <Link
-                            to={`/search?categoryId=${cid(cat)}`}
-                            onClick={() => { setCatOpen(false); setHoveredId(null); }}
-                            onMouseEnter={() => {
-                              if (closeTimer.current) clearTimeout(closeTimer.current);
-                              setHoveredId(cid(cat));
-                            }}
-                            className={`flex items-center gap-3 px-4 h-11 transition-colors ${
-                              isHovered ? "bg-[#5D0096]/8" : "hover:bg-gray-50"
-                            }`}
-                          >
-                            <span
-                              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ background: bg }}
+                        <li key={id}>
+                          {/* Root category row */}
+                          <div className="flex items-center group">
+                            <Link
+                              to={`/search?categoryId=${id}`}
+                              onClick={closeAll}
+                              className="flex items-center gap-3 pl-4 pr-2 h-11 flex-1 hover:bg-gray-50 transition-colors min-w-0"
                             >
-                              <Icon className="w-4 h-4" style={{ color: fg }} />
-                            </span>
-                            <span className={`text-sm flex-1 ${isHovered ? "text-[#5D0096] font-medium" : "text-gray-700"}`}>
-                              {cat.name}
-                            </span>
+                              <span
+                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                style={{ background: bg }}
+                              >
+                                <Icon className="w-4 h-4" style={{ color: fg }} />
+                              </span>
+                              <span className="text-sm text-gray-700 flex-1 truncate">{cat.name}</span>
+                            </Link>
                             {hasChildren && (
-                              <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              <button
+                                onClick={(e) => toggleExpand(id, e)}
+                                className="shrink-0 w-9 h-11 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                aria-label={isExpanded ? "Collapse" : "Expand"}
+                              >
+                                <ChevronRight
+                                  className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                />
+                              </button>
                             )}
-                          </Link>
+                          </div>
+
+                          {/* Sub-categories (expanded) */}
+                          <AnimatePresence>
+                            {isExpanded && hasChildren && (
+                              <motion.ul
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.18 }}
+                                className="overflow-hidden border-l-2 ml-7 border-gray-100"
+                              >
+                                {cat.children!.map((sub) => (
+                                  <li key={cid(sub)}>
+                                    <Link
+                                      to={`/search?categoryId=${cid(sub)}`}
+                                      onClick={closeAll}
+                                      className="flex items-center gap-2 pl-4 pr-3 h-9 text-sm text-gray-600 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />
+                                      {sub.name}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </motion.ul>
+                            )}
+                          </AnimatePresence>
                         </li>
                       );
-                    })
-                  )}
-                </ul>
-
-                {/* Sub-category flyout */}
-                {subCats.length > 0 && (
-                  <div
-                    className="w-56 border-l border-gray-100 py-2 max-h-[70vh] overflow-y-auto bg-white"
-                    onMouseEnter={() => {
-                      if (closeTimer.current) clearTimeout(closeTimer.current);
-                    }}
-                  >
-                    <p className="px-4 pb-1 pt-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      {hoveredCat?.name}
-                    </p>
-                    {subCats.map((sub) => (
-                      <Link
-                        key={cid(sub)}
-                        to={`/search?categoryId=${cid(sub)}`}
-                        onClick={() => { setCatOpen(false); setHoveredId(null); }}
-                        className="flex items-center gap-2 px-4 h-9 text-sm text-gray-600 hover:text-[#5D0096] hover:bg-[#5D0096]/5 transition-colors"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
-                        {sub.name}
-                      </Link>
-                    ))}
-                  </div>
+                    })}
+                  </ul>
                 )}
               </motion.div>
             )}
