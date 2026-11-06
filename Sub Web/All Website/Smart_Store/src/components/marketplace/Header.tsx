@@ -1,24 +1,19 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin } from "lucide-react";
+import { ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, ShieldCheck, MapPin } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/store/cartContext";
 import { useAuth } from "@/store/authContext";
 import { useLang } from "@/store/languageContext";
+import SearchBar from "@/components/marketplace/SearchBar";
 
 export default function Header() {
   const { count, total, open, wishlist } = useCart();
   const { user, logout } = useAuth();
   const { t } = useLang();
-  const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const navigate = useNavigate();
-
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(`/search${query ? `?q=${encodeURIComponent(query)}` : ""}`);
-  };
 
   return (
     <>
@@ -48,23 +43,9 @@ export default function Header() {
           </button>
 
           {/* Search */}
-          <form onSubmit={submitSearch} className="flex-1 max-w-2xl hidden sm:flex">
-            <div className="relative w-full flex">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("search_ph")}
-                className="w-full h-11 pl-4 pr-0 border border-border border-r-0 rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096] transition-colors bg-background"
-              />
-              <button
-                type="submit"
-                className="h-11 px-5 bg-[#5D0096] hover:bg-[#4a0078] text-white rounded-r-lg flex items-center gap-1.5 text-sm font-semibold transition-colors whitespace-nowrap"
-              >
-                <Search className="w-4 h-4" />
-                <span className="hidden md:inline">{t("search_btn")}</span>
-              </button>
-            </div>
-          </form>
+          <div className="flex-1 max-w-2xl hidden sm:flex">
+            <SearchBar />
+          </div>
 
           {/* Actions */}
           <div className="flex items-center gap-0.5 ml-auto shrink-0">
@@ -172,17 +153,7 @@ export default function Header() {
 
         {/* Mobile search */}
         <div className="sm:hidden px-4 pb-3">
-          <form onSubmit={submitSearch} className="flex">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("search_ph_mob")}
-              className="flex-1 h-10 pl-4 border border-border rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096]"
-            />
-            <button type="submit" className="h-10 px-4 bg-[#5D0096] text-white rounded-r-lg">
-              <Search className="w-4 h-4" />
-            </button>
-          </form>
+          <SearchBar mobile />
         </div>
       </header>
 
