@@ -37,10 +37,10 @@ export default function Header() {
           </Link>
 
           {/* Deliver to */}
-          <button className="hidden lg:flex flex-col items-start px-3 py-1 rounded-lg hover:bg-secondary transition-colors shrink-0">
-            <span className="text-[10px] text-muted-foreground leading-none">Deliver to</span>
-            <span className="flex items-center gap-1 text-sm font-semibold text-foreground leading-tight mt-0.5">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
+          <button className="hidden lg:flex flex-col items-start px-3 py-1 rounded-lg group hover:bg-[#D31710]/10 transition-colors shrink-0">
+            <span className="text-xs text-muted-foreground leading-none group-hover:text-[#D31710] transition-colors">Deliver to</span>
+            <span className="flex items-center gap-1 text-sm font-semibold text-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">
+              <MapPin className="w-3.5 h-3.5 text-primary group-hover:text-[#D31710] transition-colors" />
               Dhaka
             </span>
           </button>
@@ -70,11 +70,11 @@ export default function Header() {
             <div className="relative hidden sm:block">
               <button
                 onClick={() => setUserOpen((v) => !v)}
-                className="flex flex-col items-center px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors min-w-[64px]"
+                className="flex flex-col items-center px-3 py-1.5 rounded-lg group hover:bg-[#D31710]/10 transition-colors min-w-[64px]"
                 aria-label="Account"
               >
-                <User className="w-5 h-5 text-foreground/70" />
-                <span className="text-[10px] text-muted-foreground leading-tight whitespace-nowrap mt-0.5">
+                <User className="w-[22px] h-[22px] text-foreground/70 group-hover:text-[#D31710] transition-colors" />
+                <span className="text-xs text-muted-foreground leading-tight whitespace-nowrap mt-0.5 group-hover:text-[#D31710] transition-colors">
                   {user ? (user.name?.split(" ")[0] || "Account") : "Sign in"}
                 </span>
               </button>
@@ -133,35 +133,35 @@ export default function Header() {
             {/* Wishlist */}
             <Link
               to="/account?tab=wishlist"
-              className="hidden sm:flex flex-col items-center px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors relative min-w-[64px]"
+              className="hidden sm:flex flex-col items-center px-3 py-1.5 rounded-lg group hover:bg-[#D31710]/10 transition-colors relative min-w-[64px]"
               aria-label="Wishlist"
             >
               <div className="relative">
-                <Heart className="w-5 h-5 text-foreground/70" />
+                <Heart className="w-[22px] h-[22px] text-foreground/70 group-hover:text-[#D31710] transition-colors" />
                 {wishlist.size > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D31710] text-white text-[9px] font-bold flex items-center justify-center">
                     {wishlist.size}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">Wishlist</span>
+              <span className="text-xs text-muted-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">Wishlist</span>
             </Link>
 
             {/* Cart */}
             <button
               onClick={open}
-              className="flex flex-col items-center px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors relative min-w-[64px]"
+              className="flex flex-col items-center px-3 py-1.5 rounded-lg group hover:bg-[#D31710]/10 transition-colors relative min-w-[64px]"
               aria-label="Open cart"
             >
               <div className="relative">
-                <ShoppingCart className="w-5 h-5 text-foreground/70" />
+                <ShoppingCart className="w-[22px] h-[22px] text-foreground/70 group-hover:text-[#D31710] transition-colors" />
                 {count > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D31710] text-white text-[9px] font-bold flex items-center justify-center">
                     {count > 9 ? "9+" : count}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+              <span className="text-xs text-muted-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">
                 {total > 0 ? `৳${total.toLocaleString()}` : "Cart"}
               </span>
             </button>
