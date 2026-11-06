@@ -5,16 +5,26 @@ import TrendingSection from "@/components/marketplace/TrendingSection";
 import SeasonalBanner from "@/components/marketplace/SeasonalBanner";
 import MoreToLove from "@/components/marketplace/MoreToLove";
 import OfferPopup from "@/components/marketplace/OfferPopup";
+import LiveSearchResults from "@/components/marketplace/LiveSearchResults";
+import { useLiveSearch } from "@/store/searchContext";
 
 export default function Index() {
+  const { liveQuery } = useLiveSearch();
+
   return (
     <>
-      <HeroSection />
-      <PromoBanners />
-      <FlashSale />
-      <TrendingSection />
-      <SeasonalBanner />
-      <MoreToLove />
+      {liveQuery.trim() ? (
+        <LiveSearchResults query={liveQuery.trim()} />
+      ) : (
+        <>
+          <HeroSection />
+          <PromoBanners />
+          <FlashSale />
+          <TrendingSection />
+          <SeasonalBanner />
+          <MoreToLove />
+        </>
+      )}
       <OfferPopup />
     </>
   );

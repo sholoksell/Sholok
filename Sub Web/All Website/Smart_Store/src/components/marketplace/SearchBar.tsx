@@ -1,67 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Loader2, ArrowUpRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { productsApi } from "@/lib/api";
+import { useNavigate, useLocation } from "react-router-dom";
+import { getProductCache, filterProducts, type CachedProduct } from "@/lib/productCache";
+import { useLiveSearch } from "@/store/searchContext";
 import { useLang } from "@/store/languageContext";
 
-interface Product {
-  _id: string;
-  name: string;
-  nameBn?: string;
-  slug: string;
-  thumbnail?: string;
-  regularPrice?: number;
-  salePrice?: number;
-  price?: number;
-  categoryId?: { name?: string; slug?: string } | string;
-}
-
-// Module-level cache shared across all SearchBar instances
-let _cache: Product[] | null = null;
-let _loading = false;
-const _listeners: Array<() => void> = [];
-
-async function getProducts(): Promise<Product[]> {
-  if (_cache) return _cache;
-  if (_loading) return new Promise(r => _listeners.push(() => r(_cache!)));
-  _loading = true;
-  try {
-    const res = await productsApi.list({ limit: 200 });
-    _cache = Array.isArray(res) ? res : (res.products ?? res.data ?? []);
-  } catch {
-    _cache = [];
-  } finally {
-    _loading = false;
-    _listeners.splice(0).forEach(fn => fn());
-  }
-  return _cache!;
-}
-
-function filterProducts(all: Product[], q: string): Product[] {
-  const lq = q.toLowerCase().trim();
-  if (!lq) return [];
-  const words = lq.split(/\s+/).filter(Boolean);
-  return all
-    .filter(p => {
-      const name = p.name?.toLowerCase() ?? "";
-      const nameBn = p.nameBn ?? "";
-      const cat = typeof p.categoryId === "object" ? (p.categoryId?.name?.toLowerCase() ?? "") : "";
-      // All words must appear somewhere in name or category
-      return words.every(w => name.includes(w) || nameBn.includes(w) || cat.includes(w));
-    })
-    .slice(0, 10);
-}
-
-// Highlight the matched portion of a product name
+// Highlight the matched query inside a product name
 function highlight(name: string, query: string): React.ReactNode {
   const q = query.trim();
   if (!q) return name;
+  // Try to highlight the whole phrase first, then just the first word
   const idx = name.toLowerCase().indexOf(q.toLowerCase());
-  if (idx === -1) {
-    // Try highlighting first word match
-    const word = q.split(/\s+/)[0];
-    const wi = name.toLowerCase().indexOf(word.toLowerCase());
-    if (wi === -1) return name;
+  if (idx !== -1) {
+    return (
+      <>
+        {name.slice(0, idx)}
+        <span className="font-semibold text-foreground">{name.slice(idx, idx + q.length)}</span>
+        {name.slice(idx + q.length)}
+      </>
+    );
+  }
+  const word = q.split(/\s+/)[0];
+  const wi = name.toLowerCase().indexOf(word.toLowerCase());
+  if (wi !== -1) {
     return (
       <>
         {name.slice(0, wi)}
@@ -70,13 +31,7 @@ function highlight(name: string, query: string): React.ReactNode {
       </>
     );
   }
-  return (
-    <>
-      {name.slice(0, idx)}
-      <span className="font-semibold text-foreground">{name.slice(idx, idx + q.length)}</span>
-      {name.slice(idx + q.length)}
-    </>
-  );
+  return name;
 }
 
 interface SearchBarProps {
@@ -86,8 +41,12 @@ interface SearchBarProps {
 export default function SearchBar({ mobile = false }: SearchBarProps) {
   const { t } = useLang();
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+
+  const { liveQuery, setLiveQuery } = useLiveSearch();
+  const [query, setQueryLocal] = useState(liveQuery);
+  const [suggestions, setSuggestions] = useState<CachedProduct[]>([]);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -95,23 +54,47 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const liveTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  // Debounced filter
+  // Keep local input in sync when liveQuery is cleared externally
+  useEffect(() => {
+    if (!liveQuery) setQueryLocal("");
+  }, [liveQuery]);
+
+  // Debounced suggestion + liveQuery update
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (!query.trim()) { setSuggestions([]); setOpen(false); setActiveIdx(-1); return; }
+    if (liveTimer.current) clearTimeout(liveTimer.current);
+
+    if (!query.trim()) {
+      setSuggestions([]);
+      setOpen(false);
+      setActiveIdx(-1);
+      setLiveQuery("");
+      return;
+    }
+
     timer.current = setTimeout(async () => {
       setBusy(true);
-      const all = await getProducts();
-      setSuggestions(filterProducts(all, query));
+      const all = await getProductCache();
+      setSuggestions(filterProducts(all, query).slice(0, 10));
       setBusy(false);
       setOpen(true);
       setActiveIdx(-1);
     }, 300);
-    return () => clearTimeout(timer.current);
-  }, [query]);
 
-  // Close on click outside
+    // Set liveQuery with slightly longer debounce so suggestions appear first
+    liveTimer.current = setTimeout(() => {
+      if (isHome) setLiveQuery(query.trim());
+    }, 400);
+
+    return () => {
+      clearTimeout(timer.current);
+      clearTimeout(liveTimer.current);
+    };
+  }, [query, isHome]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close dropdown on outside click
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (wrap.current && !wrap.current.contains(e.target as Node)) {
@@ -130,6 +113,22 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
     item?.scrollIntoView({ block: "nearest" });
   }, [activeIdx]);
 
+  const setQuery = (v: string) => {
+    setQueryLocal(v);
+  };
+
+  // Pick a suggestion: update input + liveQuery (stay on homepage) or navigate on other pages
+  const pick = (p: CachedProduct) => {
+    setOpen(false);
+    setActiveIdx(-1);
+    setQueryLocal(p.name);
+    if (isHome) {
+      setLiveQuery(p.name);
+    } else {
+      navigate(`/search?q=${encodeURIComponent(p.name)}`);
+    }
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeIdx >= 0 && suggestions[activeIdx]) {
@@ -138,14 +137,12 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
     }
     setOpen(false);
     setActiveIdx(-1);
-    navigate(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : "/search");
-  };
-
-  const pick = (p: Product) => {
-    setOpen(false);
-    setActiveIdx(-1);
-    setQuery(p.name);
-    navigate(`/product/${p.slug}`);
+    if (isHome) {
+      // liveQuery already set by debounce — just close the dropdown
+      setLiveQuery(query.trim());
+    } else {
+      navigate(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : "/search");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -172,7 +169,7 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
           ref={inputRef}
           value={query}
           onChange={e => setQuery(e.target.value)}
-          onFocus={() => { if (!_cache) getProducts(); }}
+          onFocus={() => { getProductCache(); }}
           onKeyDown={handleKeyDown}
           placeholder={mobile ? t("search_ph_mob") : t("search_ph")}
           autoComplete="off"
@@ -216,15 +213,10 @@ export default function SearchBar({ mobile = false }: SearchBarProps) {
                     : "hover:bg-[#5D0096]/5 dark:hover:bg-[#5D0096]/10"
                 }`}
               >
-                {/* Search icon */}
                 <Search className="w-[15px] h-[15px] text-muted-foreground shrink-0 group-hover:text-[#5D0096] transition-colors" />
-
-                {/* Product name with highlighted match */}
                 <span className="flex-1 text-sm text-muted-foreground truncate group-hover:text-foreground transition-colors">
                   {highlight(p.name, query)}
                 </span>
-
-                {/* Arrow redirect icon */}
                 <ArrowUpRight className="w-[15px] h-[15px] text-muted-foreground/50 shrink-0 group-hover:text-[#5D0096] transition-colors" />
               </button>
             ))

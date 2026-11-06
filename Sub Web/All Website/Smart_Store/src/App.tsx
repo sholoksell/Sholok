@@ -8,6 +8,7 @@ import { QuickViewProvider } from "@/store/quickViewContext";
 import { ThemeProvider } from "@/store/themeContext";
 import { AuthProvider } from "@/store/authContext";
 import { LanguageProvider } from "@/store/languageContext";
+import { SearchProvider } from "@/store/searchContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 import Layout from "@/components/Layout";
@@ -32,6 +33,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
+    <SearchProvider>
     <ThemeProvider>
       <TooltipProvider>
         <Toaster />
@@ -75,6 +77,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
+    </SearchProvider>
     </LanguageProvider>
   </QueryClientProvider>
 );
