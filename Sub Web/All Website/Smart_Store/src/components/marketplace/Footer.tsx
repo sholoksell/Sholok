@@ -28,9 +28,9 @@ const QUICK_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[#5D0096] text-white mt-12">
+    <footer className="bg-[#D31710] text-white mt-12">
       {/* Service tiles */}
-      <div className="bg-[#4a0078]">
+      <div className="bg-[#b81209]">
         <div className="container py-5 grid grid-cols-2 md:grid-cols-4 gap-4">
           {SERVICE_TILES.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-center gap-3">
@@ -127,7 +127,7 @@ export default function Footer() {
               placeholder="Enter your email"
               className="h-10 px-4 rounded-lg bg-white/10 border border-white/20 text-sm placeholder:text-white/40 text-white focus:outline-none focus:border-white/50 transition-colors"
             />
-            <button type="submit" className="h-10 rounded-lg bg-white text-[#5D0096] text-sm font-bold hover:bg-white/90 transition-colors">
+            <button type="submit" className="h-10 rounded-lg bg-white text-[#D31710] text-sm font-bold hover:bg-white/90 transition-colors">
               Subscribe
             </button>
           </form>
