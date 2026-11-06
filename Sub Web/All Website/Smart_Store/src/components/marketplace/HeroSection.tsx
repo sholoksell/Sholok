@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ArrowRight, Package, Shirt, SprayCan, Home, 
 import { Link, useNavigate } from "react-router-dom";
 import { categoriesApi } from "@/lib/api";
 import { AnimatePresence, motion } from "framer-motion";
+import { useLang } from "@/store/languageContext";
 
 const CAT_ICON_MAP: Record<string, any> = {
   women: Shirt, "women's": Shirt, ladies: Shirt,
@@ -81,6 +82,7 @@ const catId = (c: { id?: string | number; _id?: string | number; slug?: string }
 function CategorySidebar({ categories }: { categories: Category[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const handleRowClick = (cat: Category) => {
     const id = catId(cat);
@@ -145,7 +147,7 @@ function CategorySidebar({ categories }: { categories: Category[] }) {
                             to={`/search?categoryId=${id}`}
                             className="flex items-center gap-2.5 pl-[52px] pr-4 h-9 text-xs text-[#5D0096] font-semibold hover:bg-[#5D0096]/5 transition-colors"
                           >
-                            View all →
+                            {t("view_all")}
                           </Link>
                         </li>
                       </motion.ul>

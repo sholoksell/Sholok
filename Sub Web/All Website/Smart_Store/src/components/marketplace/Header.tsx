@@ -4,10 +4,12 @@ import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, Sh
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/store/cartContext";
 import { useAuth } from "@/store/authContext";
+import { useLang } from "@/store/languageContext";
 
 export default function Header() {
   const { count, total, open, wishlist } = useCart();
   const { user, logout } = useAuth();
+  const { t } = useLang();
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -38,7 +40,7 @@ export default function Header() {
 
           {/* Deliver to */}
           <button className="hidden lg:flex flex-col items-start px-3 py-1 rounded-lg group hover:bg-[#D31710]/10 transition-colors shrink-0">
-            <span className="text-xs text-muted-foreground leading-none group-hover:text-[#D31710] transition-colors">Deliver to</span>
+            <span className="text-xs text-muted-foreground leading-none group-hover:text-[#D31710] transition-colors">{t("deliver_to")}</span>
             <span className="flex items-center gap-1 text-sm font-semibold text-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">
               <MapPin className="w-3.5 h-3.5 text-primary group-hover:text-[#D31710] transition-colors" />
               Dhaka
@@ -51,7 +53,7 @@ export default function Header() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for products, brands and more..."
+                placeholder={t("search_ph")}
                 className="w-full h-11 pl-4 pr-0 border border-border border-r-0 rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096] transition-colors bg-background"
               />
               <button
@@ -59,7 +61,7 @@ export default function Header() {
                 className="h-11 px-5 bg-[#5D0096] hover:bg-[#4a0078] text-white rounded-r-lg flex items-center gap-1.5 text-sm font-semibold transition-colors whitespace-nowrap"
               >
                 <Search className="w-4 h-4" />
-                <span className="hidden md:inline">Search</span>
+                <span className="hidden md:inline">{t("search_btn")}</span>
               </button>
             </div>
           </form>
@@ -75,7 +77,7 @@ export default function Header() {
               >
                 <User className="w-[22px] h-[22px] text-foreground/70 group-hover:text-[#D31710] transition-colors" />
                 <span className="text-xs text-muted-foreground leading-tight whitespace-nowrap mt-0.5 group-hover:text-[#D31710] transition-colors">
-                  {user ? (user.name?.split(" ")[0] || "Account") : "Sign in"}
+                  {user ? (user.name?.split(" ")[0] || t("account")) : t("sign_in")}
                 </span>
               </button>
               <AnimatePresence>
@@ -94,16 +96,16 @@ export default function Header() {
                           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         </div>
                         <Link to="/account" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
-                          <User className="w-3.5 h-3.5" /> My Account
+                          <User className="w-3.5 h-3.5" /> {t("my_account")}
                         </Link>
                         {(user.role === "seller" || user.role === "admin") && (
                           <Link to="/seller" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
-                            <LayoutDashboard className="w-3.5 h-3.5" /> Seller Console
+                            <LayoutDashboard className="w-3.5 h-3.5" /> {t("seller_console")}
                           </Link>
                         )}
                         {user.role === "admin" && (
                           <Link to="/admin" onClick={() => setUserOpen(false)} className="flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Admin
+                            <ShieldCheck className="w-3.5 h-3.5" /> {t("admin")}
                           </Link>
                         )}
                         <div className="border-t border-border mt-1 pt-1">
@@ -111,17 +113,17 @@ export default function Header() {
                             onClick={async () => { setUserOpen(false); await logout(); navigate("/"); }}
                             className="w-full flex items-center gap-2 px-3 h-9 rounded text-sm hover:bg-secondary text-destructive"
                           >
-                            <LogOut className="w-3.5 h-3.5" /> Sign Out
+                            <LogOut className="w-3.5 h-3.5" /> {t("sign_out")}
                           </button>
                         </div>
                       </>
                     ) : (
                       <>
                         <Link to="/login" onClick={() => setUserOpen(false)} className="flex items-center justify-center h-9 rounded text-sm font-semibold text-white bg-[#5D0096] hover:bg-[#4a0078] transition-colors mb-1">
-                          Sign In
+                          {t("sign_in")}
                         </Link>
                         <Link to="/register" onClick={() => setUserOpen(false)} className="flex items-center justify-center h-9 rounded text-sm border border-border hover:bg-secondary transition-colors">
-                          Create Account
+                          {t("create_account")}
                         </Link>
                       </>
                     )}
@@ -144,7 +146,7 @@ export default function Header() {
                   </span>
                 )}
               </div>
-              <span className="text-xs text-muted-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">Wishlist</span>
+              <span className="text-xs text-muted-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">{t("wishlist")}</span>
             </Link>
 
             {/* Cart */}
@@ -162,7 +164,7 @@ export default function Header() {
                 )}
               </div>
               <span className="text-xs text-muted-foreground leading-tight mt-0.5 group-hover:text-[#D31710] transition-colors">
-                {total > 0 ? `৳${total.toLocaleString()}` : "Cart"}
+                {total > 0 ? `৳${total.toLocaleString()}` : t("cart")}
               </span>
             </button>
           </div>
@@ -174,7 +176,7 @@ export default function Header() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products..."
+              placeholder={t("search_ph_mob")}
               className="flex-1 h-10 pl-4 border border-border rounded-l-lg text-sm focus:outline-none focus:border-[#5D0096]"
             />
             <button type="submit" className="h-10 px-4 bg-[#5D0096] text-white rounded-r-lg">
@@ -211,17 +213,17 @@ export default function Header() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 mb-3">
-                    <Link to="/login" onClick={() => setMobileOpen(false)} className="h-10 rounded-lg bg-[#5D0096] text-white text-sm font-semibold flex items-center justify-center">Sign In</Link>
-                    <Link to="/register" onClick={() => setMobileOpen(false)} className="h-10 rounded-lg border border-border text-sm flex items-center justify-center">Create Account</Link>
+                    <Link to="/login" onClick={() => setMobileOpen(false)} className="h-10 rounded-lg bg-[#5D0096] text-white text-sm font-semibold flex items-center justify-center">{t("sign_in")}</Link>
+                    <Link to="/register" onClick={() => setMobileOpen(false)} className="h-10 rounded-lg border border-border text-sm flex items-center justify-center">{t("create_account")}</Link>
                   </div>
                 )}
                 {[
-                  { to: "/search", label: "All Products" },
-                  { to: "/#flash-sale", label: "Flash Sale" },
-                  { to: "/account?tab=wishlist", label: "My Wishlist" },
-                  { to: "/account?tab=orders", label: "My Orders" },
-                  { to: "/account", label: "My Account" },
-                  { to: "/seller", label: "Become a Seller" },
+                  { to: "/search", key: "all_products" },
+                  { to: "/#flash-sale", key: "flash_sale" },
+                  { to: "/account?tab=wishlist", key: "my_wishlist" },
+                  { to: "/account?tab=orders", key: "my_orders" },
+                  { to: "/account", key: "my_account" },
+                  { to: "/seller", key: "become_seller" },
                 ].map((n) => (
                   <Link
                     key={n.to}
@@ -229,7 +231,7 @@ export default function Header() {
                     onClick={() => setMobileOpen(false)}
                     className="px-4 h-11 rounded-lg text-sm flex items-center hover:bg-secondary transition-colors"
                   >
-                    {n.label}
+                    {t(n.key)}
                   </Link>
                 ))}
                 {user && (
@@ -237,7 +239,7 @@ export default function Header() {
                     onClick={async () => { setMobileOpen(false); await logout(); navigate("/"); }}
                     className="px-4 h-11 rounded-lg text-sm flex items-center text-destructive hover:bg-secondary transition-colors mt-2"
                   >
-                    <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                    <LogOut className="w-4 h-4 mr-2" /> {t("sign_out")}
                   </button>
                 )}
               </div>

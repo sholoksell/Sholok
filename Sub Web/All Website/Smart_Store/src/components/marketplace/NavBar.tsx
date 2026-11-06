@@ -7,13 +7,14 @@ import {
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { categoriesApi } from "@/lib/api";
 import { AnimatePresence, motion } from "framer-motion";
+import { useLang } from "@/store/languageContext";
 
-const NAV_LINKS = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/search", label: "Shop", icon: LayoutGrid },
-  { to: "/#flash-sale", label: "Flash Sale", icon: Zap, hot: true },
-  { to: "/search?sort=popular", label: "Trending", icon: TrendingUp },
-  { to: "/search?onSale=1", label: "Offers", icon: Tag },
+const NAV_KEYS = [
+  { to: "/", key: "home", icon: Home },
+  { to: "/search", key: "shop", icon: LayoutGrid },
+  { to: "/#flash-sale", key: "flash_sale", icon: Zap, hot: true },
+  { to: "/search?sort=popular", key: "trending", icon: TrendingUp },
+  { to: "/search?onSale=1", key: "offers", icon: Tag },
 ];
 
 const CAT_STYLES: Record<string, { Icon: React.ElementType; bg: string; fg: string }> = {
@@ -57,6 +58,7 @@ export default function NavBar() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { t } = useLang();
 
   useEffect(() => {
     categoriesApi.list().then((r: any) => {
@@ -98,7 +100,7 @@ export default function NavBar() {
             className="flex items-center gap-2 h-11 w-[220px] lg:w-[270px] px-4 font-semibold text-sm bg-[#4a0078] hover:bg-[#3d0063] transition-colors whitespace-nowrap"
           >
             <AlignJustify className="w-4 h-4" />
-            <span>SHOP BY CATEGORY</span>
+            <span>{t("shop_by_category")}</span>
             <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${catOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -112,7 +114,7 @@ export default function NavBar() {
                 className="absolute left-0 top-full w-[270px] bg-white text-foreground shadow-elegant border border-border border-t-0 rounded-b-xl z-50 max-h-[80vh] overflow-y-auto"
               >
                 {categories.length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-muted-foreground">Loading categories…</div>
+                  <div className="px-4 py-3 text-sm text-muted-foreground">{t("loading_categories")}</div>
                 ) : (
                   <ul className="py-1">
                     {categories.map((cat, idx) => {
@@ -177,7 +179,7 @@ export default function NavBar() {
                                     onClick={closeAll}
                                     className="flex items-center gap-2.5 pl-[52px] pr-4 h-9 text-xs text-[#5D0096] font-medium hover:bg-[#5D0096]/5 transition-colors"
                                   >
-                                    View all →
+                                    {t("view_all")}
                                   </Link>
                                 </li>
                               </motion.ul>
@@ -195,7 +197,7 @@ export default function NavBar() {
 
         {/* Nav links */}
         <div className="flex items-center flex-1 overflow-x-auto scrollbar-hide">
-          {NAV_LINKS.map((link) => (
+          {NAV_KEYS.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -206,7 +208,7 @@ export default function NavBar() {
             >
               {({ isActive }) => (
                 <>
-                  {link.label}
+                  {t(link.key)}
                   {link.hot && (
                     <span className="rounded bg-[#D31710] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">HOT</span>
                   )}
@@ -224,7 +226,7 @@ export default function NavBar() {
           to="/seller"
           className="hidden md:flex items-center gap-1.5 px-4 h-11 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap shrink-0"
         >
-          Become a Seller
+          {t("become_seller")}
           <ArrowUpRight className="w-3.5 h-3.5" />
         </Link>
       </div>
