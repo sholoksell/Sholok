@@ -24,6 +24,7 @@ import LoginPage from "./pages/Login.tsx";
 import RegisterPage from "./pages/Register.tsx";
 import GroupBuyPage from "./pages/GroupBuy.tsx";
 import StoreCustomizePage from "./pages/StoreCustomize.tsx";
+import OffersPage from "./pages/Offers.tsx";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/product/:id" element={<Layout><ProductPage /></Layout>} />
                   <Route path="/search"      element={<Layout><SearchPage /></Layout>} />
                   <Route path="/group-buy"   element={<Layout><GroupBuyPage /></Layout>} />
+                  <Route path="/offers"      element={<Layout><OffersPage /></Layout>} />
                   <Route path="/live"        element={<Layout><LivePage /></Layout>} />
 
                   <Route path="/checkout" element={
