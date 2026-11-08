@@ -230,6 +230,7 @@ export default function Shipping() {
   const [areasFilterDist, setAreasFilterDist] = useState('');
   const [bdAreaFormOpen, setBdAreaFormOpen]   = useState(false);
   const [bdAreaForm, setBdAreaForm]           = useState({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' });
+  const [areasShowUnassigned, setAreasShowUnassigned] = useState(false);
 
   // ── Assignment checkbox view state ─────────────────────────────────────────
   const [assignStore2, setAssignStore2]   = useState('Dhaka');
@@ -456,12 +457,14 @@ export default function Shipping() {
     return list;
   }, [customAreas]);
 
+  const assignedAreaKeys = useMemo(() => new Set(assignments.map(a => a.key)), [assignments]);
   const filteredBdAreas = useMemo(() => allBdAreas.filter(a => {
     if (areasFilterDiv && a.div !== areasFilterDiv) return false;
     if (areasFilterDist && a.dist !== areasFilterDist) return false;
     if (areasSearch) { const q = areasSearch.toLowerCase(); if (!a.dist.toLowerCase().includes(q) && !a.area.toLowerCase().includes(q)) return false; }
+    if (areasShowUnassigned && assignedAreaKeys.has(a.key)) return false;
     return true;
-  }), [allBdAreas, areasFilterDiv, areasFilterDist, areasSearch]);
+  }), [allBdAreas, areasFilterDiv, areasFilterDist, areasSearch, areasShowUnassigned, assignedAreaKeys]);
 
   const areasTotalPages = Math.ceil(filteredBdAreas.length / areasPageSize) || 1;
   const pagedBdAreas    = filteredBdAreas.slice((areasPage - 1) * areasPageSize, areasPage * areasPageSize);
@@ -897,16 +900,64 @@ export default function Shipping() {
       {/* ════ DELIVERY AREAS TAB ════════════════════════════════════════════ */}
       {tab === 'areas' && (
         <div className="space-y-4">
-          {/* Header + Add button */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Delivery Areas</h2>
-              <p className="text-sm text-muted-foreground">{BD_TOTAL_AREAS} saved Bangladesh delivery areas. Custom districts are also supported.</p>
-            </div>
-            <Button onClick={() => { setBdAreaForm({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' }); setBdAreaFormOpen(v => !v); }}>
-              <Plus className="w-4 h-4 mr-2" />Add Delivery Area
-            </Button>
+          {/* Top stats cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {([
+              { label: 'Divisions',       val: BD_DIVISIONS.length,                                                             Icon: Globe,    color: 'text-primary',  bg: 'bg-primary/10' },
+              { label: 'Districts',       val: Object.values(BD_DISTRICTS).reduce((s, d) => s + d.length, 0),                   Icon: MapPin,   color: 'text-chart-4',  bg: 'bg-chart-4/10' },
+              { label: 'Delivery Areas',  val: allBdAreas.length,                                                               Icon: MapPin,   color: 'text-warning',  bg: 'bg-warning/10' },
+              { label: 'Rate Groups',     val: groups.length,                                                                   Icon: Package,  color: 'text-success',  bg: 'bg-success/10' },
+            ] as const).map(({ label, val, Icon, color, bg }) => (
+              <Card key={label} className="glass-card border-border">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${color}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-2xl font-bold">{val}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
+          {/* Assignment Coverage */}
+          {(() => {
+            const totalAreas   = allBdAreas.length;
+            const assignedCount = allBdAreas.filter(a => assignedAreaKeys.has(a.key)).length;
+            const disabledCount = Object.values(areaStatuses).filter(s => s === 'Disable').length;
+            const pct = totalAreas ? (assignedCount / totalAreas * 100).toFixed(1) : '0.0';
+            return (
+              <Card className="border-border">
+                <CardHeader className="pb-3 flex flex-row items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base">Assignment Coverage</CardTitle>
+                    <p className="text-sm text-muted-foreground">Current delivery-area assignment status across all stores and rate groups.</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => { setAreasShowUnassigned(v => !v); setAreasPage(1); }}>
+                    {areasShowUnassigned ? '← Show All Areas' : 'Unassigned Areas → View List'}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {([
+                      { label: 'Assigned Areas',      val: `${assignedCount} / ${totalAreas}` },
+                      { label: 'Unassigned Areas',     val: totalAreas - assignedCount },
+                      { label: 'Enabled Areas',        val: totalAreas - disabledCount },
+                      { label: 'Disabled Areas',       val: disabledCount },
+                      { label: 'Assignment Coverage',  val: `${pct}%` },
+                    ] as const).map(({ label, val }) => (
+                      <div key={label} className="bg-muted/30 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                        <p className="text-xl font-bold">{val}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Add area inline form */}
           {bdAreaFormOpen && (
@@ -939,101 +990,129 @@ export default function Shipping() {
             </div>
           )}
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Search</label>
-              <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search district or area..." className="pl-9" value={areasSearch} onChange={e => { setAreasSearch(e.target.value); setAreasPage(1); }} /></div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Division</label>
-              <select value={areasFilterDiv} onChange={e => { setAreasFilterDiv(e.target.value); setAreasFilterDist(''); setAreasPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                <option value="">All Divisions</option>
-                {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">District</label>
-              <select value={areasFilterDist} onChange={e => { setAreasFilterDist(e.target.value); setAreasPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                <option value="">All Districts</option>
-                {(areasFilterDiv ? BD_DISTRICTS[areasFilterDiv] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Bulk toolbar */}
-          <div className="flex items-center justify-between flex-wrap gap-2 px-1">
-            <span className="text-sm font-medium text-muted-foreground">{selBdAreas.size} selected · {Object.values(areaStatuses).filter(s => s === 'Disable').length} disabled</span>
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set(pagedBdAreas.map(a => a.key)))}>Select All</Button>
-              <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set())}>Clear</Button>
-              <Button size="sm" onClick={() => bulkSetStatus('Enable')} disabled={selBdAreas.size === 0}>Enable Selected</Button>
-              <Button size="sm" variant="destructive" onClick={() => bulkSetStatus('Disable')} disabled={selBdAreas.size === 0}>Disable Selected</Button>
-              <Button size="sm" variant="outline" onClick={exportAreasCsv}>Export CSV</Button>
-              <Button size="sm" onClick={saveAreaStatuses} disabled={areaStatusesSaving}><Save className="w-3 h-3 mr-1" />{areaStatusesSaving ? 'Saving…' : 'Save Statuses'}</Button>
-            </div>
-          </div>
-
-          {/* Table */}
+          {/* Delivery Areas card */}
           <Card className="border-border">
-            <CardContent className="pt-0 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"><input type="checkbox" checked={selBdAreas.size === pagedBdAreas.length && pagedBdAreas.length > 0} onChange={e => e.target.checked ? setSelBdAreas(new Set(pagedBdAreas.map(a => a.key))) : setSelBdAreas(new Set())} /></TableHead>
-                    <TableHead>Region / Division</TableHead>
-                    <TableHead>City / District</TableHead>
-                    <TableHead>Zone / Area</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Assignments</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pagedBdAreas.map(a => {
-                    const status = areaStatuses[a.key] || 'Enable';
-                    const assignCount = assignments.filter(x => x.key === a.key).length;
-                    return (
-                      <TableRow key={a.key}>
-                        <TableCell><input type="checkbox" checked={selBdAreas.has(a.key)} onChange={() => toggleBdArea(a.key)} /></TableCell>
-                        <TableCell className="text-sm">{a.div}</TableCell>
-                        <TableCell className="text-sm">{a.dist}</TableCell>
-                        <TableCell className="text-sm font-medium">{a.area}{a.isCustom && <Badge variant="outline" className="ml-2 text-xs">Custom</Badge>}</TableCell>
-                        <TableCell>
-                          <select value={status} onChange={e => { const newStatus = e.target.value as 'Enable' | 'Disable'; setAreaStatuses(prev => ({ ...prev, [a.key]: newStatus })); }} className={`border rounded px-2 py-1 text-xs bg-background ${status === 'Enable' ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'}`}>
-                            <option value="Enable">Enable</option>
-                            <option value="Disable">Disable</option>
-                          </select>
-                        </TableCell>
-                        <TableCell><span className="text-xs text-muted-foreground">Assignments: {assignCount}</span></TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            {!a.isCustom && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key }); setBdAreaFormOpen(true); }}>Edit</Button>}
-                            {a.isCustom && <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => deleteCustomArea(a.key)}><Trash2 className="w-3 h-3 mr-1" />Delete</Button>}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {pagedBdAreas.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No areas match the current filters.</TableCell></TableRow>}
-                </TableBody>
-              </Table>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between flex-wrap gap-3">
+                <div>
+                  <CardTitle className="text-base">Delivery Areas</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">{allBdAreas.length} saved Bangladesh delivery areas plus any custom saved areas. Custom districts are also supported.</p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={saveAreaStatuses} disabled={areaStatusesSaving}>
+                    <Save className="w-3.5 h-3.5 mr-1" />{areaStatusesSaving ? 'Saving…' : 'Save Statuses'}
+                  </Button>
+                  <Button onClick={() => { setBdAreaForm({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' }); setBdAreaFormOpen(v => !v); }}>
+                    <Plus className="w-4 h-4 mr-2" />+ Add Delivery Area
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {/* Filters inline */}
+              <div className="flex flex-wrap gap-3 mb-4">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Search district or area..." className="pl-9" value={areasSearch} onChange={e => { setAreasSearch(e.target.value); setAreasPage(1); }} />
+                </div>
+                <select value={areasFilterDiv} onChange={e => { setAreasFilterDiv(e.target.value); setAreasFilterDist(''); setAreasPage(1); }} className="border border-border rounded-lg px-3 py-2 text-sm bg-background min-w-[150px]">
+                  <option value="">All Divisions</option>
+                  {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <select value={areasFilterDist} onChange={e => { setAreasFilterDist(e.target.value); setAreasPage(1); }} className="border border-border rounded-lg px-3 py-2 text-sm bg-background min-w-[150px]">
+                  <option value="">All Districts</option>
+                  {(areasFilterDiv ? BD_DISTRICTS[areasFilterDiv] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+
+              {/* Bulk toolbar */}
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                <span className="text-sm font-medium text-muted-foreground">{selBdAreas.size} selected</span>
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set(pagedBdAreas.map(a => a.key)))}>Select All</Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set())}>Clear</Button>
+                  <Button size="sm" onClick={() => bulkSetStatus('Enable')} disabled={selBdAreas.size === 0}>Enable Selected</Button>
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => bulkSetStatus('Disable')} disabled={selBdAreas.size === 0}>Disable Selected</Button>
+                  <Button size="sm" variant="outline" onClick={exportAreasCsv}>Export CSV</Button>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <input type="checkbox" checked={selBdAreas.size === pagedBdAreas.length && pagedBdAreas.length > 0} onChange={e => e.target.checked ? setSelBdAreas(new Set(pagedBdAreas.map(a => a.key))) : setSelBdAreas(new Set())} />
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Region / Division ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">City / District ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Zone / Area ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Status ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Assignments ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedBdAreas.map(a => {
+                      const status = areaStatuses[a.key] || 'Enable';
+                      const assignCount = assignments.filter(x => x.key === a.key).length;
+                      return (
+                        <TableRow key={a.key}>
+                          <TableCell><input type="checkbox" checked={selBdAreas.has(a.key)} onChange={() => toggleBdArea(a.key)} /></TableCell>
+                          <TableCell className="text-sm">{a.div}</TableCell>
+                          <TableCell className="text-sm">{a.dist}</TableCell>
+                          <TableCell className="text-sm font-medium">
+                            {a.area}
+                            {a.isCustom && <Badge variant="outline" className="ml-2 text-xs">Custom</Badge>}
+                          </TableCell>
+                          <TableCell>
+                            <select value={status} onChange={e => { const v = e.target.value as 'Enable' | 'Disable'; setAreaStatuses(prev => ({ ...prev, [a.key]: v })); }} className={`border rounded px-2 py-1 text-xs bg-background ${status === 'Enable' ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'}`}>
+                              <option value="Enable">Enable</option>
+                              <option value="Disable">Disable</option>
+                            </select>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs text-primary font-medium cursor-pointer hover:underline" onClick={() => setTab('assignments')}>
+                              Assignments: {assignCount}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key }); setBdAreaFormOpen(true); }}>Edit Area</Button>
+                              {!a.isCustom && (
+                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: '', editKey: '' }); setBdAreaFormOpen(true); }}>Edit District</Button>
+                              )}
+                              {a.isCustom && (
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => deleteCustomArea(a.key)}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {pagedBdAreas.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No areas match the current filters.</TableCell></TableRow>}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between flex-wrap gap-3 mt-4">
+                <span className="text-sm text-muted-foreground">Showing page {areasPage} of {areasTotalPages} · {filteredBdAreas.length} records</span>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-muted-foreground flex items-center gap-2">Per page
+                    <select value={areasPageSize} onChange={e => { setAreasPageSize(Number(e.target.value)); setAreasPage(1); }} className="border border-border rounded px-2 py-1 text-sm bg-background ml-1">
+                      <option value={25}>25</option><option value={50}>50</option><option value={100}>100</option>
+                    </select>
+                  </label>
+                  <Button size="sm" variant="outline" disabled={areasPage === 1} onClick={() => setAreasPage(p => p - 1)}>‹</Button>
+                  <Button size="sm" variant="outline" disabled={areasPage >= areasTotalPages} onClick={() => setAreasPage(p => p + 1)}>›</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <span className="text-sm text-muted-foreground">Showing page {areasPage} of {areasTotalPages} · {filteredBdAreas.length} records</span>
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-muted-foreground flex items-center gap-2">Per page
-                <select value={areasPageSize} onChange={e => { setAreasPageSize(Number(e.target.value)); setAreasPage(1); }} className="border border-border rounded px-2 py-1 text-sm bg-background ml-1">
-                  <option value={25}>25</option><option value={50}>50</option><option value={100}>100</option>
-                </select>
-              </label>
-              <Button size="sm" variant="outline" disabled={areasPage === 1} onClick={() => setAreasPage(p => p - 1)}>Previous</Button>
-              <Button size="sm" variant="outline" disabled={areasPage >= areasTotalPages} onClick={() => setAreasPage(p => p + 1)}>Next</Button>
-            </div>
-          </div>
         </div>
       )}
 
