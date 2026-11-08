@@ -37,6 +37,20 @@ const auth    = require('../middleware/auth');
         KEY idx_division (division)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
+
+    // Stores per-area status overrides and custom (non-standard) areas
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS delivery_area_overrides (
+        area_key   VARCHAR(600) PRIMARY KEY,
+        division   VARCHAR(100) NOT NULL DEFAULT '',
+        district   VARCHAR(100) NOT NULL DEFAULT '',
+        area_name  VARCHAR(200) NOT NULL DEFAULT '',
+        status     ENUM('Enable','Disable') NOT NULL DEFAULT 'Enable',
+        is_custom  TINYINT(1) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
   } catch (e) {
     console.error('deliveryRates table init:', e.message);
   }
@@ -142,6 +156,65 @@ router.post('/assignments/sync', auth, async (req, res) => {
       );
     }
     res.json({ ok: true, count: assignments.length });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// ── Area Overrides (statuses + custom areas) ──────────────────────────────────
+
+// GET /area-overrides – return all stored overrides
+router.get('/area-overrides', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT area_key, division, district, area_name, status, is_custom FROM delivery_area_overrides ORDER BY division, district, area_name'
+    );
+    res.json(rows.map(r => ({
+      key: r.area_key, division: r.division, district: r.district,
+      area: r.area_name, status: r.status, isCustom: r.is_custom === 1,
+    })));
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// POST /area-statuses/sync – save batch of status overrides (only Disable stored; Enable = default)
+router.post('/area-statuses/sync', auth, async (req, res) => {
+  const statuses = req.body; // { [areaKey]: 'Enable' | 'Disable' }
+  if (!statuses || typeof statuses !== 'object') return res.status(400).json({ message: 'Object expected' });
+  try {
+    // Remove all existing non-custom rows, then reinsert the disabled ones
+    await pool.query('DELETE FROM delivery_area_overrides WHERE is_custom = 0');
+    const disabled = Object.entries(statuses).filter(([, s]) => s === 'Disable');
+    if (disabled.length) {
+      await pool.query(
+        'INSERT INTO delivery_area_overrides (area_key, status, is_custom) VALUES ? ON DUPLICATE KEY UPDATE status = VALUES(status)',
+        [disabled.map(([k]) => [k, 'Disable', 0])]
+      );
+    }
+    res.json({ ok: true, saved: disabled.length });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// POST /area-overrides/custom – add a custom area not in the BD hierarchy
+router.post('/area-overrides/custom', auth, async (req, res) => {
+  const { key, division, district, area } = req.body;
+  if (!area || !key) return res.status(400).json({ message: 'key and area required' });
+  try {
+    await pool.query(
+      `INSERT INTO delivery_area_overrides (area_key, division, district, area_name, status, is_custom)
+       VALUES (?, ?, ?, ?, 'Enable', 1)
+       ON DUPLICATE KEY UPDATE division = VALUES(division), district = VALUES(district), area_name = VALUES(area_name)`,
+      [key, division || '', district || '', area]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// DELETE /area-overrides/custom/:key – remove a custom area
+router.delete('/area-overrides/custom/:key', auth, async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM delivery_area_overrides WHERE area_key = ? AND is_custom = 1',
+      [decodeURIComponent(req.params.key)]
+    );
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

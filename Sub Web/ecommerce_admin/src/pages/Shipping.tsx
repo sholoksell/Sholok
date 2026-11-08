@@ -220,6 +220,8 @@ export default function Shipping() {
 
   // ── BD Area Management (Delivery Areas tab) ────────────────────────────────
   const [areaStatuses, setAreaStatuses]       = useState<Record<string, 'Enable' | 'Disable'>>({});
+  const [areaStatusesSaving, setAreaStatusesSaving] = useState(false);
+  const [customAreas, setCustomAreas]         = useState<{ key: string; div: string; dist: string; area: string }[]>([]);
   const [selBdAreas, setSelBdAreas]           = useState<Set<string>>(new Set());
   const [areasPage, setAreasPage]             = useState(1);
   const [areasPageSize, setAreasPageSize]     = useState(25);
@@ -265,11 +267,24 @@ export default function Shipping() {
   }, [shipPage, shipStatus]);
 
   const loadRates = useCallback(async () => {
-    const [gRes, aRes] = await Promise.allSettled([
-      api.get('/delivery-rates/rate-groups'), api.get('/delivery-rates/assignments'),
+    const [gRes, aRes, oRes] = await Promise.allSettled([
+      api.get('/delivery-rates/rate-groups'),
+      api.get('/delivery-rates/assignments'),
+      api.get('/delivery-rates/area-overrides'),
     ]);
     if (gRes.status === 'fulfilled') setGroups(gRes.value.data);
     if (aRes.status === 'fulfilled') setAssignments(aRes.value.data);
+    if (oRes.status === 'fulfilled') {
+      const overrides: { key: string; division: string; district: string; area: string; status: 'Enable' | 'Disable'; isCustom: boolean }[] = oRes.value.data;
+      const statusMap: Record<string, 'Enable' | 'Disable'> = {};
+      const customs: { key: string; div: string; dist: string; area: string }[] = [];
+      overrides.forEach(o => {
+        if (o.status === 'Disable') statusMap[o.key] = 'Disable';
+        if (o.isCustom) customs.push({ key: o.key, div: o.division, dist: o.district, area: o.area });
+      });
+      setAreaStatuses(statusMap);
+      setCustomAreas(customs);
+    }
   }, []);
 
   const loadCoverage = useCallback(async () => {
@@ -427,9 +442,9 @@ export default function Shipping() {
     setPolicyDialogOpen(true);
   };
 
-  // ── BD Area flat list (memoized) ──────────────────────────────────────────
+  // ── BD Area flat list (memoized) — hardcoded BD + custom areas from DB ──────
   const allBdAreas = useMemo(() => {
-    const list: { div: string; dist: string; area: string; key: string }[] = [];
+    const list: { div: string; dist: string; area: string; key: string; isCustom?: boolean }[] = [];
     BD_DIVISIONS.forEach(div => {
       (BD_DISTRICTS[div] || []).forEach(dist => {
         (BD_AREAS[dist] || []).forEach(area => {
@@ -437,8 +452,9 @@ export default function Shipping() {
         });
       });
     });
+    customAreas.forEach(c => list.push({ div: c.div, dist: c.dist, area: c.area, key: c.key, isCustom: true }));
     return list;
-  }, []);
+  }, [customAreas]);
 
   const filteredBdAreas = useMemo(() => allBdAreas.filter(a => {
     if (areasFilterDiv && a.div !== areasFilterDiv) return false;
@@ -462,6 +478,34 @@ export default function Shipping() {
     const url  = URL.createObjectURL(blob);
     const link = document.createElement('a'); link.href = url; link.download = 'delivery_areas.csv'; link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const saveAreaStatuses = async () => {
+    setAreaStatusesSaving(true);
+    try { await api.post('/delivery-rates/area-statuses/sync', areaStatuses); toast.success('Area statuses saved'); }
+    catch { toast.error('Failed to save statuses'); } finally { setAreaStatusesSaving(false); }
+  };
+
+  const saveCustomArea = async () => {
+    const dist = bdAreaForm.districtNew.trim() || bdAreaForm.district;
+    const area = bdAreaForm.area.trim();
+    if (!area) return toast.error('Area name required');
+    const key = `custom-${bdAreaForm.division}-${dist}-${area}`.replace(/\s+/g, '_');
+    try {
+      await api.post('/delivery-rates/area-overrides/custom', { key, division: bdAreaForm.division, district: dist, area });
+      toast.success('Custom area saved');
+      setBdAreaFormOpen(false);
+      loadRates();
+    } catch { toast.error('Failed to save area'); }
+  };
+
+  const deleteCustomArea = async (key: string) => {
+    if (!confirm('Delete this custom area?')) return;
+    try {
+      await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(key)}`);
+      toast.success('Deleted');
+      loadRates();
+    } catch { toast.error('Failed to delete'); }
   };
 
   const calcCharge = (g: RateGroup, kg: number) => {
@@ -887,7 +931,7 @@ export default function Shipping() {
                   <Input value={bdAreaForm.area} onChange={e => setBdAreaForm(f => ({ ...f, area: e.target.value }))} placeholder="Enter delivery area" />
                 </div>
                 <div className="flex items-end gap-2">
-                  <Button onClick={() => { if (!bdAreaForm.area.trim()) return toast.error('Area name required'); setBdAreaFormOpen(false); toast.success('Area saved (local)'); }} className="flex-1">Save</Button>
+                  <Button onClick={saveCustomArea} className="flex-1">Save to DB</Button>
                   <Button variant="outline" onClick={() => setBdAreaFormOpen(false)}>Cancel</Button>
                 </div>
               </div>
@@ -919,13 +963,14 @@ export default function Shipping() {
 
           {/* Bulk toolbar */}
           <div className="flex items-center justify-between flex-wrap gap-2 px-1">
-            <span className="text-sm font-medium text-muted-foreground">{selBdAreas.size} selected</span>
+            <span className="text-sm font-medium text-muted-foreground">{selBdAreas.size} selected · {Object.values(areaStatuses).filter(s => s === 'Disable').length} disabled</span>
             <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set(pagedBdAreas.map(a => a.key)))}>Select All</Button>
               <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set())}>Clear</Button>
               <Button size="sm" onClick={() => bulkSetStatus('Enable')} disabled={selBdAreas.size === 0}>Enable Selected</Button>
               <Button size="sm" variant="destructive" onClick={() => bulkSetStatus('Disable')} disabled={selBdAreas.size === 0}>Disable Selected</Button>
               <Button size="sm" variant="outline" onClick={exportAreasCsv}>Export CSV</Button>
+              <Button size="sm" onClick={saveAreaStatuses} disabled={areaStatusesSaving}><Save className="w-3 h-3 mr-1" />{areaStatusesSaving ? 'Saving…' : 'Save Statuses'}</Button>
             </div>
           </div>
 
@@ -953,9 +998,9 @@ export default function Shipping() {
                         <TableCell><input type="checkbox" checked={selBdAreas.has(a.key)} onChange={() => toggleBdArea(a.key)} /></TableCell>
                         <TableCell className="text-sm">{a.div}</TableCell>
                         <TableCell className="text-sm">{a.dist}</TableCell>
-                        <TableCell className="text-sm font-medium">{a.area}</TableCell>
+                        <TableCell className="text-sm font-medium">{a.area}{a.isCustom && <Badge variant="outline" className="ml-2 text-xs">Custom</Badge>}</TableCell>
                         <TableCell>
-                          <select value={status} onChange={e => setAreaStatuses(prev => ({ ...prev, [a.key]: e.target.value as 'Enable' | 'Disable' }))} className={`border rounded px-2 py-1 text-xs bg-background ${status === 'Enable' ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'}`}>
+                          <select value={status} onChange={e => { const newStatus = e.target.value as 'Enable' | 'Disable'; setAreaStatuses(prev => ({ ...prev, [a.key]: newStatus })); }} className={`border rounded px-2 py-1 text-xs bg-background ${status === 'Enable' ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'}`}>
                             <option value="Enable">Enable</option>
                             <option value="Disable">Disable</option>
                           </select>
@@ -963,8 +1008,8 @@ export default function Shipping() {
                         <TableCell><span className="text-xs text-muted-foreground">Assignments: {assignCount}</span></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key }); setBdAreaFormOpen(true); }}>Edit Area</Button>
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => toast.info(`Edit District: ${a.dist}`)}>Edit District</Button>
+                            {!a.isCustom && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key }); setBdAreaFormOpen(true); }}>Edit</Button>}
+                            {a.isCustom && <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => deleteCustomArea(a.key)}><Trash2 className="w-3 h-3 mr-1" />Delete</Button>}
                           </div>
                         </TableCell>
                       </TableRow>
