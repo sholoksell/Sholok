@@ -241,9 +241,12 @@ export default function Shipping() {
 
   // ── Assigned Rates tab filters ─────────────────────────────────────────────
   const [arStore, setArStore]   = useState('');
+  const [arDiv, setArDiv]       = useState('');
+  const [arDist, setArDist]     = useState('');
   const [arGroup, setArGroup]   = useState('');
   const [arSearch, setArSearch] = useState('');
   const [arPage, setArPage]     = useState(1);
+  const [arPerPage, setArPerPage] = useState(25);
   const [arSelKeys, setArSelKeys] = useState<Set<string>>(new Set());
 
   // ── Load all data ─────────────────────────────────────────────────────────
@@ -407,9 +410,9 @@ export default function Shipping() {
     setAssignments(a => [...a, { key, store: 'main', division: selDiv, district: selDist, area: selArea, areaId: selArea || selDist, groupId: selGroup, groupName: group?.name }]);
     setSelArea('');
   };
-  const saveAssignments = async () => {
+  const saveAssignments = async (data?: typeof assignments) => {
     setAssignSaving(true);
-    try { await api.post('/delivery-rates/assignments/sync', assignments); toast.success('Assignments saved'); loadRates(); }
+    try { await api.post('/delivery-rates/assignments/sync', data ?? assignments); toast.success('Assignments saved'); loadRates(); }
     catch { toast.error('Failed'); } finally { setAssignSaving(false); }
   };
   const districtList  = selDiv  ? (BD_DISTRICTS[selDiv]  || []) : [];
@@ -541,13 +544,15 @@ export default function Shipping() {
 
   const filteredAssignments = useMemo(() => assignments.filter(a => {
     if (arStore && a.store !== arStore) return false;
+    if (arDiv && a.division !== arDiv) return false;
+    if (arDist && a.district !== arDist) return false;
     if (arGroup && a.groupId !== arGroup) return false;
     if (arSearch) { const q = arSearch.toLowerCase(); if (!a.district.toLowerCase().includes(q) && !a.area.toLowerCase().includes(q) && !(a.groupName || '').toLowerCase().includes(q)) return false; }
     return true;
-  }), [assignments, arStore, arGroup, arSearch]);
+  }), [assignments, arStore, arDiv, arDist, arGroup, arSearch]);
 
-  const arTotalPages = Math.ceil(filteredAssignments.length / 25) || 1;
-  const pagedAssignments = filteredAssignments.slice((arPage - 1) * 25, arPage * 25);
+  const arTotalPages = Math.ceil(filteredAssignments.length / arPerPage) || 1;
+  const pagedAssignments = filteredAssignments.slice((arPage - 1) * arPerPage, arPage * arPerPage);
 
   // ── Tab button helper ─────────────────────────────────────────────────────────
   const TabBtn = ({ id, label }: { id: Tab; label: string }) => (
@@ -1119,94 +1124,126 @@ export default function Shipping() {
       {/* ════ ASSIGNED ZONE RATES TAB ═══════════════════════════════════════ */}
       {tab === 'assigned-rates' && (
         <div className="space-y-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Store Location</label>
-              <select value={arStore} onChange={e => { setArStore(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                <option value="">All Stores</option>
-                {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Rate Group Filter</label>
-              <select value={arGroup} onChange={e => { setArGroup(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                <option value="">All Rate Groups</option>
-                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Search</label>
-              <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search store, group, district, area..." className="pl-9" value={arSearch} onChange={e => { setArSearch(e.target.value); setArPage(1); }} /></div>
-            </div>
-          </div>
-
-          {/* Bulk toolbar */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="text-sm text-muted-foreground">{arSelKeys.size} selected</span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set(pagedAssignments.map(a => a.key)))}>Select All</Button>
-              <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set())}>Clear</Button>
-              <Button size="sm" variant="destructive" disabled={arSelKeys.size === 0} onClick={() => { setAssignments(as => as.filter(a => !arSelKeys.has(a.key))); setArSelKeys(new Set()); }}>Remove Selected</Button>
-              <Button size="sm" onClick={saveAssignments} disabled={assignSaving}><Save className="w-4 h-4 mr-1" />{assignSaving ? 'Saving…' : 'Save All'}</Button>
-            </div>
-          </div>
-
-          {/* Table */}
           <Card className="border-border">
-            <CardContent className="pt-0 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"><input type="checkbox" checked={arSelKeys.size === pagedAssignments.length && pagedAssignments.length > 0} onChange={e => e.target.checked ? setArSelKeys(new Set(pagedAssignments.map(a => a.key))) : setArSelKeys(new Set())} /></TableHead>
-                    <TableHead>Store Location</TableHead>
-                    <TableHead>Rate Group</TableHead>
-                    <TableHead>Region</TableHead>
-                    <TableHead>City / District</TableHead>
-                    <TableHead>Zone / Area</TableHead>
-                    <TableHead>Base Charge (1kg)</TableHead>
-                    <TableHead>Charge (2kg)</TableHead>
-                    <TableHead>Charge (3kg)</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pagedAssignments.map(a => {
-                    const group = groups.find(g => g.id === a.groupId);
-                    const c1 = group ? calcCharge(group, 1) : 0;
-                    const c2 = group ? calcCharge(group, 2) : 0;
-                    const c3 = group ? calcCharge(group, 3) : 0;
-                    return (
-                      <TableRow key={a.key}>
-                        <TableCell><input type="checkbox" checked={arSelKeys.has(a.key)} onChange={() => setArSelKeys(prev => { const n = new Set(prev); n.has(a.key) ? n.delete(a.key) : n.add(a.key); return n; })} /></TableCell>
-                        <TableCell className="text-sm">{a.store}</TableCell>
-                        <TableCell><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{a.groupName || a.groupId}</span></TableCell>
-                        <TableCell className="text-sm">{a.division || '—'}</TableCell>
-                        <TableCell className="text-sm">{a.district}</TableCell>
-                        <TableCell className="text-sm font-medium">{a.area || <span className="italic text-muted-foreground text-xs">All areas</span>}</TableCell>
-                        <TableCell className="font-mono text-sm">৳{c1}</TableCell>
-                        <TableCell className="font-mono text-sm">৳{c2}</TableCell>
-                        <TableCell className="font-mono text-sm">৳{c3}</TableCell>
-                        <TableCell><Button size="sm" variant="ghost" onClick={() => setAssignments(as => as.filter(x => x.key !== a.key))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {pagedAssignments.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">No assigned Zone Rates yet. Assign areas in the "⇄ Area Assignment" tab.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Assigned Zone Rates</CardTitle>
+              <p className="text-sm text-muted-foreground">Base, 2 KG and 3 KG charges are calculated automatically. Use Edit Rates to update the Rate Group charges.</p>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-4">
+              {/* Filters row 1 */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Store Location Filter</label>
+                  <select value={arStore} onChange={e => { setArStore(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                    <option value="">All Store Locations</option>
+                    {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Division Filter</label>
+                  <select value={arDiv} onChange={e => { setArDiv(e.target.value); setArDist(''); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                    <option value="">All Divisions</option>
+                    {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">District Filter</label>
+                  <select value={arDist} onChange={e => { setArDist(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                    <option value="">All Districts</option>
+                    {(arDiv ? (BD_DISTRICTS[arDiv] || []) : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Filters row 2 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Rate Group Filter</label>
+                  <select value={arGroup} onChange={e => { setArGroup(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                    <option value="">All Rate Groups</option>
+                    {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Search</label>
+                  <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search store, group, district, area..." className="pl-9" value={arSearch} onChange={e => { setArSearch(e.target.value); setArPage(1); }} /></div>
+                </div>
+              </div>
+
+              {/* Bulk toolbar */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-sm text-muted-foreground">{arSelKeys.size} selected</span>
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set(pagedAssignments.map(a => a.key)))}>Select All</Button>
+                  <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set())}>Clear</Button>
+                  <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" disabled={arSelKeys.size === 0} onClick={() => { const updated = assignments.filter(a => !arSelKeys.has(a.key)); setAssignments(updated); setArSelKeys(new Set()); saveAssignments(updated); }}>Remove Selected</Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const headers = ['Store Location','Rate Group','Region','City / District','Zone / Area','Base Charge (1KG)','Charge (2KG)','Charge (3KG)'];
+                    const rows = filteredAssignments.map(a => { const g = groups.find(x => x.id === a.groupId); return [a.store, a.groupName || a.groupId, a.division || '', a.district, a.area || '', g ? calcCharge(g,1) : 0, g ? calcCharge(g,2) : 0, g ? calcCharge(g,3) : 0]; });
+                    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+                    const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'zone-rates.csv'; a.click();
+                  }}>Export CSV</Button>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8"><input type="checkbox" checked={arSelKeys.size === pagedAssignments.length && pagedAssignments.length > 0} onChange={e => e.target.checked ? setArSelKeys(new Set(pagedAssignments.map(a => a.key))) : setArSelKeys(new Set())} /></TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Store Location ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Rate Group ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Region ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">City / District ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Zone / Area ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Base Charge (1KG) ↑</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Charge (2KG)</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Charge (3KG)</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedAssignments.map(a => {
+                      const group = groups.find(g => g.id === a.groupId);
+                      const c1 = group ? calcCharge(group, 1) : 0;
+                      const c2 = group ? calcCharge(group, 2) : 0;
+                      const c3 = group ? calcCharge(group, 3) : 0;
+                      return (
+                        <TableRow key={a.key}>
+                          <TableCell><input type="checkbox" checked={arSelKeys.has(a.key)} onChange={() => setArSelKeys(prev => { const n = new Set(prev); n.has(a.key) ? n.delete(a.key) : n.add(a.key); return n; })} /></TableCell>
+                          <TableCell className="text-sm">{a.store}</TableCell>
+                          <TableCell><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{a.groupName || a.groupId}</span></TableCell>
+                          <TableCell className="text-sm">{a.division || '—'}</TableCell>
+                          <TableCell className="text-sm">{a.district}</TableCell>
+                          <TableCell className="text-sm font-medium">{a.area || <span className="italic text-muted-foreground text-xs">All areas</span>}</TableCell>
+                          <TableCell className="font-mono text-sm">৳{c1}</TableCell>
+                          <TableCell className="font-mono text-sm">৳{c2}</TableCell>
+                          <TableCell className="font-mono text-sm">৳{c3}</TableCell>
+                          <TableCell><Button size="sm" variant="ghost" onClick={() => { const updated = assignments.filter(x => x.key !== a.key); setAssignments(updated); saveAssignments(updated); }}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {pagedAssignments.length === 0 && (
+                      <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">No assigned Zone Rates yet.</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <span className="text-sm text-muted-foreground">Showing page {arPage} of {arTotalPages} · {filteredAssignments.length} records</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Per page</span>
+                  <select value={arPerPage} onChange={e => { setArPerPage(Number(e.target.value)); setArPage(1); }} className="border border-border rounded px-2 py-1 text-sm bg-background">
+                    {[10,25,50,100].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={arPage === 1} onClick={() => setArPage(p => p - 1)}>‹</Button>
+                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={arPage >= arTotalPages} onClick={() => setArPage(p => p + 1)}>›</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <span className="text-sm text-muted-foreground">Showing page {arPage} of {arTotalPages} · {filteredAssignments.length} records</span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={arPage === 1} onClick={() => setArPage(p => p - 1)}>Previous</Button>
-              <Button size="sm" variant="outline" disabled={arPage >= arTotalPages} onClick={() => setArPage(p => p + 1)}>Next</Button>
-            </div>
-          </div>
         </div>
       )}
 
