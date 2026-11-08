@@ -948,9 +948,9 @@ export default function Shipping() {
                       { label: 'Disabled Areas',       val: disabledCount },
                       { label: 'Assignment Coverage',  val: `${pct}%` },
                     ] as const).map(({ label, val }) => (
-                      <div key={label} className="bg-muted/30 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground">{label}</p>
-                        <p className="text-xl font-bold">{val}</p>
+                      <div key={label} className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+                        <p className="text-xs text-orange-600/70 dark:text-orange-400/70">{label}</p>
+                        <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{val}</p>
                       </div>
                     ))}
                   </div>
