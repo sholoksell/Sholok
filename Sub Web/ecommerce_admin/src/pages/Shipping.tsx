@@ -449,11 +449,15 @@ export default function Shipping() {
 
   // ── BD Area flat list (memoized) — hardcoded BD + custom areas from DB ──────
   const allBdAreas = useMemo(() => {
+    const customKeys = new Set(customAreas.map(c => c.key));
     const list: { div: string; dist: string; area: string; key: string; isCustom?: boolean }[] = [];
     BD_DIVISIONS.forEach(div => {
       (BD_DISTRICTS[div] || []).forEach(dist => {
         (BD_AREAS[dist] || []).forEach(area => {
-          list.push({ div, dist, area, key: `D-${div}-${dist}-${area}` });
+          const stdKey = `D-${div}-${dist}-${area}`;
+          if (!customKeys.has(stdKey)) {
+            list.push({ div, dist, area, key: stdKey });
+          }
         });
       });
     });
