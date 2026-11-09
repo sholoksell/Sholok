@@ -1,96 +1,47 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Menu, X, ChevronDown } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ChevronRight, Menu, X } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
 import { useCategories } from '@/contexts/CategoryContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import CategoryIcon from '@/components/CategoryIcon';
 
-// Recursive nested items for L3+ — expands on hover
-const NestedItems = ({ items, getCatName, closeMenu, depth = 0 }) => {
-  const [activeId, setActiveId] = useState(null);
-
-  return (
-    <ul className={depth === 0 ? 'mt-1 space-y-0' : 'ml-3 border-l border-gray-100 pl-2 mt-0.5 space-y-0'}>
-      {items.map((item) => {
-        const hasChildren = item.subcategories?.length > 0;
-        const isOpen = activeId === item._id;
-        return (
-          <li
-            key={item._id}
-            onMouseEnter={() => setActiveId(item._id)}
-            onMouseLeave={() => setActiveId(null)}
-          >
-            <div className="flex items-center justify-between">
-              <Link
-                to={`/category/${item.slug}`}
-                onClick={closeMenu}
-                className={`flex-1 py-1 pr-2 text-gray-600 hover:text-green-600 transition-colors ${
-                  depth === 0 ? 'text-sm' : 'text-xs'
-                }`}
-              >
-                {getCatName(item)}
-              </Link>
-              {hasChildren && (
-                <ChevronRight className={`w-3 h-3 flex-shrink-0 transition-colors ${
-                  isOpen ? 'text-green-600 rotate-90' : 'text-gray-400'
-                }`} />
-              )}
-            </div>
-            {hasChildren && isOpen && (
-              <NestedItems
-                items={item.subcategories}
-                getCatName={getCatName}
-                closeMenu={closeMenu}
-                depth={depth + 1}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-};
-
 const ShopByCategoryMenu = () => {
   const { categories, loading } = useCategories();
   const { language } = useLanguage();
+  const { pathname } = useLocation();
+  const isHomePage = pathname === '/';
   const getCatName = (cat) => language === 'bn' && cat.nameBn ? cat.nameBn : cat.name;
+
   const [isOpen, setIsOpen] = useState(false);
-  const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [hoveredL1, setHoveredL1] = useState(null);
+  const [hoveredL2, setHoveredL2] = useState(null);
   const menuRef = useRef(null);
+  // Track when mouse is inside the dropdown panel
+  const closeTimer = useRef(null);
 
-  useEffect(() => {
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  const checkMobile = () => {
-    setIsMobile(window.innerWidth < 768);
+  const openMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setIsOpen(true);
   };
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => {
+      setIsOpen(false);
+      setHoveredL1(null);
+      setHoveredL2(null);
+    }, 120);
+  };
+
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
   };
 
   const closeMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
     setIsOpen(false);
-    setHoveredCategory(null);
+    setHoveredL1(null);
+    setHoveredL2(null);
   };
 
   if (loading) {
@@ -104,101 +55,131 @@ const ShopByCategoryMenu = () => {
     );
   }
 
+  const visibleL1 = categories.filter(c => !isHomePage || c.slug !== 'grocery');
+  const activeL1 = hoveredL1 ? categories.find(c => (c._id || c.id) === hoveredL1) : null;
+  const activeL2 = hoveredL2 && activeL1 ? (activeL1.subcategories || []).find(s => (s._id || s.id) === hoveredL2) : null;
+
+  const hasL2 = activeL1 && activeL1.subcategories && activeL1.subcategories.length > 0;
+  const hasL3 = activeL2 && activeL2.subcategories && activeL2.subcategories.length > 0;
+
   return (
-    <div className="relative" ref={menuRef}>
+    <div
+      className="relative"
+      ref={menuRef}
+      onMouseLeave={scheduleClose}
+      onMouseEnter={cancelClose}
+    >
       {/* Toggle Button */}
       <button
-        onClick={toggleMenu}
+        onClick={() => setIsOpen(v => !v)}
+        onMouseEnter={openMenu}
         className="flex items-center gap-2 px-4 py-2 bg-[#E31E24] hover:bg-[#c41920] text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         <span className="font-semibold">SHOP BY CATEGORY</span>
       </button>
 
-      {/* Dropdown Menu */}
+      {/* 3-Column Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden min-w-[600px]">
-          <div className="flex">
-            {/* Main Categories List - Left Panel */}
-            <div className="w-72 bg-white border-r border-gray-200 max-h-[500px] overflow-y-auto">
-              {categories.map((category) => (
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 flex overflow-hidden"
+          style={{ minWidth: 224 }}
+        >
+          {/* Column 1: L1 Main Categories */}
+          <div className="w-56 bg-white border-r border-gray-100 max-h-[520px] overflow-y-auto flex-shrink-0">
+            {visibleL1.map((cat) => {
+              const catId = cat._id || cat.id;
+              const isActive = hoveredL1 === catId;
+              return (
                 <div
-                  key={category._id}
-                  onMouseEnter={() => setHoveredCategory(category)}
-                  onMouseLeave={() => !isMobile && setHoveredCategory(null)}
-                  onClick={() => isMobile && setHoveredCategory(category)}
-                  className="relative"
+                  key={catId}
+                  onMouseEnter={() => { setHoveredL1(catId); setHoveredL2(null); }}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer border-b border-gray-50 transition-colors ${
+                    isActive ? 'bg-[#E31E24] text-white' : 'text-gray-700 hover:bg-red-50 hover:text-[#E31E24]'
+                  }`}
                 >
+                  <span className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                    {cat.image ? (
+                      <img src={getImageUrl(cat.image)} alt={cat.name} className="w-5 h-5 object-contain" />
+                    ) : (
+                      <CategoryIcon icon={cat.icon} image={cat.image} name={cat.name} className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
+                    )}
+                  </span>
+                  <span className="flex-1 text-sm font-medium truncate">{getCatName(cat)}</span>
+                  {cat.subcategories && cat.subcategories.length > 0 && (
+                    <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Column 2: L2 Subcategories (shown when L1 is hovered) */}
+          {hasL2 && (
+            <div className="w-56 bg-gray-50 border-r border-gray-100 max-h-[520px] overflow-y-auto flex-shrink-0">
+              {/* L1 header link */}
+              <Link
+                to={`/category/${activeL1.slug}`}
+                onClick={closeMenu}
+                className="block px-3 py-2 text-xs font-bold text-[#E31E24] uppercase tracking-wide border-b border-gray-200 hover:bg-red-50 transition-colors"
+              >
+                All {getCatName(activeL1)}
+              </Link>
+              {activeL1.subcategories.map((sub) => {
+                const subId = sub._id || sub.id;
+                const isActive = hoveredL2 === subId;
+                return (
                   <div
-                    className={`flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition-colors border-b border-gray-100 cursor-pointer ${
-                      hoveredCategory?._id === category._id ? 'bg-green-50' : ''
+                    key={subId}
+                    onMouseEnter={() => setHoveredL2(subId)}
+                    className={`flex items-center justify-between px-3 py-2.5 cursor-pointer border-b border-gray-100 transition-colors ${
+                      isActive ? 'bg-[#E31E24] text-white' : 'text-gray-700 hover:bg-red-50 hover:text-[#E31E24]'
                     }`}
                   >
-                    {/* Category Icon/Image */}
-                    <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                      {category.image ? (
-                        <img
-                          src={getImageUrl(category.image)}
-                          alt={category.name}
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <CategoryIcon icon={category.icon} image={category.image} name={category.name} className="w-7 h-7" />
-                      )}
-                    </div>
-
-                    {/* Category Name */}
-                    <div className="flex-1">
-                      <span className="font-medium text-gray-800 text-base">
-                        {getCatName(category)}
-                      </span>
-                    </div>
-
-                    {/* Arrow Icon */}
-                    {category.subcategories && category.subcategories.length > 0 && (
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Subcategories Panel - Right Panel */}
-            {hoveredCategory && hoveredCategory.subcategories && hoveredCategory.subcategories.length > 0 && (
-              <div className="flex-1 bg-white max-h-[500px] overflow-y-auto min-w-[300px]">
-                {hoveredCategory.subcategories.map((subcat, index) => (
-                  <div
-                    key={subcat._id}
-                    className={index !== hoveredCategory.subcategories.length - 1 ? 'border-b border-gray-100' : ''}
-                  >
-                    {/* L2 link row */}
                     <Link
-                      to={`/category/${subcat.slug}`}
+                      to={`/category/${sub.slug}`}
                       onClick={closeMenu}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors group"
+                      className="flex-1 text-sm font-medium truncate"
                     >
-                      <span className="text-base text-gray-700 group-hover:text-green-600 transition-colors font-medium">
-                        {getCatName(subcat)}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-green-600 transition-colors" />
+                      {getCatName(sub)}
                     </Link>
-
-                    {/* L3+ nested items */}
-                    {subcat.subcategories?.length > 0 && (
-                      <div className="px-4 pb-2">
-                        <NestedItems
-                          items={subcat.subcategories}
-                          getCatName={getCatName}
-                          closeMenu={closeMenu}
-                          depth={0}
-                        />
-                      </div>
+                    {sub.subcategories && sub.subcategories.length > 0 && (
+                      <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 ml-1 ${isActive ? 'text-white' : 'text-gray-400'}`} />
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Column 3: L3 Sub-subcategories (shown when L2 is hovered) */}
+          {hasL3 && (
+            <div className="w-56 bg-white max-h-[520px] overflow-y-auto flex-shrink-0">
+              {/* L2 header link */}
+              <Link
+                to={`/category/${activeL2.slug}`}
+                onClick={closeMenu}
+                className="block px-3 py-2 text-xs font-bold text-[#E31E24] uppercase tracking-wide border-b border-gray-200 hover:bg-red-50 transition-colors"
+              >
+                All {getCatName(activeL2)}
+              </Link>
+              {activeL2.subcategories.map((third) => {
+                const thirdId = third._id || third.id;
+                return (
+                  <Link
+                    key={thirdId}
+                    to={`/category/${third.slug}`}
+                    onClick={closeMenu}
+                    className="flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 border-b border-gray-50 hover:bg-red-50 hover:text-[#E31E24] transition-colors"
+                  >
+                    <span className="truncate">{getCatName(third)}</span>
+                    {third.subcategories && third.subcategories.length > 0 && (
+                      <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-1 text-gray-400" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

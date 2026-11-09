@@ -5,6 +5,7 @@ import { categoryService } from '@/services/categoryService';
 import CategoryIcon from '@/components/CategoryIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
 import api from '@/lib/axios';
+import ShopByCategoryMenu from '@/components/ShopByCategoryMenu';
 
 // Recursive renderer for depth 3+ (L4, L5, ...)
 const RecursiveSubItems = ({ items, depth, getCatName }) => (
@@ -122,7 +123,12 @@ const MegaMenu = () => {
   return (
     <nav className="bg-white border-b border-border">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-0">
+          {/* ShopByCategoryMenu is outside the scrollable strip so its dropdown isn't clipped */}
+          <div className="flex-shrink-0 py-1.5 pr-2 border-r border-border mr-1 relative z-50">
+            <ShopByCategoryMenu />
+          </div>
+          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide flex-1">
           <FeatureLink featureKey="flash_sales"  defaultEmoji="⚡" defaultLabel="Flash Sales"    defaultTo="/flash-sales" className="text-orange-600 font-semibold hover:bg-orange-50" />
           <FeatureLink featureKey="discover"     defaultEmoji="✨" defaultLabel="Discover"       defaultTo="/discover"    className="text-purple-600 hover:bg-purple-50" />
           <FeatureLink featureKey="offers"       defaultEmoji="🏷️" defaultLabel="Offers"         defaultTo="/offers"      className="hover:text-primary" />
@@ -134,6 +140,7 @@ const MegaMenu = () => {
           <Link to="/vendor/apply" className="flex items-center gap-1.5 px-3 py-3 text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors whitespace-nowrap">
             🏪 Become a Seller
           </Link>
+          </div>
         </div>
       </div>
     </nav>
