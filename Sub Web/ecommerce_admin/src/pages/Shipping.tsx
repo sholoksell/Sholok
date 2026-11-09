@@ -1082,7 +1082,7 @@ export default function Shipping() {
                   <Button size="sm" variant="outline" onClick={saveAreaStatuses} disabled={areaStatusesSaving}>
                     <Save className="w-3.5 h-3.5 mr-1" />{areaStatusesSaving ? 'Saving…' : 'Save Statuses'}
                   </Button>
-                  <Button onClick={() => { setBdAreaForm({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' }); setBdAreaFormOpen(v => !v); }}>
+                  <Button onClick={() => { setBdAreaForm({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '', mode: 'area' }); setBdAreaFormOpen(v => !v); }}>
                     <Plus className="w-4 h-4 mr-2" />+ Add Delivery Area
                   </Button>
                 </div>
