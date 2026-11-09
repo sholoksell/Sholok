@@ -108,7 +108,7 @@ const BD_TOTAL_AREAS = Object.values(BD_AREAS).reduce((s, a) => s + a.length, 0)
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RateGroup { id: string; store: string; name: string; base: number; additional: number; weightSlabs?: string; }
-interface Assignment { key: string; store: string; division: string; district: string; area: string; areaId: string; groupId: string; groupName?: string; }
+interface Assignment { key: string; store: string; division: string; district: string; area: string; areaId: string; groupId: string; groupName?: string; baseOverride?: number | null; additionalOverride?: number | null; weightSlabsOverride?: string | null; }
 interface Shipment {
   _id: string; shipmentNumber: string; orderId: string | number; sourceType: string; sourceLabel: string;
   status: string; courierName: string; trackingNumber: string; estimatedDaysMin: number; estimatedDaysMax: number;
@@ -249,6 +249,9 @@ export default function Shipping() {
   const [arPerPage, setArPerPage] = useState(25);
   const [arSelKeys, setArSelKeys] = useState<Set<string>>(new Set());
   const [arChangingGroup, setArChangingGroup] = useState<string | null>(null);
+  const [arEditingRateKey, setArEditingRateKey] = useState<string | null>(null);
+  const [arRateForm, setArRateForm] = useState({ base: '', additional: '', slabs: '' });
+  const [arRateSaving, setArRateSaving] = useState(false);
 
   // ── Load all data ─────────────────────────────────────────────────────────
   const loadShippingOrders = useCallback(async () => {
@@ -514,6 +517,16 @@ export default function Shipping() {
     }
 
     if (!area) return toast.error('Area name required');
+
+    if (!bdAreaForm.editKey) {
+      const isDup = allBdAreas.some(x =>
+        x.div.toLowerCase() === bdAreaForm.division.toLowerCase() &&
+        x.dist.toLowerCase() === dist.toLowerCase() &&
+        x.area.toLowerCase() === area.toLowerCase()
+      );
+      if (isDup) return toast.error('This area already exists in this region/district');
+    }
+
     const key = bdAreaForm.editKey || `custom-${bdAreaForm.division}-${dist}-${area}`.replace(/\s+/g, '_');
     try {
       await api.post('/delivery-rates/area-overrides/custom', { key, division: bdAreaForm.division, district: dist, area });
@@ -539,6 +552,35 @@ export default function Shipping() {
       if (slab) return slab.price;
     }
     return g.base + g.additional * Math.max(0, kg - 1);
+  };
+
+  const calcZoneCharge = (a: Assignment, group: RateGroup | undefined, kg: number) => {
+    const effBase = a.baseOverride != null ? a.baseOverride : (group?.base ?? 0);
+    const effAdd  = a.additionalOverride != null ? a.additionalOverride : (group?.additional ?? 0);
+    const effSlabs = a.weightSlabsOverride != null ? a.weightSlabsOverride : (group?.weightSlabs ?? '');
+    return calcCharge({ id: '', store: '', name: '', base: effBase, additional: effAdd, weightSlabs: effSlabs }, kg);
+  };
+
+  const saveZoneRateOverride = async (key: string) => {
+    setArRateSaving(true);
+    try {
+      const base = parseFloat(arRateForm.base);
+      const additional = parseFloat(arRateForm.additional) || 0;
+      if (isNaN(base)) { toast.error('Base rate required'); setArRateSaving(false); return; }
+      await api.put('/delivery-rates/assignments/rate-override', { key, base, additional, slabs: arRateForm.slabs });
+      setAssignments(as => as.map(a => a.key === key ? { ...a, baseOverride: base, additionalOverride: additional, weightSlabsOverride: arRateForm.slabs || null } : a));
+      toast.success('Zone rate saved');
+      setArEditingRateKey(null);
+    } catch { toast.error('Failed to save'); } finally { setArRateSaving(false); }
+  };
+
+  const resetZoneRateOverride = async (key: string) => {
+    try {
+      await api.delete(`/delivery-rates/assignments/rate-override/${encodeURIComponent(key)}`);
+      setAssignments(as => as.map(a => a.key === key ? { ...a, baseOverride: null, additionalOverride: null, weightSlabsOverride: null } : a));
+      toast.success('Reset to group rate');
+      setArEditingRateKey(null);
+    } catch { toast.error('Failed to reset'); }
   };
 
   const assignFilteredAreas = useMemo(() => allBdAreas.filter(a => {
@@ -774,7 +816,14 @@ export default function Shipping() {
                         <TableCell><Input type="number" min="0" value={g.base} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, base: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
                         <TableCell><Input type="number" min="0" value={g.additional} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, additional: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
                         <TableCell><Input value={g.weightSlabs || ''} className="w-40 h-8 text-xs font-mono" placeholder="1:60, 2:80…" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, weightSlabs: e.target.value } : x))} /></TableCell>
-                        <TableCell><Badge variant="outline">{assignedCount} area{assignedCount !== 1 ? 's' : ''}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge variant="outline">{assignedCount} Zone{assignedCount !== 1 ? 's' : ''}</Badge>
+                            {assignedCount > 0 && (
+                              <Button size="sm" variant="ghost" className="h-6 text-xs text-primary px-2" onClick={() => { setArGroup(g.id); setTab('assigned-rates'); }}>View</Button>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell><Button variant="ghost" size="icon" onClick={() => setGroups(gs => gs.filter(x => x.id !== g.id))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
                       </TableRow>
                     );
@@ -1231,14 +1280,18 @@ export default function Shipping() {
                   <TableBody>
                     {pagedAssignments.map(a => {
                       const group = groups.find(g => g.id === a.groupId);
-                      const c1 = group ? calcCharge(group, 1) : 0;
-                      const c2 = group ? calcCharge(group, 2) : 0;
-                      const c3 = group ? calcCharge(group, 3) : 0;
+                      const c1 = calcZoneCharge(a, group, 1);
+                      const c2 = calcZoneCharge(a, group, 2);
+                      const c3 = calcZoneCharge(a, group, 3);
+                      const hasOverride = a.baseOverride != null;
                       return (
                         <TableRow key={a.key}>
                           <TableCell><input type="checkbox" checked={arSelKeys.has(a.key)} onChange={() => setArSelKeys(prev => { const n = new Set(prev); n.has(a.key) ? n.delete(a.key) : n.add(a.key); return n; })} /></TableCell>
                           <TableCell className="text-sm">{a.store}</TableCell>
-                          <TableCell><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{a.groupName || a.groupId}</span></TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{a.groupName || a.groupId}</span>
+                            {hasOverride && <span className="ml-1 text-xs text-orange-500 font-medium">★</span>}
+                          </TableCell>
                           <TableCell className="text-sm">{a.division || '—'}</TableCell>
                           <TableCell className="text-sm">{a.district}</TableCell>
                           <TableCell className="text-sm font-medium">{a.area || <span className="italic text-muted-foreground text-xs">All areas</span>}</TableCell>
@@ -1246,8 +1299,25 @@ export default function Shipping() {
                           <TableCell className="font-mono text-sm">৳{c2}</TableCell>
                           <TableCell className="font-mono text-sm">৳{c3}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab('rate-groups')}>Edit Rates</Button>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {arEditingRateKey === a.key ? (
+                                <div className="flex flex-col gap-1 p-2 border border-border rounded-lg bg-background min-w-[200px]">
+                                  <div className="flex gap-1">
+                                    <Input type="number" min="0" className="h-7 text-xs w-20" placeholder="Base ৳" value={arRateForm.base} onChange={e => setArRateForm(f => ({ ...f, base: e.target.value }))} />
+                                    <Input type="number" min="0" className="h-7 text-xs w-20" placeholder="Add/kg ৳" value={arRateForm.additional} onChange={e => setArRateForm(f => ({ ...f, additional: e.target.value }))} />
+                                  </div>
+                                  <Input className="h-7 text-xs font-mono" placeholder="Slabs: 1:60,2:80" value={arRateForm.slabs} onChange={e => setArRateForm(f => ({ ...f, slabs: e.target.value }))} />
+                                  <div className="flex gap-1">
+                                    <Button size="sm" className="h-6 text-xs flex-1" onClick={() => saveZoneRateOverride(a.key)} disabled={arRateSaving}>Save</Button>
+                                    {hasOverride && <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => resetZoneRateOverride(a.key)}>Reset</Button>}
+                                    <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setArEditingRateKey(null)}>✕</Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <Button size="sm" variant={hasOverride ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => { setArEditingRateKey(a.key); setArRateForm({ base: String(a.baseOverride ?? ''), additional: String(a.additionalOverride ?? ''), slabs: a.weightSlabsOverride ?? '' }); }}>
+                                  {hasOverride ? '★ Custom' : 'Edit Rates'}
+                                </Button>
+                              )}
                               {arChangingGroup === a.key ? (
                                 <select
                                   className="border border-border rounded px-2 py-1 text-xs bg-background h-7"

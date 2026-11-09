@@ -51,6 +51,18 @@ const auth    = require('../middleware/auth');
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
+
+    // Per-zone rate overrides (independent of assignments/sync — survives re-sync)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS delivery_zone_rate_overrides (
+        assignment_key VARCHAR(600) PRIMARY KEY,
+        base_rate      DECIMAL(10,2) NOT NULL,
+        additional_per_kg DECIMAL(10,2) NOT NULL DEFAULT 0,
+        weight_slabs   TEXT,
+        created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
   } catch (e) {
     console.error('deliveryRates table init:', e.message);
   }
@@ -124,9 +136,11 @@ router.get('/assignments', async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT a.assignment_key, a.store_location, a.division, a.district, a.area, a.area_id, a.group_id,
-              g.name AS group_name, g.base_rate, g.additional_per_kg, g.weight_slabs
+              g.name AS group_name, g.base_rate, g.additional_per_kg, g.weight_slabs,
+              r.base_rate AS base_rate_override, r.additional_per_kg AS add_per_kg_override, r.weight_slabs AS slabs_override
        FROM delivery_area_assignments a
        LEFT JOIN delivery_rate_groups g ON g.id = a.group_id
+       LEFT JOIN delivery_zone_rate_overrides r ON r.assignment_key = a.assignment_key
        ORDER BY a.division, a.district, a.area`
     );
     res.json(rows.map(r => ({
@@ -135,6 +149,9 @@ router.get('/assignments', async (req, res) => {
       groupId: r.group_id, groupName: r.group_name,
       base: Number(r.base_rate || 0), additional: Number(r.additional_per_kg || 0),
       weightSlabs: r.weight_slabs || '',
+      baseOverride: r.base_rate_override != null ? Number(r.base_rate_override) : null,
+      additionalOverride: r.add_per_kg_override != null ? Number(r.add_per_kg_override) : null,
+      weightSlabsOverride: r.slabs_override || null,
     })));
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
@@ -231,6 +248,28 @@ router.delete('/area-overrides/custom/:key', auth, async (req, res) => {
       'DELETE FROM delivery_area_overrides WHERE area_key = ? AND is_custom = 1',
       [decodeURIComponent(req.params.key)]
     );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// ── Zone Rate Overrides ───────────────────────────────────────────────────────
+router.put('/assignments/rate-override', auth, async (req, res) => {
+  const { key, base, additional, slabs } = req.body;
+  if (!key) return res.status(400).json({ message: 'key required' });
+  try {
+    await pool.query(
+      `INSERT INTO delivery_zone_rate_overrides (assignment_key, base_rate, additional_per_kg, weight_slabs)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE base_rate = VALUES(base_rate), additional_per_kg = VALUES(additional_per_kg), weight_slabs = VALUES(weight_slabs)`,
+      [key, Number(base) || 0, Number(additional) || 0, slabs || null]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.delete('/assignments/rate-override/:key', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM delivery_zone_rate_overrides WHERE assignment_key = ?', [decodeURIComponent(req.params.key)]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
