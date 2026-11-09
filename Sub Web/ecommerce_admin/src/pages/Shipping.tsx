@@ -416,7 +416,8 @@ export default function Shipping() {
   };
   const saveAssignments = async (data?: typeof assignments) => {
     setAssignSaving(true);
-    try { await api.post('/delivery-rates/assignments/sync', data ?? assignments); toast.success('Assignments saved'); loadRates(); }
+    const toSave = (data ?? assignments).filter((a: any) => a.key && a.groupId);
+    try { await api.post('/delivery-rates/assignments/sync', toSave); toast.success('Assignments saved'); loadRates(); }
     catch { toast.error('Failed'); } finally { setAssignSaving(false); }
   };
   const districtList  = selDiv  ? (BD_DISTRICTS[selDiv]  || []) : [];
@@ -501,14 +502,26 @@ export default function Shipping() {
   };
 
   const saveCustomArea = async () => {
-    const dist = bdAreaForm.districtNew.trim() || bdAreaForm.district;
+    // When editing an existing area, lock district to the original — never change it via districtNew
+    const dist = (bdAreaForm.editKey && bdAreaForm.mode === 'area')
+      ? bdAreaForm.district
+      : (bdAreaForm.districtNew.trim() || bdAreaForm.district);
     const area = bdAreaForm.area.trim();
 
     if (bdAreaForm.mode === 'district') {
       const newDist = bdAreaForm.districtNew.trim();
       if (!newDist) return toast.error('New district name required');
       try {
-        await api.post('/delivery-rates/district-rename', { division: bdAreaForm.division, oldDistrict: bdAreaForm.district, newDistrict: newDist });
+        // Convert all standard areas under the old district to custom overrides so the rename
+        // is immediately visible in the UI (hardcoded BD_AREAS can't be changed at runtime)
+        const standardAreas = (BD_AREAS[bdAreaForm.district] || []).map((a: string) => ({
+          key: `D-${bdAreaForm.division}-${bdAreaForm.district}-${a}`,
+          area: a,
+        }));
+        await api.post('/delivery-rates/district-rename', {
+          division: bdAreaForm.division, oldDistrict: bdAreaForm.district,
+          newDistrict: newDist, standardAreas,
+        });
         toast.success('District renamed');
         setBdAreaFormOpen(false);
         loadRates();
@@ -1047,11 +1060,13 @@ export default function Shipping() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1">City / District</label>
-                  <select value={bdAreaForm.district} onChange={e => setBdAreaForm(f => ({ ...f, district: e.target.value }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background mb-1">
+                  <select value={bdAreaForm.district} onChange={e => setBdAreaForm(f => ({ ...f, district: e.target.value }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background mb-1" disabled={!!bdAreaForm.editKey && bdAreaForm.mode === 'area'}>
                     <option value="">Select existing…</option>
                     {(BD_DISTRICTS[bdAreaForm.division] || []).map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
-                  <Input value={bdAreaForm.districtNew} onChange={e => setBdAreaForm(f => ({ ...f, districtNew: e.target.value }))} placeholder="…or enter new district" className="text-sm h-8" />
+                  {!(bdAreaForm.editKey && bdAreaForm.mode === 'area') && (
+                    <Input value={bdAreaForm.districtNew} onChange={e => setBdAreaForm(f => ({ ...f, districtNew: e.target.value }))} placeholder="…or enter new district" className="text-sm h-8" />
+                  )}
                 </div>
                 {bdAreaForm.mode !== 'district' && (
                   <div>

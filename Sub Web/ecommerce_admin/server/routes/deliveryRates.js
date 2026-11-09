@@ -131,26 +131,36 @@ router.get('/assignments', async (req, res) => {
 router.post('/assignments/sync', auth, async (req, res) => {
   const assignments = req.body;
   if (!Array.isArray(assignments)) return res.status(400).json({ message: 'Array expected' });
+  const conn = await pool.getConnection();
   try {
-    // Deduplicate by key (last write wins)
+    // Deduplicate by key; skip entries without key or groupId
     const seen = new Map();
-    for (const a of assignments) seen.set(a.key, a);
-    const deduped = [...seen.values()];
+    for (const a of assignments) { if (a.key) seen.set(a.key, a); }
+    const valid = [...seen.values()].filter(a => a.key && a.groupId);
 
-    await pool.query('DELETE FROM delivery_area_assignments');
-    if (deduped.length) {
-      const vals = deduped.map(a => [
-        a.key, a.store, a.division, a.district, a.area, a.areaId, a.groupId,
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM delivery_area_assignments');
+    if (valid.length) {
+      const vals = valid.map(a => [
+        a.key, a.store || 'Dhaka', a.division || null, a.district || null,
+        a.area || null, a.areaId || a.key, a.groupId,
       ]);
-      await pool.query(
+      await conn.query(
         `INSERT INTO delivery_area_assignments
            (assignment_key, store_location, division, district, area, area_id, group_id)
          VALUES ?`,
         [vals]
       );
     }
-    res.json({ ok: true, count: deduped.length });
-  } catch (e) { res.status(500).json({ message: e.message }); }
+    await conn.commit();
+    res.json({ ok: true, count: valid.length });
+  } catch (e) {
+    await conn.rollback();
+    console.error('assignments/sync error:', e.message, e.code);
+    res.status(500).json({ message: e.message });
+  } finally {
+    conn.release();
+  }
 });
 
 // ── Per-zone rate overrides ───────────────────────────────────────────────────
@@ -232,9 +242,10 @@ router.delete('/area-overrides/custom/:key', auth, async (req, res) => {
 // ── District Rename ───────────────────────────────────────────────────────────
 
 router.post('/district-rename', auth, async (req, res) => {
-  const { division, oldDistrict, newDistrict } = req.body;
+  const { division, oldDistrict, newDistrict, standardAreas } = req.body;
   if (!oldDistrict || !newDistrict) return res.status(400).json({ message: 'oldDistrict and newDistrict required' });
   try {
+    // Rename in existing custom overrides and assignments
     await pool.query(
       `UPDATE delivery_area_overrides SET district = ? WHERE division = ? AND district = ? AND is_custom = 1`,
       [newDistrict, division, oldDistrict]
@@ -243,6 +254,17 @@ router.post('/district-rename', auth, async (req, res) => {
       `UPDATE delivery_area_assignments SET district = ? WHERE division = ? AND district = ?`,
       [newDistrict, division, oldDistrict]
     );
+    // Create custom overrides for all standard areas so the rename is visible in the UI
+    // (hardcoded BD_AREAS in the frontend cannot be changed at runtime)
+    if (Array.isArray(standardAreas) && standardAreas.length > 0) {
+      const vals = standardAreas.map(a => [a.key, division, newDistrict, a.area, 1]);
+      await pool.query(
+        `INSERT INTO delivery_area_overrides (area_key, division, district, area, is_custom)
+         VALUES ?
+         ON DUPLICATE KEY UPDATE division = VALUES(division), district = VALUES(district), area = VALUES(area)`,
+        [vals]
+      );
+    }
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
