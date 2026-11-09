@@ -229,7 +229,7 @@ export default function Shipping() {
   const [areasFilterDiv, setAreasFilterDiv]   = useState('');
   const [areasFilterDist, setAreasFilterDist] = useState('');
   const [bdAreaFormOpen, setBdAreaFormOpen]   = useState(false);
-  const [bdAreaForm, setBdAreaForm]           = useState({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '' });
+  const [bdAreaForm, setBdAreaForm]           = useState({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '', mode: 'area' as 'area' | 'district' });
   const [areasShowUnassigned, setAreasShowUnassigned] = useState(false);
 
   // ── Assignment checkbox view state ─────────────────────────────────────────
@@ -248,6 +248,7 @@ export default function Shipping() {
   const [arPage, setArPage]     = useState(1);
   const [arPerPage, setArPerPage] = useState(25);
   const [arSelKeys, setArSelKeys] = useState<Set<string>>(new Set());
+  const [arChangingGroup, setArChangingGroup] = useState<string | null>(null);
 
   // ── Load all data ─────────────────────────────────────────────────────────
   const loadShippingOrders = useCallback(async () => {
@@ -495,8 +496,21 @@ export default function Shipping() {
   const saveCustomArea = async () => {
     const dist = bdAreaForm.districtNew.trim() || bdAreaForm.district;
     const area = bdAreaForm.area.trim();
+
+    if (bdAreaForm.mode === 'district') {
+      const newDist = bdAreaForm.districtNew.trim();
+      if (!newDist) return toast.error('New district name required');
+      try {
+        await api.post('/delivery-rates/district-rename', { division: bdAreaForm.division, oldDistrict: bdAreaForm.district, newDistrict: newDist });
+        toast.success('District renamed');
+        setBdAreaFormOpen(false);
+        loadRates();
+      } catch { toast.error('Failed to rename district'); }
+      return;
+    }
+
     if (!area) return toast.error('Area name required');
-    const key = `custom-${bdAreaForm.division}-${dist}-${area}`.replace(/\s+/g, '_');
+    const key = bdAreaForm.editKey || `custom-${bdAreaForm.division}-${dist}-${area}`.replace(/\s+/g, '_');
     try {
       await api.post('/delivery-rates/area-overrides/custom', { key, division: bdAreaForm.division, district: dist, area });
       toast.success('Custom area saved');
@@ -538,7 +552,11 @@ export default function Shipping() {
     } else {
       if (!assignGroup2) return toast.error('Select a Rate Group first');
       const group = groups.find(g => g.id === assignGroup2);
-      setAssignments(as => [...as, { key: item.key, store: assignStore2, division: item.div, district: item.dist, area: item.area, areaId: item.key, groupId: assignGroup2, groupName: group?.name }]);
+      // Remove any existing assignment for this area+store (even with a different group) to prevent duplicate keys
+      setAssignments(as => [
+        ...as.filter(a => !(a.key === item.key && a.store === assignStore2)),
+        { key: item.key, store: assignStore2, division: item.div, district: item.dist, area: item.area, areaId: item.key, groupId: assignGroup2, groupName: group?.name },
+      ]);
     }
   };
 
@@ -748,7 +766,7 @@ export default function Shipping() {
                     const assignedCount = assignments.filter(a => a.groupId === g.id).length;
                     return (
                       <TableRow key={g.id}>
-                        <TableCell className="font-medium">{g.name}</TableCell>
+                        <TableCell><Input value={g.name} className="w-32 h-8 text-sm" onChange={e => { const newName = e.target.value; setGroups(gs => gs.map(x => x.id === g.id ? { ...x, name: newName } : x)); setAssignments(as => as.map(a => a.groupId === g.id ? { ...a, groupName: newName } : a)); }} /></TableCell>
                         <TableCell><Input type="number" min="0" value={g.base} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, base: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
                         <TableCell><Input type="number" min="0" value={g.additional} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, additional: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
                         <TableCell><Input value={g.weightSlabs || ''} className="w-40 h-8 text-xs font-mono" placeholder="1:60, 2:80…" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, weightSlabs: e.target.value } : x))} /></TableCell>
@@ -982,16 +1000,20 @@ export default function Shipping() {
                   </select>
                   <Input value={bdAreaForm.districtNew} onChange={e => setBdAreaForm(f => ({ ...f, districtNew: e.target.value }))} placeholder="…or enter new district" className="text-sm h-8" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Zone / Area</label>
-                  <Input value={bdAreaForm.area} onChange={e => setBdAreaForm(f => ({ ...f, area: e.target.value }))} placeholder="Enter delivery area" />
-                </div>
+                {bdAreaForm.mode !== 'district' && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Zone / Area</label>
+                    <Input value={bdAreaForm.area} onChange={e => setBdAreaForm(f => ({ ...f, area: e.target.value }))} placeholder="Enter delivery area" />
+                  </div>
+                )}
                 <div className="flex items-end gap-2">
-                  <Button onClick={saveCustomArea} className="flex-1">Save to DB</Button>
+                  <Button onClick={saveCustomArea} className="flex-1">{bdAreaForm.mode === 'district' ? 'Rename District' : 'Save to DB'}</Button>
                   <Button variant="outline" onClick={() => setBdAreaFormOpen(false)}>Cancel</Button>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">For a new Delivery Area, choose an existing City / District or enter a new one.</p>
+              <p className="text-xs text-muted-foreground">
+                {bdAreaForm.mode === 'district' ? 'Edit the district name and click Rename District.' : 'For a new Delivery Area, choose an existing City / District or enter a new one.'}
+              </p>
             </div>
           )}
 
@@ -1084,9 +1106,9 @@ export default function Shipping() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key }); setBdAreaFormOpen(true); }}>Edit Area</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key, mode: 'area' }); setBdAreaFormOpen(true); }}>Edit Area</Button>
                               {!a.isCustom && (
-                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: '', editKey: '' }); setBdAreaFormOpen(true); }}>Edit District</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: a.dist, area: '', editKey: '', mode: 'district' }); setBdAreaFormOpen(true); }}>Edit District</Button>
                               )}
                               {a.isCustom && (
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => deleteCustomArea(a.key)}>
@@ -1219,7 +1241,32 @@ export default function Shipping() {
                           <TableCell className="font-mono text-sm">৳{c1}</TableCell>
                           <TableCell className="font-mono text-sm">৳{c2}</TableCell>
                           <TableCell className="font-mono text-sm">৳{c3}</TableCell>
-                          <TableCell><Button size="sm" variant="ghost" onClick={() => { const updated = assignments.filter(x => x.key !== a.key); setAssignments(updated); saveAssignments(updated); }}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab('rate-groups')}>Edit Rates</Button>
+                              {arChangingGroup === a.key ? (
+                                <select
+                                  className="border border-border rounded px-2 py-1 text-xs bg-background h-7"
+                                  value={a.groupId}
+                                  autoFocus
+                                  onChange={e => {
+                                    const newGroupId = e.target.value;
+                                    const newGroup = groups.find(g => g.id === newGroupId);
+                                    const updated = assignments.map(x => x.key === a.key ? { ...x, groupId: newGroupId, groupName: newGroup?.name } : x);
+                                    setAssignments(updated);
+                                    setArChangingGroup(null);
+                                    saveAssignments(updated);
+                                  }}
+                                  onBlur={() => setArChangingGroup(null)}
+                                >
+                                  {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                </select>
+                              ) : (
+                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setArChangingGroup(a.key)}>Change Group</Button>
+                              )}
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { const updated = assignments.filter(x => x.key !== a.key); setAssignments(updated); saveAssignments(updated); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })}

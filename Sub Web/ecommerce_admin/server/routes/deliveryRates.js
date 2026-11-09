@@ -145,7 +145,11 @@ router.post('/assignments/sync', auth, async (req, res) => {
   try {
     await pool.query('DELETE FROM delivery_area_assignments');
     if (assignments.length) {
-      const vals = assignments.map(a => [
+      // Deduplicate by assignment_key to avoid PRIMARY KEY conflicts
+      const seen = new Map();
+      for (const a of assignments) seen.set(a.key, a);
+      const deduped = [...seen.values()];
+      const vals = deduped.map(a => [
         a.key, a.store || 'main', a.division, a.district, a.area, a.areaId, a.groupId,
       ]);
       await pool.query(
@@ -202,6 +206,19 @@ router.post('/area-overrides/custom', auth, async (req, res) => {
        VALUES (?, ?, ?, ?, 'Enable', 1)
        ON DUPLICATE KEY UPDATE division = VALUES(division), district = VALUES(district), area_name = VALUES(area_name)`,
       [key, division || '', district || '', area]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// POST /district-rename – rename a district in all custom overrides
+router.post('/district-rename', auth, async (req, res) => {
+  const { division, oldDistrict, newDistrict } = req.body;
+  if (!oldDistrict || !newDistrict) return res.status(400).json({ message: 'oldDistrict and newDistrict required' });
+  try {
+    await pool.query(
+      'UPDATE delivery_area_overrides SET district = ? WHERE division = ? AND district = ? AND is_custom = 1',
+      [newDistrict, division || '', oldDistrict]
     );
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
