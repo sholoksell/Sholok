@@ -16,6 +16,7 @@ import PromotionalBannerGrid from '@/components/PromotionalBannerGrid';
 import FlashSaleSection from '@/components/FlashSaleSection';
 import ShopByCategorySection from '@/components/ShopByCategorySection';
 import CampaignBanner from '@/components/CampaignBanner';
+import TrendingSection from '@/components/TrendingSection';
 
 const HomePage = () => {
   const { t, getLocalizedField, language } = useLanguage();
@@ -353,6 +354,14 @@ const HomePage = () => {
                 </div>
               )}
 
+              {/* Trending Items with category filter tabs */}
+              <TrendingSection products={sectionProducts('trending-products', trendingProducts)} />
+
+              {/* Campaign Banner - EVERYDAY STYLE */}
+              <div className="p-4 lg:p-6 bg-white">
+                <CampaignBanner />
+              </div>
+
               {/* Shop by Category icon grid */}
               <div className="p-4 lg:p-6 bg-gray-50">
                 <ShopByCategorySection />
@@ -376,11 +385,6 @@ const HomePage = () => {
                 </div>
               </section>
 
-              {/* Campaign Banner - EVERYDAY STYLE */}
-              <div className="p-4 lg:p-6 bg-white">
-                <CampaignBanner />
-              </div>
-
               {/* More to Love / Trending Products */}
               <section className="bg-white p-4 lg:p-6">
                 <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -395,7 +399,7 @@ const HomePage = () => {
                   </Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                  {sectionProducts('trending-products', trendingProducts).slice(0, 10).map((product, i) => (
+                  {sectionProducts('trending-products', trendingProducts).slice(0, 15).map((product, i) => (
                     <ProductCard key={product._id || product.id || i} product={product} />
                   ))}
                 </div>
