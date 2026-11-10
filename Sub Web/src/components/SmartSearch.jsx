@@ -95,49 +95,39 @@ const SmartSearch = ({ className }) => {
     return (
         <div ref={wrapperRef} className={`relative w-full ${className ?? ''}`}>
             <form className="relative flex w-full" onSubmit={handleSubmit}>
-                <div className="relative w-full flex items-center">
-                    {/* Search icon inside input on the left */}
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+                <div className="relative w-full flex items-center rounded-full border-2 border-primary overflow-hidden bg-white shadow-sm focus-within:shadow-[0_0_0_3px_rgba(93,0,150,0.15)]">
                     <input
                         type="search"
-                        placeholder={language === 'bn' ? 'পণ্যের নাম লিখুন...' : 'Search products, brands, categories...'}
+                        placeholder={language === 'bn' ? 'পণ্যের নাম লিখুন...' : 'Search for products, brands and more...'}
                         value={query}
                         onChange={handleChange}
                         onFocus={() => setIsOpen(true)}
                         className="
-                            w-full h-12 pl-11 pr-24
-                            rounded-l-full rounded-r-none
-                            border-2 border-transparent
-                            bg-white text-gray-800 text-sm md:text-base
+                            flex-1 h-12 pl-5 pr-3
+                            bg-transparent text-gray-800 text-sm md:text-base
                             placeholder:text-gray-400
-                            outline-none
-                            transition-all duration-200
-                            hover:border-gray-300
-                            focus:border-[#E31E24] focus:shadow-[0_0_0_3px_rgba(227,30,36,0.12)]
+                            outline-none border-none
                             [appearance:textfield]
                             [&::-webkit-search-cancel-button]:hidden
                         "
                     />
                     {query && (
                         <button type="button" onClick={clearSearch}
-                            className="absolute right-[52px] top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors z-10">
+                            className="h-7 w-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors z-10 mr-1 flex-shrink-0">
                             <X className="h-3.5 w-3.5" />
                         </button>
                     )}
                     <button type="submit"
-                        disabled={!query.trim()}
                         className="
-                            absolute right-0 top-0 h-12 w-[52px]
-                            rounded-r-full rounded-l-none
-                            bg-[#fec400] hover:bg-[#f5bc00]
-                            disabled:opacity-60 disabled:cursor-not-allowed
-                            text-gray-900 font-semibold
-                            flex items-center justify-center
-                            border-l-2 border-[#e5b000]
+                            h-12 px-5
+                            bg-primary hover:bg-primary-deep
+                            text-white font-semibold text-sm
+                            flex items-center justify-center gap-2
                             transition-colors duration-200
-                            shadow-sm
+                            flex-shrink-0
                         ">
                         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                        <span className="hidden sm:inline">Search</span>
                     </button>
                 </div>
             </form>
@@ -245,12 +235,12 @@ const SmartSearch = ({ className }) => {
                                                     <img src={product.thumbnail} alt="" className="w-9 h-9 rounded object-cover shrink-0 bg-gray-100" onError={e => { e.target.style.display = 'none'; }} />
                                                 )}
                                                 <div className="flex flex-col flex-1 min-w-0">
-                                                    <span className="text-sm font-medium text-gray-800 group-hover:text-[#E31E24] transition-colors truncate">
+                                                    <span className="text-sm font-medium text-gray-800 group-hover:text-primary transition-colors truncate">
                                                         {product.name}
                                                     </span>
                                                     <div className="flex items-center justify-between gap-2">
                                                         {product.sku && <span className="text-xs text-gray-400">SKU: {product.sku}</span>}
-                                                        <span className="text-sm font-bold text-[#E31E24] ml-auto">
+                                                        <span className="text-sm font-bold text-primary ml-auto">
                                                             ৳{(product.sale_price || product.regular_price)?.toLocaleString()}
                                                         </span>
                                                     </div>
@@ -262,7 +252,7 @@ const SmartSearch = ({ className }) => {
 
                                 {/* See all results */}
                                 <div onClick={handleSubmit}
-                                    className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 text-center text-sm text-[#E31E24] font-semibold cursor-pointer hover:from-[#E31E24] hover:to-[#b9151a] hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
+                                    className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 text-center text-sm text-primary font-semibold cursor-pointer hover:from-primary hover:to-primary-deep hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
                                     <Search className="h-4 w-4" />
                                     <span>{language === 'bn' ? `"${query}" এর সব ফলাফল দেখুন` : `See all results for "${query}"`}</span>
 
@@ -281,7 +271,7 @@ const SmartSearch = ({ className }) => {
                         <p className="text-gray-500 text-sm font-medium">
                             {t('noResultsFound')}
                         </p>
-                        <button onClick={handleSubmit} className="mt-3 text-sm text-[#E31E24] hover:underline">
+                        <button onClick={handleSubmit} className="mt-3 text-sm text-primary hover:underline">
                             {t('searchAnyway')}
                         </button>
                     </div>
