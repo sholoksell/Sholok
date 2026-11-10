@@ -61,13 +61,11 @@ const Header = () => {
         onClose={() => setIsLocationModalOpen(false)}
       />
 
-      {/* Top Bar — Deep Purple */}
-      <div className="bg-primary-deep text-white">
-        <div className="container mx-auto px-4 h-9 flex items-center justify-between gap-4 text-xs">
-          <p className="truncate">
-            <span className="font-semibold">Welcome to Sholok Shopping!</span>
-            <span className="ml-2 hidden sm:inline opacity-80">Discover products you'll love.</span>
-          </p>
+      {/* Top Bar — Red-Orange */}
+      <div className="text-white" style={{ backgroundColor: '#D31710' }}>
+        <div className="container mx-auto px-4 h-9 flex items-center text-xs">
+          {/* Welcome text — centered */}
+          <p className="flex-1 text-center font-semibold text-white">Welcome to Sholok Shopping!</p>
           <div className="flex items-center gap-4 flex-shrink-0">
             {/* Language Toggle */}
             <div
@@ -81,9 +79,9 @@ const Header = () => {
               🏪 Sell on Sholok
             </Link>
             {/* Phone */}
-            <a href="tel:+8801000000000" className="flex items-center gap-1.5 font-medium hover:underline">
+            <a href="tel:+8801716509407" className="flex items-center gap-1.5 font-medium hover:underline">
               <Phone className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">+880 1XXX-XXXXXX</span>
+              <span className="hidden sm:inline">+8801716509407</span>
             </a>
           </div>
         </div>
