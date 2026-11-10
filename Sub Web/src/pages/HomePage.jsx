@@ -11,6 +11,8 @@ import { bannerService } from '@/services/commonService';
 import { homeSectionService } from '@/services/homeSectionService';
 import CategoryIcon from '@/components/CategoryIcon';
 import { formatPrice } from '@/lib/utils';
+import HomeBannerCarousel from '@/components/HomeBannerCarousel';
+import PromotionalBannerGrid from '@/components/PromotionalBannerGrid';
 
 const HomePage = () => {
   const { t, getLocalizedField, language } = useLanguage();
@@ -21,54 +23,14 @@ const HomePage = () => {
   const [hoveredSubcategory, setHoveredSubcategory] = useState(null);
   const [hoveredThirdLevel, setHoveredThirdLevel] = useState(null);
   const [hoveredFourthLevel, setHoveredFourthLevel] = useState(null);
-  const [activeTab, setActiveTab] = useState('fresh-vegetables');
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
-
-  // Per-section product states — each loaded from backend with correct category filter
+  // Per-section product states
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
-  const [breadProducts, setBreadProducts] = useState([]);
-  const [cleaningProducts, setCleaningProducts] = useState([]);
-  const [cookingProducts, setCookingProducts] = useState([]);
-  const [babyProducts, setBabyProducts] = useState([]);
-  const [vegetableProducts, setVegetableProducts] = useState([]);
-  const [eggsCerealsProducts, setEggsCerealsProducts] = useState([]);
-  const [frozenSnacksProducts, setFrozenSnacksProducts] = useState([]);
-  const [diabeticProducts, setDiabeticProducts] = useState([]);
-  const [snacksProducts, setSnacksProducts] = useState([]);
-  const [beverageProducts, setBeverageProducts] = useState([]);
-  const [frozenProducts, setFrozenProducts] = useState([]);
   const [gadgetProducts, setGadgetProducts] = useState([]);
 
   // Admin-managed home sections, keyed by `key` for fast lookup
   const [homeSections, setHomeSections] = useState({});
-
-  // Countdown Timer Effect
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-      const difference = endOfDay - now;
-
-      if (difference > 0) {
-        return {
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        };
-      }
-      return { hours: 0, minutes: 0, seconds: 0 };
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   // Fetch data from API
   useEffect(() => {
@@ -84,18 +46,7 @@ const HomePage = () => {
           productService.getFeatured(),                                    // 1
           productService.getBestSellers(),                                 // 2
           homeSectionService.getAll(),                                     // 3
-          productService.getByCategory('grocery-breakfast', 20),          // 4  bread & more
-          productService.getByCategory('cleaning-supplies', 20),          // 5  cleaning
-          productService.getByCategory('grocery-cooking', 20),            // 6  cooking
-          productService.getByCategory('baby-care', 20),                  // 7  baby
-          productService.getByCategory('grocery-fruits-vegetables', 20),  // 8  vegetables
-          productService.getByCategory('grocery-dairy-eggs', 20),         // 9  eggs & cereals
-          productService.getByCategory('grocery-frozen-canned', 20),      // 10 frozen snacks
-          productService.getByCategory('grocery-diabetic-food', 20),      // 11 diabetic
-          productService.getByCategory('grocery-snacks', 20),             // 12 snacks
-          productService.getByCategory('grocery-beverages', 20),          // 13 beverages
-          productService.getByCategory('grocery-frozen-canned', 20),      // 14 frozen foods
-          productService.getByCategory('home-kitchen', 20),               // 15 gadgets/home
+          productService.getByCategory('home-kitchen', 20),               // 4 gadgets/home
         ]);
 
         const ok = (i) => results[i].status === 'fulfilled' ? results[i].value : null;
@@ -123,20 +74,8 @@ const HomePage = () => {
         const bestSellers = bestSellersRes?.products || [];
         setTrendingProducts(bestSellers.length > 0 ? bestSellers.slice(0, 12) : allFeatured.slice(0, 12));
 
-        // Per-section category products from backend
         const getProducts = (i) => ok(i)?.products || [];
-        setBreadProducts(getProducts(4));
-        setCleaningProducts(getProducts(5));
-        setCookingProducts(getProducts(6));
-        setBabyProducts(getProducts(7));
-        setVegetableProducts(getProducts(8));
-        setEggsCerealsProducts(getProducts(9));
-        setFrozenSnacksProducts(getProducts(10));
-        setDiabeticProducts(getProducts(11));
-        setSnacksProducts(getProducts(12));
-        setBeverageProducts(getProducts(13));
-        setFrozenProducts(getProducts(14));
-        setGadgetProducts(getProducts(15));
+        setGadgetProducts(getProducts(4));
 
       } catch (error) {
         console.error('Error fetching homepage data:', error);
@@ -148,7 +87,7 @@ const HomePage = () => {
     fetchData();
   }, []);
 
-  const displayCategories = categories.length > 0 ? categories : [];
+  const displayCategories = (categories.length > 0 ? categories : []).filter(c => c.slug !== 'grocery');
 
   // Returns the admin-managed products list for a section key when present
   // (and active with at least one item); otherwise returns the supplied
@@ -391,68 +330,13 @@ const HomePage = () => {
 
             {/* Hero Slider Area */}
             <div className="flex-1 min-w-0 bg-white lg:ml-0">
-              {/* Promotional Text Banner */}
-              {(() => {
-                const fb = homeSections['festival-banner'];
-                if (fb && fb.isActive === false) return null;
-                const title = language === 'bn'
-                  ? (fb?.titleBn || t('festivalBannerTitle'))
-                  : (fb?.title || t('festivalBannerTitle'));
-                const subtitle = fb?.subtitle || t('festivalBannerSubtitle');
-                const icon = fb?.icon || '🎉';
-                const bg = fb?.backgroundColor || 'linear-gradient(to right, #E31E24, #b9151a)';
-                const fg = fb?.accentColor || '#ffffff';
-                return (
-                  <div className="p-4 hidden lg:block" style={{ background: bg }}>
-                    <h2 className="text-xl md:text-2xl font-bold animate-fade-in" style={{ color: fg }}>
-                      {icon} {title}
-                      <span className="block text-lg font-normal mt-1" style={{ color: fg, opacity: 0.9 }}>
-                        {subtitle}
-                      </span>
-                    </h2>
-                  </div>
-                );
-              })()}
+              {/* Hero Banner Carousel */}
+              <HomeBannerCarousel language={language} />
 
-              {/* Quick Category Cards - Featured */}
-              {(() => {
-                const qc = homeSections['quick-category-buttons'];
-                if (qc && qc.isActive === false) return null;
-                const fallback = [
-                  { name: language === 'bn' ? 'ডিম' : 'Eggs', link: '/category/eggs' },
-                  { name: language === 'bn' ? 'চা' : 'Tea', link: '/category/tea' },
-                  { name: language === 'bn' ? 'সফট ড্রিংকস' : 'Soft Drinks', link: '/category/cola' },
-                  { name: language === 'bn' ? 'ফ্রোজেন' : 'Frozen', link: '/category/frozen-foods' },
-                  { name: language === 'bn' ? 'কফি' : 'Coffee', link: '/category/coffee' },
-                ];
-                const items = (qc?.products?.length ? qc.products : fallback);
-                const fg = qc?.accentColor || '#000000';
-                const bg = qc?.backgroundColor || '#fec400';
-                return (
-                  <div className="bg-white p-4 lg:p-6">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                      {items.map((item, i) => (
-                        <Link
-                          key={item._id || item.link || i}
-                          to={item.link || '#'}
-                          className="group"
-                        >
-                          <div
-                            className="rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow h-16 flex items-center justify-center"
-                            style={{ background: bg }}
-                          >
-                            <div className="py-2 px-4">
-                              <h3 className="font-bold text-center" style={{ color: fg }}>
-                                {language === 'bn' && item.nameBn ? item.nameBn : item.name}
-                              </h3>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
+              {/* Promotional Banner Grid - 4 category cards */}
+              <div className="p-4 lg:p-6 bg-white">
+                <PromotionalBannerGrid />
+              </div>
 
               {/* Offer Slider - Grocery & Spice */}
               <div className="p-4 lg:p-6 bg-white">
@@ -463,7 +347,7 @@ const HomePage = () => {
               <section className="bg-white p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-900 uppercase">{t('recommendedProducts')}</h2>
-                  <Link to="/category/recommended" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
+                  <Link to="/category/recommended" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
                     {t('viewAll')} <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -478,7 +362,7 @@ const HomePage = () => {
               <section className="bg-white p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-900 uppercase">{t('trendingProducts')} 🔥</h2>
-                  <Link to="/category/trending" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
+                  <Link to="/category/trending" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
                     {t('viewAll')} <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -489,39 +373,6 @@ const HomePage = () => {
                 </div>
               </section>
 
-              {/* 3. BREAD & MORE */}
-              <section className="bg-white p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900 uppercase">
-                    {getSectionTitle('bread-and-more', t('breadAndMore'), t('breadAndMore'))}
-                  </h2>
-                  <Link to="/category/bread" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-                    {t('viewAll')} <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {sectionProducts('bread-and-more', breadProducts).slice(0, 4).map((product, i) => (
-                    <ProductCard key={product._id || product.id || i} product={product} />
-                  ))}
-                </div>
-              </section>
-
-              {/* 4. UNILEVER WEEK */}
-              <section className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 lg:p-6 border-t-2 border-blue-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900 uppercase">
-                    {getSectionTitle('unilever-week', t('unileverWeek'), t('unileverWeek'))}
-                  </h2>
-                  <Link to="/category/unilever" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-                    {t('viewAll')} <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {sectionProducts('unilever-week', cleaningProducts).slice(0, 4).map((product, i) => (
-                    <ProductCard key={product._id || product.id || i} product={product} />
-                  ))}
-                </div>
-              </section>
             </div>
           </div>
         </div>
@@ -533,157 +384,33 @@ const HomePage = () => {
         {/* Feature Cards Section */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-6" style={{ order: 0 }}>
           <div className="bg-white rounded-lg shadow-md p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Truck className="h-8 w-8 text-[#E31E24]" />
+            <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mx-auto mb-4">
+              <Truck className="h-8 w-8 text-primary" />
             </div>
             <h3 className="font-bold text-lg mb-2">{t('minsDelivery')}</h3>
             <p className="text-sm text-gray-600">{t('freeShippingOver')}</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-8 w-8 text-[#E31E24]" />
+            <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield className="h-8 w-8 text-primary" />
             </div>
             <h3 className="font-bold text-lg mb-2">{t('authorizedProducts')}</h3>
             <p className="text-sm text-gray-600">{t('hundredAuthentic')}</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock className="h-8 w-8 text-[#E31E24]" />
+            <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock className="h-8 w-8 text-primary" />
             </div>
             <h3 className="font-bold text-lg mb-2">{t('customerSupportLabel')}</h3>
             <p className="text-sm text-gray-600">{t('supportHoursLabel')}</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CreditCard className="h-8 w-8 text-[#E31E24]" />
+            <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mx-auto mb-4">
+              <CreditCard className="h-8 w-8 text-primary" />
             </div>
             <h3 className="font-bold text-lg mb-2">{t('flexiblePayments')}</h3>
             <p className="text-sm text-gray-600">{t('paymentMethods')}</p>
           </div>
-        </section>
-
-        {/* UNILEVER MEGA SALE - 80% OFF 🔥 */}
-        <section
-          className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl p-8 shadow-2xl border-4 border-yellow-400"
-          style={{ order: getSectionOrder('unilever-mega-sale', 5) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-white uppercase drop-shadow-lg">
-                {getSectionTitle('unilever-mega-sale', t('unileverMegaSaleTitle'), t('unileverMegaSaleTitle'))} 🔥
-              </h2>
-              <p className="text-xl md:text-2xl font-bold text-yellow-300 mt-2 drop-shadow">
-                {t('upTo80Off')}
-              </p>
-              <p className="text-sm md:text-base text-white/90 mt-2 font-semibold">
-                {t('voucherUBL')}
-              </p>
-            </div>
-            <Link to="/category/home-cleaning" className="text-white hover:text-yellow-300 flex items-center gap-2 bg-white/20 backdrop-blur px-6 py-3 rounded-full font-bold text-sm md:text-base transition-all hover:bg-white/30">
-              {t('viewAll')} <ChevronRight className="h-5 w-5" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {sectionProducts('unilever-mega-sale', cleaningProducts).slice(0, 8).map((product, i) => (
-              <ProductCard key={product._id || product.id || i} product={product} />
-            ))}
-          </div>
-        </section>
-
-        {/* 5. WEEKDAY DEALS!!! with Timer */}
-        <section
-          className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-6 shadow-lg border-2 border-orange-300"
-          style={{ order: getSectionOrder('weekday-deals', 6) }}
-        >
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900 uppercase">
-                {getSectionTitle('weekday-deals', t('weekdayDeals'), t('weekdayDeals'))}
-              </h2>
-              {/* Timer */}
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-md">
-                <div className="flex gap-1">
-                  <div className="bg-[#E31E24] text-white px-2 py-1 rounded font-bold text-sm">01</div>
-                  <div className="bg-[#E31E24] text-white px-2 py-1 rounded font-bold text-sm">21</div>
-                  <div className="bg-[#E31E24] text-white px-2 py-1 rounded font-bold text-sm">42</div>
-                  <div className="bg-[#E31E24] text-white px-2 py-1 rounded font-bold text-sm">38</div>
-                  <span className="text-xs text-gray-500 ml-1">{t('minutes')}</span>
-                </div>
-              </div>
-            </div>
-            {/* Category Tabs */}
-            <div className="flex gap-2 flex-wrap mb-4">
-              {[
-                { key: 'noodlesTab', val: 'Noodles' },
-                { key: 'pastaTab', val: 'Pasta' },
-                { key: 'fullCreamMilkTab', val: 'Full Cream Milk' },
-                { key: 'regularSpiceTab', val: 'Regular Spice' },
-                { key: 'biscuitsOthersTab', val: 'Biscuits Others' },
-                { key: 'flavouredTeaTab', val: 'Flavored Tea' },
-                { key: 'teaEtcTab', val: 'Tea Etc' },
-              ].map(({ key, val }) => (
-                <button
-                  key={val}
-                  className="px-4 py-2 bg-yellow-300 hover:bg-yellow-400 rounded-full text-sm font-bold transition-colors"
-                >
-                  {t(key)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {sectionProducts('weekday-deals', cookingProducts).slice(0, 5).map((product, i) => (
-              <ProductCard key={product._id || product.id || i} product={product} />
-            ))}
-          </div>
-        </section>
-
-        {/* 6. EVERYDAY CLEANING ESSENTIALS */}
-        <section
-          className="bg-white rounded-lg p-6 shadow-sm"
-          style={{ order: getSectionOrder('cleaning-essentials', 7) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase">
-              {getSectionTitle('cleaning-essentials', t('cleaningEssentials'), t('cleaningEssentials'))}
-            </h2>
-            <Link to="/category/cleaning" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {sectionProducts('cleaning-essentials', cleaningProducts).slice(0, 6).map((product, i) => (
-              <ProductCard key={product._id || product.id || i} product={product} />
-            ))}
-          </div>
-        </section>
-
-        {/* 7. SNACKS & SWEETS 🍪🍫 */}
-        <section
-          className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-6 shadow-sm border-2 border-orange-200"
-          style={{ order: getSectionOrder('snacks-sweets', 8) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase">
-              {getSectionTitle('snacks-sweets', t('snacksAndSweets'), t('snacksAndSweets'))}
-            </h2>
-            <Link to="/category/snacks" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          {sectionProducts('snacks-sweets', snacksProducts).length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {sectionProducts('snacks-sweets', snacksProducts).slice(0, 6).map((product, i) => (
-                <ProductCard key={product._id || product.id || i} product={product} />
-              ))}
-            </div>
-          )}
-          {sectionProducts('snacks-sweets', snacksProducts).length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">{t('noProductsCategory')}</p>
-              <p className="text-sm mt-2">{t('checkBackSnacks')}</p>
-            </div>
-          )}
         </section>
 
         {/* 8. TODAY'S FEATURED FINDS (Dark Section) */}
@@ -701,215 +428,9 @@ const HomePage = () => {
           </div>
           {sectionProducts('todays-featured-finds', featuredProducts).length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {sectionProducts('todays-featured-finds', featuredProducts).slice(0, 6).map((product) => (
-                <div key={product._id || product.id} className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-shadow">
-                  <div className="p-3">
-                    <p className="text-xs text-gray-500 mb-1">{t('delivery12Hours')}</p>
-                    <h3 className="text-sm font-semibold line-clamp-2 mb-2">
-                      {language === 'bn' && product.nameBn ? product.nameBn : product.name}
-                    </h3>
-                    <p className="text-lg font-bold text-[#E31E24] mb-2">{formatPrice(product.price)}</p>
-                    <button className="w-full bg-[#E31E24] hover:bg-[#b9151a] text-white py-2 rounded-full text-sm font-bold transition-colors">
-                      {t('addToBagBtn')}
-                    </button>
-                  </div>
-                </div>
+              {sectionProducts('todays-featured-finds', featuredProducts).slice(0, 6).map((product, i) => (
+                <ProductCard key={product._id || product.id || i} product={product} />
               ))}
-            </div>
-          )}
-        </section>
-
-        {/* 9. SPICE UP YOUR COOKING GAME */}
-        <section
-          className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg p-6 shadow-xl"
-          style={{ order: getSectionOrder('spice-up-cooking', 10) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white uppercase">
-              {getSectionTitle('spice-up-cooking', t('spiceUpCookingTitle'), t('spiceUpCookingTitle'))}
-            </h2>
-          </div>
-          {sectionProducts('spice-up-cooking', cookingProducts).length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {sectionProducts('spice-up-cooking', cookingProducts).slice(0, 6).map((product) => (
-                <div key={product._id || product.id} className="bg-white rounded-lg overflow-hidden shadow-lg">
-                  <div className="p-3">
-                    <p className="text-xs text-gray-500 mb-1">{t('delivery12Hours')}</p>
-                    <h3 className="text-sm font-semibold line-clamp-2 mb-2">
-                      {language === 'bn' && product.nameBn ? product.nameBn : product.name}
-                    </h3>
-                    <p className="text-lg font-bold text-[#E31E24] mb-2">{formatPrice(product.price)}</p>
-                    <button className="w-full bg-[#E31E24] hover:bg-[#b9151a] text-white py-2 rounded-full text-sm font-bold">
-                      {t('addToBagBtn')}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* 10. HAPPY HOUR with Countdown Timer */}
-        <section
-          className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 shadow-lg border-2 border-purple-300"
-          style={{ order: getSectionOrder('happy-hour', 11) }}
-        >
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900 uppercase flex items-center gap-3">
-                <span className="text-3xl">⏰</span> {getSectionTitle('happy-hour', t('happyHourTitle'), t('happyHourTitle'))}
-              </h2>
-              {/* Countdown Timer */}
-              <div className="flex items-center gap-3 bg-white px-6 py-3 rounded-lg shadow-lg">
-                <div className="flex items-center gap-2">
-                  <div className="text-center">
-                    <div className="bg-[#E31E24] text-white px-3 py-2 rounded font-bold text-2xl min-w-[50px]">
-                      {String(timeLeft.hours).padStart(2, '0')}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{t('hours')}</p>
-                  </div>
-                  <span className="text-2xl font-bold text-gray-400">:</span>
-                  <div className="text-center">
-                    <div className="bg-[#E31E24] text-white px-3 py-2 rounded font-bold text-2xl min-w-[50px]">
-                      {String(timeLeft.minutes).padStart(2, '0')}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{t('minutes')}</p>
-                  </div>
-                  <span className="text-2xl font-bold text-gray-400">:</span>
-                  <div className="text-center">
-                    <div className="bg-[#E31E24] text-white px-3 py-2 rounded font-bold text-2xl min-w-[50px]">
-                      {String(timeLeft.seconds).padStart(2, '0')}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{t('seconds')}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          {sectionProducts('happy-hour', babyProducts).length > 0 && <FeaturedCarousel products={sectionProducts('happy-hour', babyProducts)} />}
-        </section>
-
-        {/* 11. FRESH VEGETABLES (with Tabs) */}
-        <section
-          className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 shadow-sm border-2 border-green-200"
-          style={{ order: getSectionOrder('fresh-vegetables-fruits', 12) }}
-        >
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase mb-4">
-              {getSectionTitle('fresh-vegetables-fruits', t('freshVegetablesFruitsTitle'), t('freshVegetablesFruitsTitle'))}
-            </h2>
-            {/* Category Tabs */}
-            <div className="flex gap-2 border-b border-gray-200 overflow-x-auto pb-2">
-              {[
-                { key: 'freshVegetablesTab', id: 'fresh-vegetables' },
-                { key: 'eggsCerealsTab', id: 'eggs-&-cereals' },
-                { key: 'frozenSnacksTab', id: 'frozen-snacks' },
-                { key: 'diabeticCornerTab', id: 'diabetic-corner' },
-              ].map(({ key, id }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`px-4 py-2 text-sm font-bold whitespace-nowrap transition-all ${
-                    activeTab === id
-                      ? 'text-[#E31E24] border-b-2 border-[#E31E24]'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {t(key)}
-                </button>
-              ))}
-            </div>
-          </div>
-          {activeTab === 'fresh-vegetables' && sectionProducts('fresh-vegetables-fruits', vegetableProducts).length > 0 && (
-            <FeaturedCarousel products={sectionProducts('fresh-vegetables-fruits', vegetableProducts)} />
-          )}
-          {activeTab === 'eggs-&-cereals' && eggsCerealsProducts.length > 0 && (
-            <FeaturedCarousel products={eggsCerealsProducts} />
-          )}
-          {activeTab === 'frozen-snacks' && frozenSnacksProducts.length > 0 && (
-            <FeaturedCarousel products={frozenSnacksProducts} />
-          )}
-          {activeTab === 'diabetic-corner' && diabeticProducts.length > 0 && (
-            <FeaturedCarousel products={diabeticProducts} />
-          )}
-          {((activeTab === 'fresh-vegetables' && vegetableProducts.length === 0) ||
-            (activeTab === 'eggs-&-cereals' && eggsCerealsProducts.length === 0) ||
-            (activeTab === 'frozen-snacks' && frozenSnacksProducts.length === 0) ||
-            (activeTab === 'diabetic-corner' && diabeticProducts.length === 0)) && (
-            <div className="text-center py-8 text-gray-500">
-              <p className="text-sm">{t('productsComing')}</p>
-            </div>
-          )}
-        </section>
-
-        {/* 12. SNACKS & SWEETS carousel (duplicate for FeaturedCarousel layout) */}
-        <section
-          className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-6 shadow-sm border-2 border-orange-200"
-          style={{ order: getSectionOrder('snacks-sweets', 8) + 0.5 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase">
-              {getSectionTitle('snacks-sweets', t('snacksAndSweets'), t('snacksAndSweets'))}
-            </h2>
-            <Link to="/category/snacks" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          {sectionProducts('snacks-sweets', snacksProducts).length > 0 && (
-            <FeaturedCarousel products={sectionProducts('snacks-sweets', snacksProducts)} />
-          )}
-          {sectionProducts('snacks-sweets', snacksProducts).length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">{t('noProductsCategory')}</p>
-              <p className="text-sm mt-2">{t('checkBackSnacks')}</p>
-            </div>
-          )}
-        </section>
-
-        {/* 13. BEVERAGES 🥤☕ */}
-        <section
-          className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-6 shadow-sm border-2 border-cyan-200"
-          style={{ order: getSectionOrder('beverages', 13) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase">
-              {getSectionTitle('beverages', t('beveragesTitle'), t('beveragesTitle'))}
-            </h2>
-            <Link to="/category/beverages" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          {sectionProducts('beverages', beverageProducts).length > 0 && (
-            <FeaturedCarousel products={sectionProducts('beverages', beverageProducts)} />
-          )}
-          {sectionProducts('beverages', beverageProducts).length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">{t('noBeverages')}</p>
-              <p className="text-sm mt-2">{t('beveragesComing')}</p>
-            </div>
-          )}
-        </section>
-
-        {/* 14. FROZEN FOODS 🧊🍦 */}
-        <section
-          className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg p-6 shadow-sm border-2 border-blue-300"
-          style={{ order: getSectionOrder('frozen-foods', 14) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase">
-              {getSectionTitle('frozen-foods', t('frozenFoodsTitle'), t('frozenFoodsTitle'))}
-            </h2>
-            <Link to="/category/frozen-foods" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          {sectionProducts('frozen-foods', frozenProducts).length > 0 && (
-            <FeaturedCarousel products={sectionProducts('frozen-foods', frozenProducts)} />
-          )}
-          {sectionProducts('frozen-foods', frozenProducts).length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">{t('noFrozenFoods')}</p>
-              <p className="text-sm mt-2">{t('frozenComing')}</p>
             </div>
           )}
         </section>
