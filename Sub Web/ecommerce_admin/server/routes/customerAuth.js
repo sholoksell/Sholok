@@ -671,7 +671,21 @@ router.get('/rewards', customerAuthMiddleware, async (req, res) => {
 
 const REGISTER_SECRET = process.env.REGISTER_SECRET || 'sholok_register_secret_2024';
 
-// ── Pluggable email sender: Resend API (primary) → SMTP (fallback) ────────────
+// ── Gmail SMTP email sender via nodemailer ────────────────────────────────────
+let _transporter = null;
+function getTransporter() {
+  if (_transporter) return _transporter;
+  const nodemailer = require('nodemailer');
+  _transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASS,
+    },
+  });
+  return _transporter;
+}
+
 async function sendOtpEmail({ to, name, otp, subject }) {
   const html = `
   <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#fff">
@@ -688,34 +702,14 @@ async function sendOtpEmail({ to, name, otp, subject }) {
     <p style="color:#aaa;font-size:12px;text-align:center;margin:0">&#169; ${new Date().getFullYear()} Sholok Shopping. All rights reserved.</p>
   </div>`;
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const RESEND_FROM   = process.env.RESEND_FROM || 'Sholok <onboarding@resend.dev>';
-
-  if (RESEND_API_KEY) {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from: RESEND_FROM, to: [to], subject: subject || 'Sholok - Verify Your Email', html }),
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(`Resend error ${resp.status}: ${err.message || resp.statusText}`);
-    }
-    console.log(`[email] Resend → ${to}`);
-    return;
-  }
-
-  if (sendMail) {
-    const result = await sendMail({ to, subject: subject || 'Sholok - Verify Your Email', html });
-    if (result?.error) throw new Error(`SMTP error: ${result.error}`);
-    console.log(`[email] SMTP → ${to}`);
-    return;
-  }
-
-  throw new Error('No email provider configured. Set RESEND_API_KEY in server/.env');
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: `"Sholok Shopping" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: subject || 'Sholok - Verify Your Email',
+    html,
+  });
+  console.log(`[email] Gmail SMTP → ${to}`);
 }
 
 // ── Email Registration: step 1 — validate + send OTP ─────────────────────────
