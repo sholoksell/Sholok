@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sholok Delivery Area & Rate Management</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><span class="logo">S</span><div><b>SHOLOK</b><small>Admin Panel</small></div></div>
+  <nav>
+    <a class="active" href="#dashboard">▦ Dashboard</a>
+    <a href="#deliveryAreas">⌖ Delivery Areas</a>
+    <a href="#rateGroups">৳ Rate Groups</a>
+    <a href="#assignment">⇄ Delivery Area Assignment</a>
+    <a href="#assignedRates">▤ Assigned Zone Rates</a>
+  </nav>
+  <div class="side-note">Bangladesh delivery hierarchy<br><strong>8 Divisions · 64 Districts · 763 Areas</strong></div>
+</aside>
+
+<main class="main">
+<header class="header">
+  <div class="head-left">
+    <button class="menu" id="menuBtn">☰</button>
+    <div><h1>Delivery Area & Rate Management</h1><p>Manage delivery areas, rate groups and zone assignments.</p></div>
+  </div>
+  <div class="online"><i></i> Frontend Mode</div>
+</header>
+
+<section class="stats" id="dashboard">
+  <div class="stat"><span>🌐</span><div><small>Divisions</small><strong>8</strong></div></div>
+  <div class="stat"><span>🏙️</span><div><small>Districts</small><strong id="districtsCount">64</strong></div></div>
+  <div class="stat"><span>📍</span><div><small>Delivery Areas</small><strong id="areasCount">763</strong></div></div>
+  <div class="stat"><span>৳</span><div><small>Rate Groups</small><strong id="groupsCount">0</strong></div></div>
+</section>
+
+<section class="panel" id="deliveryAreas">
+  <div class="panel-title">
+    <div><h2>Delivery Areas</h2><p>763 saved Bangladesh delivery areas plus any custom saved areas. Custom districts are also supported.</p></div>
+    <button class="btn primary" id="newAreaBtn">＋ Add Delivery Area</button>
+  </div>
+  <div id="areaForm" class="form-box hidden">
+    <div class="form-grid four">
+      <label>Division / Region<select id="areaDivision"></select></label>
+      <label>City / District
+        <select id="areaDistrict"></select>
+        <input id="areaDistrictInput" placeholder="Or enter a custom district">
+      </label>
+      <label>Zone / Area<input id="areaName" placeholder="Enter delivery area"></label>
+      <div class="form-actions"><button class="btn primary" id="saveArea">Save</button><button class="btn" id="cancelArea">Cancel</button></div>
+    </div>
+    <p class="hint">Choose an existing district or enter a custom district. The saved area will increase the Delivery Areas count.</p>
+  </div>
+  <div class="filter-grid">
+    <label>Search<input id="areaSearch" placeholder="Search district or area..."></label>
+    <label>Division<select id="areaFilterDivision"></select></label>
+    <label>District
+      <select id="areaFilterDistrict"></select>
+    </label>
+    <div class="rename-btn-wrap"><button class="btn small" id="renameDistrictBtn" onclick="startRenameDistrict()" style="display:none" title="Rename selected district and cascade to all its areas">✎ Rename District</button></div>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr><th>Region / Division</th><th>City / District</th><th>Zone / Area</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody id="areaTable"></tbody></table>
+  </div>
+</section>
+
+<section class="panel" id="rateGroups">
+  <div class="panel-title">
+    <div><h2>Rate Groups</h2><p>Create reusable delivery charges by store location.</p></div>
+    <button class="btn primary" id="newGroupBtn">＋ Add Rate Group</button>
+  </div>
+  <div id="groupForm" class="form-box hidden">
+    <div class="form-grid four">
+      <label>Store Location<select id="groupStore"></select></label>
+      <label>Rate Group Name<input id="groupName" type="text" placeholder="e.g. Inside Dhaka"></label>
+      <label>Base Rate — First 1 KG<input id="baseRate" type="number" min="0" step="1" placeholder="60"></label>
+      <label>Additional Per KG<input id="additionalRate" type="number" min="0" step="1" placeholder="20"></label>
+    </div>
+    <div class="form-actions"><button class="btn primary" id="saveGroup">Save</button><button class="btn" id="cancelGroup">Cancel</button></div>
+    <p class="formula">1 KG = Base Rate · 2 KG = Base + Additional · 3 KG = Base + 2 × Additional</p>
+  </div>
+  <div class="group-grid" id="groupGrid"></div>
+</section>
+
+<section class="panel" id="assignment">
+  <div class="panel-title">
+    <div><h2>Delivery Area Assignment</h2><p>Division → District → saved Delivery Areas → Rate Group.</p></div>
+    <button class="btn primary" id="assignAllBtn">Assign Selected Zones</button>
+  </div>
+  <div class="area-controls">
+    <label>Store Location<select id="assignStore"></select></label>
+    <label>Division / Region<select id="assignDivision"></select></label>
+    <label>City / District<select id="assignDistrict"></select></label>
+    <label>Rate Group<select id="assignGroup"></select></label>
+  </div>
+  <div class="zone-toolbar">
+    <div><b id="zoneTitle">Delivery Areas</b> <span id="zoneMeta"></span></div>
+    <div class="toolbar-right"><input id="zoneSearch" placeholder="Search all areas..."><button class="btn small" id="selectAll">Select All</button><button class="btn small" id="clearAll">Clear</button></div>
+  </div>
+  <div id="zoneList" class="zone-list"></div>
+</section>
+
+<section class="panel" id="assignedRates">
+  <div class="panel-title">
+    <div><h2>Assigned Zone Rates</h2><p>Base, 2 KG and 3 KG charges are calculated automatically.</p></div>
+    <input class="search" id="assignmentSearch" placeholder="Search store, group, district, area...">
+  </div>
+  <div class="filter-row">
+    <label>Store Location Filter<select id="assignedStoreFilter"></select></label>
+    <label>Rate Group Filter<select id="assignedGroupFilter"></select></label>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr><th>Store Location</th><th>Rate Group</th><th>Region</th><th>City / District</th><th>Zone / Area</th><th>Base Charge (1kg)</th><th>Charge (2kg)</th><th>Charge (3kg)</th><th>Action</th></tr></thead>
+    <tbody id="assignmentTable"></tbody></table>
+  </div>
+</section>
+
+<footer>Data is stored in browser localStorage. Saved hierarchy: 8 divisions / 64 districts / 763 delivery areas. Custom saved areas increase the total.</footer>
+</main>
+</div>
+<div id="toast" class="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>
