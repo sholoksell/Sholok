@@ -446,52 +446,6 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* 8. TODAY'S FEATURED FINDS (Dark Section) */}
-        <section
-          className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg p-6 shadow-xl"
-          style={{ order: getSectionOrder('todays-featured-finds', 9) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white uppercase">
-              {getSectionTitle('todays-featured-finds', t('todaysFeaturedFinds'), t('todaysFeaturedFinds'))}
-            </h2>
-            <Link to="/featured" className="text-sm font-bold text-yellow-400 hover:text-yellow-300 flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          {sectionProducts('todays-featured-finds', featuredProducts).length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {sectionProducts('todays-featured-finds', featuredProducts).slice(0, 6).map((product, i) => (
-                <ProductCard key={product._id || product.id || i} product={product} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* 15. GADGETS & ELECTRONICS 📱💻 */}
-        <section
-          className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 shadow-sm border-2 border-blue-200"
-          style={{ order: getSectionOrder('gadgets-electronics', 15) }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 uppercase">
-              {getSectionTitle('gadgets-electronics', t('gadgetsElectronicsTitle'), t('gadgetsElectronicsTitle'))}
-            </h2>
-            <Link to="/category/gadget" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-              {t('viewAll')} <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-          {sectionProducts('gadgets-electronics', gadgetProducts).length > 0 && (
-            <FeaturedCarousel products={sectionProducts('gadgets-electronics', gadgetProducts)} />
-          )}
-          {sectionProducts('gadgets-electronics', gadgetProducts).length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">{t('noGadgets')}</p>
-              <p className="text-sm mt-2">{t('gadgetsComing')}</p>
-            </div>
-          )}
-        </section>
-
         {/* CUSTOM ADMIN SECTIONS — any extra section created via the admin
             panel renders here, ordered by its `order` field. */}
         {customSections.map((s) => (
