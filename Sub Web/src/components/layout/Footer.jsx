@@ -56,7 +56,7 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <p className="text-3xl font-extrabold tracking-tight">
-              SHOLOK<span className="text-sale">.</span>
+              SHOLOK<span className="text-orange-500">.</span>
             </p>
             <p className="mt-3 max-w-xs text-sm opacity-80">
               Fashion, beauty, home and everyday essentials — discover more and love more, all in one place.
@@ -122,7 +122,7 @@ const Footer = () => {
             />
             <button
               type="submit"
-              className="bg-sale px-5 text-sm font-semibold text-white hover:bg-[#b8120f] transition-colors"
+              className="bg-orange-500 px-5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
             >
               Subscribe
             </button>
