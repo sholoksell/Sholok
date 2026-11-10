@@ -368,48 +368,52 @@ const HomePage = () => {
                 <ShopByCategorySection />
               </div>
 
-              {/* New Arrivals */}
-              <section className="bg-white p-4 lg:p-6">
-                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">New Arrivals</h2>
-                    <p className="mt-1 text-sm text-gray-500">Fresh additions across the store.</p>
-                  </div>
-                  <Link to="/category/new-arrivals" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
-                    View All <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                  {sectionProducts('recommended-for-you', recommendedProducts).slice(0, 10).map((product, i) => (
-                    <ProductCard key={product._id || product.id || i} product={product} />
-                  ))}
-                </div>
-              </section>
-
-              {/* More to Love / Trending Products */}
-              <section className="bg-white p-4 lg:p-6">
-                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      <Sparkles className="h-6 w-6 text-primary" /> More to Love
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">Popular picks worth discovering.</p>
-                  </div>
-                  <Link to="/category/trending" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
-                    View All <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                  {sectionProducts('trending-products', trendingProducts).slice(0, 15).map((product, i) => (
-                    <ProductCard key={product._id || product.id || i} product={product} />
-                  ))}
-                </div>
-              </section>
-
             </div>
           </div>
         </div>
       </div>
+
+      {/* New Arrivals — full width, outside sidebar flex row */}
+      <section className="bg-white px-4 lg:px-8 py-6">
+        <div className="container mx-auto">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">New Arrivals</h2>
+              <p className="mt-1 text-sm text-gray-500">Fresh additions across the store.</p>
+            </div>
+            <Link to="/category/new-arrivals" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+              View All <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+            {sectionProducts('recommended-for-you', recommendedProducts).slice(0, 10).map((product, i) => (
+              <ProductCard key={product._id || product.id || i} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* More to Love — full width */}
+      <section className="bg-white px-4 lg:px-8 py-6">
+        <div className="container mx-auto">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" /> More to Love
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">Popular picks worth discovering.</p>
+            </div>
+            <Link to="/category/trending" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+              View All <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+            {sectionProducts('trending-products', trendingProducts).slice(0, 15).map((product, i) => (
+              <ProductCard key={product._id || product.id || i} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 pb-12 mt-8 flex flex-col gap-12">
