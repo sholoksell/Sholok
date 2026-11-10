@@ -35,6 +35,11 @@ const GOOGLE_VERIFY_SECRET = process.env.GOOGLE_VERIFY_SECRET || 'sholok_gv_secr
       await pool.query(`ALTER TABLE customers ADD COLUMN google_id VARCHAR(100) DEFAULT NULL`);
       await pool.query(`ALTER TABLE customers ADD COLUMN google_email VARCHAR(255) DEFAULT NULL`);
     }
+    // email_verified column — default 1 so existing accounts keep working
+    const [[evCol]] = await pool.query(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='customers' AND COLUMN_NAME='email_verified'`);
+    if (!evCol) {
+      await pool.query(`ALTER TABLE customers ADD COLUMN email_verified TINYINT(1) DEFAULT 1`);
+    }
   } catch (e) { console.error('[customerAuth] migration:', e.message); }
 })();
 
@@ -273,20 +278,44 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
       const [[{ cnt }]] = await conn.query('SELECT COUNT(*) AS cnt FROM orders');
       const orderNumber = `ORD-${String(cnt + 1).padStart(5, '0')}`;
 
-      // Auto-calculate delivery charge if not provided
-      let finalDeliveryCharge = deliveryCharge != null ? Number(deliveryCharge) : null;
-      if (finalDeliveryCharge == null && shippingAddress.city) {
+      // Server-side weight-based delivery charge calculation (source of truth)
+      let finalDeliveryCharge = null;
+      const district = shippingAddress.city || shippingAddress.district || '';
+      const areaNameForRate = shippingAddress.areaName || shippingAddress.area || '';
+      if (district) {
         try {
-          const [dcRows] = await conn.query(
-            `SELECT g.base_rate FROM delivery_area_assignments a
+          let totalWeightKg = 0;
+          for (const item of items) {
+            const pid = item.productId || item.product_id;
+            if (pid) {
+              const [wRows] = await conn.query('SELECT COALESCE(weight_kg, 0.5) AS w FROM products WHERE id = ? LIMIT 1', [pid]);
+              const w = wRows.length ? Number(wRows[0].w) : 0.5;
+              totalWeightKg += w * (item.quantity || 1);
+            } else {
+              totalWeightKg += 0.5 * (item.quantity || 1);
+            }
+          }
+          if (totalWeightKg === 0) totalWeightKg = 0.5;
+
+          const [rateRows] = await conn.query(
+            `SELECT g.base_rate, g.additional_per_kg
+             FROM delivery_area_assignments a
              JOIN delivery_rate_groups g ON g.id = a.group_id
-             WHERE a.district = ? LIMIT 1`,
-            [shippingAddress.city]
+             WHERE a.district = ? AND (a.area = ? OR a.area = '' OR a.area IS NULL)
+             ORDER BY CASE WHEN a.area = ? THEN 0 ELSE 1 END
+             LIMIT 1`,
+            [district, areaNameForRate, areaNameForRate]
           );
-          if (dcRows.length) finalDeliveryCharge = Number(dcRows[0].base_rate);
+          if (rateRows.length) {
+            const base = Number(rateRows[0].base_rate);
+            const extra = Number(rateRows[0].additional_per_kg);
+            finalDeliveryCharge = totalWeightKg <= 1
+              ? base
+              : base + Math.ceil(totalWeightKg - 1) * extra;
+          }
         } catch { /* tables may not exist yet */ }
       }
-      if (finalDeliveryCharge == null) finalDeliveryCharge = shippingCost || 0;
+      if (finalDeliveryCharge == null) finalDeliveryCharge = deliveryCharge != null ? Number(deliveryCharge) : (shippingCost || 0);
 
       const [result] = await conn.query(
         `INSERT INTO orders
@@ -308,11 +337,9 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
 
       for (const item of items) {
         // Resolve vendor_id from product table so multi-vendor orders are correctly attributed
-        const [[prod]] = await conn.query('SELECT vendor_id, ownership_type, regular_price, sale_price FROM products WHERE id = ? LIMIT 1', [item.productId]).catch(() => [[null]]);
-        const vendorId = prod?.vendor_id || null;
-        const vendorName = vendorId
-          ? (await conn.query('SELECT store_name FROM vendors WHERE id = ? LIMIT 1', [vendorId]).then(([r]) => r[0]?.store_name).catch(() => null))
-          : null;
+        const [[prod]] = await conn.query('SELECT regular_price, sale_price FROM products WHERE id = ? LIMIT 1', [item.productId]).catch(() => [[null]]);
+        const vendorId = null;
+        const vendorName = null;
 
         // Determine effective price: check for active flash sale first
         let effectivePrice = Number(item.price);
@@ -639,6 +666,175 @@ router.get('/rewards', customerAuthMiddleware, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+const REGISTER_SECRET = process.env.REGISTER_SECRET || 'sholok_register_secret_2024';
+
+// ── Email Registration: step 1 — validate + send OTP ─────────────────────────
+router.post('/register/init', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ message: 'All fields are required' });
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    const [existing] = await pool.query('SELECT id, email_verified FROM customers WHERE email = ? LIMIT 1', [email]);
+    if (existing.length) return res.status(400).json({ message: 'An account with this email already exists' });
+
+    const [recent] = await pool.query(
+      'SELECT COUNT(*) AS cnt FROM customer_otps WHERE email = ? AND purpose = ? AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)',
+      [email, 'email_registration']
+    );
+    if (recent[0].cnt >= 5) return res.status(429).json({ message: 'Too many requests. Please wait 10 minutes.' });
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 8);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await pool.query('DELETE FROM customer_otps WHERE email = ? AND purpose = ?', [email, 'email_registration']);
+    await pool.query('INSERT INTO customer_otps (email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
+      [email, otpHash, 'email_registration', expiresAt]);
+
+    if (sendMail) {
+      await sendMail({
+        to: email,
+        subject: 'Sholok - Verify Your Email Address',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px">
+          <h2 style="color:#D31710;margin-bottom:4px">Sholok Email Verification</h2>
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Your verification code is:</p>
+          <div style="font-size:40px;font-weight:bold;letter-spacing:12px;text-align:center;padding:24px;background:#f7f7f7;border-radius:10px;margin:20px 0;color:#111">${otp}</div>
+          <p style="color:#666;font-size:13px">This code expires in <strong>5 minutes</strong>. Never share it with anyone.</p>
+          <p style="color:#888;font-size:12px">— The Sholok Team</p>
+        </div>`,
+      });
+    }
+
+    const verificationToken = jwt.sign(
+      { name: name.trim(), email: email.trim().toLowerCase(), purpose: 'email_registration' },
+      REGISTER_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    const maskedEmail = email.replace(/^(.{2})(.+)(@.+)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
+    res.json({ success: true, maskedEmail, verificationToken });
+  } catch (err) {
+    console.error('[register/init]', err.message);
+    res.status(500).json({ message: 'Server error. Please try again.' });
+  }
+});
+
+// ── Email Registration: step 2 — verify OTP + create account ─────────────────
+router.post('/register/verify', async (req, res) => {
+  try {
+    const { verificationToken, otp, password } = req.body;
+    if (!verificationToken || !otp || !password) return res.status(400).json({ message: 'Missing required fields' });
+
+    let tp;
+    try {
+      tp = jwt.verify(verificationToken, REGISTER_SECRET);
+      if (tp.purpose !== 'email_registration') throw new Error('bad purpose');
+    } catch {
+      return res.status(401).json({ message: 'Session expired. Please sign up again.' });
+    }
+
+    const { name, email } = tp;
+
+    const [[otpRow]] = await pool.query(
+      'SELECT * FROM customer_otps WHERE email = ? AND purpose = ? AND expires_at > NOW() LIMIT 1',
+      [email, 'email_registration']
+    );
+    if (!otpRow) return res.status(400).json({ message: 'OTP expired. Please request a new code.' });
+
+    if (otpRow.attempts >= 5) {
+      await pool.query('DELETE FROM customer_otps WHERE id = ?', [otpRow.id]);
+      return res.status(429).json({ message: 'Too many wrong attempts. Please sign up again.' });
+    }
+
+    const match = await bcrypt.compare(String(otp).trim(), otpRow.otp_hash);
+    if (!match) {
+      await pool.query('UPDATE customer_otps SET attempts = attempts + 1 WHERE id = ?', [otpRow.id]);
+      const left = 4 - otpRow.attempts;
+      return res.status(400).json({ message: `Incorrect code.${left > 0 ? ` ${left} attempt${left !== 1 ? 's' : ''} left.` : ' Please sign up again.'}` });
+    }
+
+    await pool.query('DELETE FROM customer_otps WHERE id = ?', [otpRow.id]);
+
+    const [dup] = await pool.query('SELECT id FROM customers WHERE email = ? LIMIT 1', [email]);
+    if (dup.length) return res.status(400).json({ message: 'An account with this email already exists.' });
+
+    if (password.length < 6) return res.status(400).json({ message: 'Password too short' });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query(
+      'INSERT INTO customers (name, email, password, status, email_verified) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, 'active', 1]
+    );
+
+    res.json({ success: true, message: 'Your account has been created successfully! Your email address is verified. Please sign in to continue.' });
+  } catch (err) {
+    console.error('[register/verify]', err.message);
+    res.status(500).json({ message: 'Server error. Please try again.' });
+  }
+});
+
+// ── Email Registration: resend OTP (60-second cooldown) ──────────────────────
+router.post('/register/resend', async (req, res) => {
+  try {
+    const { verificationToken } = req.body;
+    if (!verificationToken) return res.status(400).json({ message: 'Missing token' });
+
+    let tp;
+    try {
+      tp = jwt.verify(verificationToken, REGISTER_SECRET);
+      if (tp.purpose !== 'email_registration') throw new Error('bad purpose');
+    } catch {
+      return res.status(401).json({ message: 'Session expired. Please sign up again.' });
+    }
+
+    const { name, email } = tp;
+
+    const [recent] = await pool.query(
+      'SELECT COUNT(*) AS cnt FROM customer_otps WHERE email = ? AND purpose = ? AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)',
+      [email, 'email_registration']
+    );
+    if (recent[0].cnt >= 5) return res.status(429).json({ message: 'Too many requests. Please wait 10 minutes.' });
+
+    const [[last]] = await pool.query(
+      'SELECT created_at FROM customer_otps WHERE email = ? AND purpose = ? ORDER BY created_at DESC LIMIT 1',
+      [email, 'email_registration']
+    );
+    if (last) {
+      const secs = (Date.now() - new Date(last.created_at).getTime()) / 1000;
+      if (secs < 60) return res.status(429).json({ message: `Please wait ${Math.ceil(60 - secs)} seconds before resending.` });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 8);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await pool.query('DELETE FROM customer_otps WHERE email = ? AND purpose = ?', [email, 'email_registration']);
+    await pool.query('INSERT INTO customer_otps (email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
+      [email, otpHash, 'email_registration', expiresAt]);
+
+    if (sendMail) {
+      await sendMail({
+        to: email,
+        subject: 'Sholok - New Verification Code',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px">
+          <h2 style="color:#D31710">Sholok Email Verification</h2>
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Your new verification code is:</p>
+          <div style="font-size:40px;font-weight:bold;letter-spacing:12px;text-align:center;padding:24px;background:#f7f7f7;border-radius:10px;margin:20px 0;color:#111">${otp}</div>
+          <p style="color:#666;font-size:13px">This code expires in <strong>5 minutes</strong>.</p>
+          <p style="color:#888;font-size:12px">— The Sholok Team</p>
+        </div>`,
+      });
+    }
+
+    res.json({ success: true, message: 'New verification code sent' });
+  } catch (err) {
+    console.error('[register/resend]', err.message);
+    res.status(500).json({ message: 'Server error. Please try again.' });
   }
 });
 
