@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { shippingApi, DeliveryArea, ShippingStats, ShippingOrder, ShippingMethod } from '@/services/shippingService';
 import api from '@/lib/axios';
@@ -152,10 +153,13 @@ const mkAssignKey = (div: string, dist: string, area: string) =>
   `main|${div}|${dist}|${area}`.replace(/\s+/g, '_');
 
 type Tab = 'shipments' | 'orders' | 'rate-groups' | 'assignments' | 'areas' | 'assigned-rates' | 'methods' | 'grocery' | 'policies';
+const VALID_TABS: Tab[] = ['shipments','orders','rate-groups','assignments','areas','assigned-rates','methods','grocery','policies'];
 
 export default function Shipping() {
   const { t } = useLanguage();
-  const [tab, setTab] = useState<Tab>('shipments');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: Tab = VALID_TABS.includes(searchParams.get('tab') as Tab) ? searchParams.get('tab') as Tab : 'shipments';
+  const setTab = (id: Tab) => setSearchParams({ tab: id }, { replace: false });
 
   // ── Shipping Orders (old system) ──────────────────────────────────────────
   const [stats, setStats]       = useState<ShippingStats | null>(null);
