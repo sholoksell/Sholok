@@ -70,7 +70,7 @@ const ProductCard = memo(({ product }) => {
         {/* Discount Badge - top right corner */}
         {takaOff > 0 && (
           <div className="absolute top-0 right-0 z-10">
-            <div className="bg-[#E31E24] text-white text-[10px] font-bold leading-tight px-2 py-1 rounded-bl-lg text-center min-w-[44px]">
+            <div className="bg-sale text-white text-[10px] font-bold leading-tight px-2 py-1 rounded-bl-lg text-center min-w-[44px]">
               <div>{formatPrice(takaOff)}</div>
               <div>OFF</div>
               {minQty && <div className="text-[9px]">Max.{minQty}pc</div>}
@@ -79,7 +79,7 @@ const ProductCard = memo(({ product }) => {
         )}
         {!takaOff && discount > 0 && (
           <div className="absolute top-0 right-0 z-10">
-            <div className="bg-[#E31E24] text-white text-[10px] font-bold leading-tight px-2 py-1 rounded-bl-lg text-center min-w-[44px]">
+            <div className="bg-sale text-white text-[10px] font-bold leading-tight px-2 py-1 rounded-bl-lg text-center min-w-[44px]">
               <div>{discount}%</div>
               <div>OFF</div>
             </div>
@@ -123,7 +123,7 @@ const ProductCard = memo(({ product }) => {
 
           {/* Price */}
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-base font-bold text-[#E31E24]">{formatPrice(displayPrice)}</span>
+            <span className="text-base font-bold text-primary">{formatPrice(displayPrice)}</span>
             {comparePrice && comparePrice > displayPrice && (
               <span className="text-xs text-gray-400 line-through">{formatPrice(comparePrice)}</span>
             )}
@@ -134,7 +134,7 @@ const ProductCard = memo(({ product }) => {
 
           {/* Add to Bag Button */}
           <button
-            className="mt-auto w-full bg-[#E31E24] hover:bg-[#b9151a] disabled:bg-gray-300 text-white font-bold text-sm py-2 rounded-full transition-colors duration-200 flex items-center justify-center gap-1"
+            className="mt-auto w-full border border-primary text-primary hover:bg-primary hover:text-white disabled:opacity-40 font-bold text-sm py-2 rounded-full transition-colors duration-200 flex items-center justify-center gap-1"
             onClick={handleAddToCart}
             disabled={isLoading || product.stock === 0}
           >
