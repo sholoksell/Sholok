@@ -333,47 +333,57 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Hero Slider Area */}
-            <div className="flex-1 min-w-0 bg-white lg:ml-0">
-              {/* Hero Banner Carousel */}
+            {/* Hero Carousel only — alongside sidebar */}
+            <div className="flex-1 min-w-0 bg-white">
               <HomeBannerCarousel language={language} />
-
-              {/* Promotional Banner Grid - 4 category cards */}
-              <div className="p-4 lg:p-6 bg-white">
-                <PromotionalBannerGrid />
-              </div>
-
-              {/* Offer Slider */}
-              <div className="p-4 lg:p-6 bg-white">
-                <OfferSlider />
-              </div>
-
-              {/* Flash Sale */}
-              {sectionProducts('recommended-for-you', recommendedProducts).length > 0 && (
-                <div className="p-4 lg:p-6 bg-white">
-                  <FlashSaleSection products={sectionProducts('recommended-for-you', recommendedProducts)} />
-                </div>
-              )}
-
-              {/* Trending Items with category filter tabs */}
-              <TrendingSection products={sectionProducts('trending-products', trendingProducts)} />
-
-              {/* Campaign Banner - EVERYDAY STYLE */}
-              <div className="p-4 lg:p-6 bg-white">
-                <CampaignBanner />
-              </div>
-
-              {/* Shop by Category icon grid */}
-              <div className="p-4 lg:p-6 bg-gray-50">
-                <ShopByCategorySection />
-              </div>
-
             </div>
           </div>
         </div>
       </div>
 
-      {/* New Arrivals — full width, outside sidebar flex row */}
+      {/* ── ALL sections below are full-width (no sidebar gap) ── */}
+
+      {/* Promotional Banner Grid */}
+      <div className="bg-white px-4 lg:px-6 py-4">
+        <div className="container mx-auto">
+          <PromotionalBannerGrid />
+        </div>
+      </div>
+
+      {/* Offer Slider */}
+      <div className="bg-white px-4 lg:px-6 py-4">
+        <div className="container mx-auto">
+          <OfferSlider />
+        </div>
+      </div>
+
+      {/* Flash Sale */}
+      {sectionProducts('recommended-for-you', recommendedProducts).length > 0 && (
+        <div className="bg-white px-4 lg:px-6 py-4">
+          <div className="container mx-auto">
+            <FlashSaleSection products={sectionProducts('recommended-for-you', recommendedProducts)} />
+          </div>
+        </div>
+      )}
+
+      {/* Trending Items */}
+      <TrendingSection products={sectionProducts('trending-products', trendingProducts)} />
+
+      {/* Campaign Banner */}
+      <div className="bg-white px-4 lg:px-6 py-4">
+        <div className="container mx-auto">
+          <CampaignBanner />
+        </div>
+      </div>
+
+      {/* Shop by Category */}
+      <div className="bg-gray-50 px-4 lg:px-6 py-4">
+        <div className="container mx-auto">
+          <ShopByCategorySection />
+        </div>
+      </div>
+
+      {/* New Arrivals — full width */}
       <section className="bg-white px-4 lg:px-8 py-6">
         <div className="container mx-auto">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
