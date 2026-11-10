@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,26 +14,31 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 277 20% 97%;
+    --foreground: 0 0% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 358 83% 50%; /* #E31E24 */
+    --popover-foreground: 0 0% 15%;
+    --primary: 277 100% 29%;         /* #5D0096 brand purple */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --primary-deep: 275 100% 21%;    /* #3D0069 dark purple */
+    --primary-soft: 277 100% 95%;    /* light purple tint */
+    --sale: 2 86% 45%;               /* #D31710 brand orange-red */
+    --sale-foreground: 0 0% 100%;
+    --sale-soft: 2 86% 96%;          /* very light orange-red */
+    --secondary: 277 100% 95%;
+    --secondary-foreground: 275 100% 21%;
+    --muted: 277 20% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 277 100% 95%;
+    --accent-foreground: 275 100% 21%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142 76% 36%;
-    --radius: 0.5rem;
+    --ring: 277 100% 29%;
+    --radius: 0.75rem;
   }
 }
 
@@ -109,11 +116,11 @@
 
   .hover-lift:hover {
     transform: translateY(-12px) scale(1.03);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 2px rgba(227, 30, 36, 0.1);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 2px rgba(93, 0, 150, 0.1);
   }
 
   .hover-glow:hover {
-    box-shadow: 0 0 30px rgba(227, 30, 36, 0.4), 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 0 30px rgba(93, 0, 150, 0.4), 0 10px 30px rgba(0,0,0,0.1);
   }
 
   .hover-tilt {
@@ -211,10 +218,10 @@
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 20px rgba(227, 30, 36, 0.4);
+    box-shadow: 0 0 20px rgba(93, 0, 150, 0.4);
   }
   to {
-    box-shadow: 0 0 40px rgba(227, 30, 36, 0.8), 0 0 60px rgba(227, 30, 36, 0.4);
+    box-shadow: 0 0 40px rgba(93, 0, 150, 0.8), 0 0 60px rgba(93, 0, 150, 0.4);
   }
 }
 
