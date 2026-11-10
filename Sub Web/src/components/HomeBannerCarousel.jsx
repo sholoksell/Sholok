@@ -50,7 +50,7 @@ export default function HomeBannerCarousel() {
 
   return (
     <section
-      className="relative overflow-hidden rounded-xl bg-primary-soft min-h-[220px] md:min-h-[440px] flex-1"
+      className="relative overflow-hidden rounded-xl bg-primary-soft min-h-[280px] md:min-h-[600px] flex-1"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
@@ -75,11 +75,11 @@ export default function HomeBannerCarousel() {
           />
           {/* Gradient scrim for text readability */}
           <div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/50 to-transparent" />
-          <div className="relative flex h-full max-w-lg flex-col justify-center gap-3 p-6 md:p-12">
+          <div className="relative flex h-full max-w-xl flex-col justify-center gap-4 p-6 md:p-14 lg:p-16">
             <span className="w-fit rounded-full bg-sale px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
               {s.eyebrow}
             </span>
-            <h2 className="text-2xl md:text-5xl font-extrabold leading-tight text-primary-deep">
+            <h2 className="text-2xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-primary-deep">
               {s.title}
             </h2>
             <p className="max-w-sm text-sm md:text-base text-gray-700 hidden sm:block">
