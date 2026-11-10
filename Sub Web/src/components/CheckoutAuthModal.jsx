@@ -55,9 +55,10 @@ const CheckoutAuthModal = ({ onClose, onAuthComplete }) => {
   const [error, setError]     = useState('');
 
   // Sign-up fields
-  const [name, setName]         = useState('');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName]               = useState('');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // OTP state
   const [otp, setOtp]                     = useState('');
@@ -134,8 +135,9 @@ const CheckoutAuthModal = ({ onClose, onAuthComplete }) => {
   // ── Sign Up ───────────────────────────────────────────────────────────────
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password) { setError('All fields are required'); return; }
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) { setError('All fields are required'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     setError(''); setLoading(true);
     try {
       const res = await api.post('/customer-auth/register/init', {
@@ -279,6 +281,10 @@ const CheckoutAuthModal = ({ onClose, onAuthComplete }) => {
                 <div>
                   <label className="text-xs font-medium text-gray-500 mb-1.5 block">Password</label>
                   <TextField icon={Lock} type="password" placeholder="Min. 6 characters" value={password} onChange={e => setPassword(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1.5 block">Confirm Password</label>
+                  <TextField icon={Lock} type="password" placeholder="Re-enter password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                 </div>
                 <button
                   type="submit"

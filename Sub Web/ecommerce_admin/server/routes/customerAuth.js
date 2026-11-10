@@ -671,6 +671,53 @@ router.get('/rewards', customerAuthMiddleware, async (req, res) => {
 
 const REGISTER_SECRET = process.env.REGISTER_SECRET || 'sholok_register_secret_2024';
 
+// ── Pluggable email sender: Resend API (primary) → SMTP (fallback) ────────────
+async function sendOtpEmail({ to, name, otp, subject }) {
+  const html = `
+  <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#fff">
+    <div style="text-align:center;margin-bottom:16px">
+      <h1 style="color:#D31710;margin:0;font-size:28px;letter-spacing:1px">SHOLOK</h1>
+    </div>
+    <h2 style="color:#111;font-size:18px;margin-bottom:4px">${subject || 'Email Verification'}</h2>
+    <p style="color:#444;margin:0 0 16px">Hi <strong>${name}</strong>,</p>
+    <p style="color:#444;margin:0 0 8px">Your one-time verification code is:</p>
+    <div style="font-size:42px;font-weight:bold;letter-spacing:14px;text-align:center;padding:20px 0;background:#f9f9f9;border-radius:10px;margin:16px 0;color:#111;border:1px solid #eee">${otp}</div>
+    <p style="color:#666;font-size:13px;margin:0 0 4px">&#x23F0; This code expires in <strong>5 minutes</strong>.</p>
+    <p style="color:#666;font-size:13px;margin:0 0 20px">&#x1F512; Never share this code with anyone.</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+    <p style="color:#aaa;font-size:12px;text-align:center;margin:0">&#169; ${new Date().getFullYear()} Sholok Shopping. All rights reserved.</p>
+  </div>`;
+
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const RESEND_FROM   = process.env.RESEND_FROM || 'Sholok <onboarding@resend.dev>';
+
+  if (RESEND_API_KEY) {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: RESEND_FROM, to: [to], subject: subject || 'Sholok - Verify Your Email', html }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`Resend error ${resp.status}: ${err.message || resp.statusText}`);
+    }
+    console.log(`[email] Resend → ${to}`);
+    return;
+  }
+
+  if (sendMail) {
+    const result = await sendMail({ to, subject: subject || 'Sholok - Verify Your Email', html });
+    if (result?.error) throw new Error(`SMTP error: ${result.error}`);
+    console.log(`[email] SMTP → ${to}`);
+    return;
+  }
+
+  throw new Error('No email provider configured. Set RESEND_API_KEY in server/.env');
+}
+
 // ── Email Registration: step 1 — validate + send OTP ─────────────────────────
 router.post('/register/init', async (req, res) => {
   try {
@@ -695,19 +742,12 @@ router.post('/register/init', async (req, res) => {
     await pool.query('INSERT INTO customer_otps (email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
       [email, otpHash, 'email_registration', expiresAt]);
 
-    if (sendMail) {
-      await sendMail({
-        to: email,
-        subject: 'Sholok - Verify Your Email Address',
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px">
-          <h2 style="color:#D31710;margin-bottom:4px">Sholok Email Verification</h2>
-          <p>Hi <strong>${name}</strong>,</p>
-          <p>Your verification code is:</p>
-          <div style="font-size:40px;font-weight:bold;letter-spacing:12px;text-align:center;padding:24px;background:#f7f7f7;border-radius:10px;margin:20px 0;color:#111">${otp}</div>
-          <p style="color:#666;font-size:13px">This code expires in <strong>5 minutes</strong>. Never share it with anyone.</p>
-          <p style="color:#888;font-size:12px">— The Sholok Team</p>
-        </div>`,
-      });
+    try {
+      await sendOtpEmail({ to: email, name: name.trim(), otp, subject: 'Sholok - Verify Your Email Address' });
+    } catch (emailErr) {
+      console.error('[register/init] email failed:', emailErr.message);
+      await pool.query('DELETE FROM customer_otps WHERE email = ? AND purpose = ?', [email, 'email_registration']);
+      return res.status(503).json({ message: 'Could not send verification email. Please try again later.' });
     }
 
     const verificationToken = jwt.sign(
@@ -816,19 +856,12 @@ router.post('/register/resend', async (req, res) => {
     await pool.query('INSERT INTO customer_otps (email, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
       [email, otpHash, 'email_registration', expiresAt]);
 
-    if (sendMail) {
-      await sendMail({
-        to: email,
-        subject: 'Sholok - New Verification Code',
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px">
-          <h2 style="color:#D31710">Sholok Email Verification</h2>
-          <p>Hi <strong>${name}</strong>,</p>
-          <p>Your new verification code is:</p>
-          <div style="font-size:40px;font-weight:bold;letter-spacing:12px;text-align:center;padding:24px;background:#f7f7f7;border-radius:10px;margin:20px 0;color:#111">${otp}</div>
-          <p style="color:#666;font-size:13px">This code expires in <strong>5 minutes</strong>.</p>
-          <p style="color:#888;font-size:12px">— The Sholok Team</p>
-        </div>`,
-      });
+    try {
+      await sendOtpEmail({ to: email, name, otp, subject: 'Sholok - New Verification Code' });
+    } catch (emailErr) {
+      console.error('[register/resend] email failed:', emailErr.message);
+      await pool.query('DELETE FROM customer_otps WHERE email = ? AND purpose = ?', [email, 'email_registration']);
+      return res.status(503).json({ message: 'Could not send verification email. Please try again later.' });
     }
 
     res.json({ success: true, message: 'New verification code sent' });
