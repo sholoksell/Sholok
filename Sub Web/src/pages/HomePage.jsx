@@ -148,11 +148,11 @@ const HomePage = () => {
           <div className="flex">
 
             {/* Level 1: Main Sidebar (Always Visible on Desktop/Tablet) */}
-            <div className="hidden md:block w-64 bg-white shadow-sm z-40 relative min-h-[400px] border-r border-gray-100 rounded-br-xl">
+            <div className="hidden md:block w-64 bg-white shadow-sm z-40 relative self-start border-r border-gray-100 rounded-br-xl">
               <div className="px-4 py-3 border-b border-gray-100">
                 <span className="text-xs font-bold uppercase tracking-widest text-primary">All Categories</span>
               </div>
-              <div className="py-1 bg-white min-h-[350px]">
+              <div className="py-1 bg-white">
                 {displayCategories.length === 0 && (
                   <div className="py-2">
                     {[...Array(10)].map((_, i) => (
