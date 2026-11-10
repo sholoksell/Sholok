@@ -148,16 +148,16 @@ const HomePage = () => {
           <div className="flex">
 
             {/* Level 1: Main Sidebar (Always Visible on Desktop/Tablet) */}
-            <div className="hidden md:block w-60 bg-white shadow-2xl z-40 relative min-h-[400px] border-r border-gray-100">
-              <div className="bg-[#E31E24] text-white px-4 py-3 font-bold text-sm uppercase flex items-center gap-2">
-                <span>☰</span> {t('shopByCategory')}
+            <div className="hidden md:block w-64 bg-white shadow-sm z-40 relative min-h-[400px] border-r border-gray-100 rounded-br-xl">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">All Categories</span>
               </div>
-              <div className="py-2 bg-white min-h-[350px]">
+              <div className="py-1 bg-white min-h-[350px]">
                 {displayCategories.length === 0 && (
                   <div className="py-2">
                     {[...Array(10)].map((_, i) => (
                       <div key={i} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 animate-pulse">
-                        <div className="w-5 h-5 bg-gray-200 rounded"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
                         <div className="h-3 bg-gray-200 rounded flex-1"></div>
                       </div>
                     ))}
@@ -176,23 +176,24 @@ const HomePage = () => {
                       setHoveredSubcategory(null);
                     }}
                   >
-                    <div
-                      className={`flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer border-b border-gray-100 transition-colors ${
+                    <Link
+                      to={`/category/${cat.slug || cat._id || cat.id}`}
+                      className={`flex items-center justify-between px-4 py-2.5 text-sm border-b border-gray-50 transition-colors ${
                         hoveredCategory === (cat._id || cat.id)
-                          ? 'bg-[#E31E24] text-white'
-                          : 'text-gray-700 hover:bg-gray-100/50 hover:text-[#E31E24]'
+                          ? 'bg-primary-soft text-primary'
+                          : 'text-gray-700 hover:bg-primary-soft hover:text-primary'
                       }`}
                     >
-                      <div className="flex items-center gap-3 pointer-events-none">
-                        <span className="w-5 h-5 flex items-center justify-center opacity-70">
-                          <CategoryIcon icon={cat.icon} image={cat.image} name={cat.name} className="w-5 h-5" />
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-soft text-primary flex-shrink-0">
+                          <CategoryIcon icon={cat.icon} image={cat.image} name={cat.name} className="w-4 h-4" />
                         </span>
                         <span className="font-medium">{getLocalizedField(cat, 'name')}</span>
                       </div>
                       {cat.subcategories && cat.subcategories.length > 0 && (
-                        <ChevronRight className={`h-4 w-4 flex-shrink-0 ${hoveredCategory === (cat._id || cat.id) ? 'text-white' : 'text-gray-400'}`} />
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-primary" />
                       )}
-                    </div>
+                    </Link>
 
                     {/* Level 2: Subcategory Flyout - Only show when hovering THIS specific category */}
                     {hoveredCategory === (cat._id || cat.id) && cat.subcategories && cat.subcategories.length > 0 && (

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, Menu, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
 import { useCategories } from '@/contexts/CategoryContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -73,10 +73,11 @@ const ShopByCategoryMenu = () => {
       <button
         onClick={() => setIsOpen(v => !v)}
         onMouseEnter={openMenu}
-        className="flex items-center gap-2 px-4 py-2 bg-[#E31E24] hover:bg-[#c41920] text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
+        className="flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg transition-colors border border-white/30"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        <span className="font-semibold">SHOP BY CATEGORY</span>
+        <Menu className="w-5 h-5" />
+        <span className="font-semibold text-sm">All Categories</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* 3-Column Dropdown */}
@@ -94,7 +95,7 @@ const ShopByCategoryMenu = () => {
                   key={catId}
                   onMouseEnter={() => { setHoveredL1(catId); setHoveredL2(null); }}
                   className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer border-b border-gray-50 transition-colors ${
-                    isActive ? 'bg-[#E31E24] text-white' : 'text-gray-700 hover:bg-red-50 hover:text-[#E31E24]'
+                    isActive ? 'bg-primary text-white' : 'text-gray-700 hover:bg-primary-soft hover:text-primary'
                   }`}
                 >
                   <span className="w-6 h-6 flex items-center justify-center flex-shrink-0">
@@ -120,7 +121,7 @@ const ShopByCategoryMenu = () => {
               <Link
                 to={`/category/${activeL1.slug}`}
                 onClick={closeMenu}
-                className="block px-3 py-2 text-xs font-bold text-[#E31E24] uppercase tracking-wide border-b border-gray-200 hover:bg-red-50 transition-colors"
+                className="block px-3 py-2 text-xs font-bold text-primary uppercase tracking-wide border-b border-gray-200 hover:bg-primary-soft transition-colors"
               >
                 All {getCatName(activeL1)}
               </Link>
@@ -132,7 +133,7 @@ const ShopByCategoryMenu = () => {
                     key={subId}
                     onMouseEnter={() => setHoveredL2(subId)}
                     className={`flex items-center justify-between px-3 py-2.5 cursor-pointer border-b border-gray-100 transition-colors ${
-                      isActive ? 'bg-[#E31E24] text-white' : 'text-gray-700 hover:bg-red-50 hover:text-[#E31E24]'
+                      isActive ? 'bg-primary text-white' : 'text-gray-700 hover:bg-primary-soft hover:text-primary'
                     }`}
                   >
                     <Link
@@ -158,7 +159,7 @@ const ShopByCategoryMenu = () => {
               <Link
                 to={`/category/${activeL2.slug}`}
                 onClick={closeMenu}
-                className="block px-3 py-2 text-xs font-bold text-[#E31E24] uppercase tracking-wide border-b border-gray-200 hover:bg-red-50 transition-colors"
+                className="block px-3 py-2 text-xs font-bold text-primary uppercase tracking-wide border-b border-gray-200 hover:bg-primary-soft transition-colors"
               >
                 All {getCatName(activeL2)}
               </Link>
@@ -169,7 +170,7 @@ const ShopByCategoryMenu = () => {
                     key={thirdId}
                     to={`/category/${third.slug}`}
                     onClick={closeMenu}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 border-b border-gray-50 hover:bg-red-50 hover:text-[#E31E24] transition-colors"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 border-b border-gray-50 hover:bg-primary-soft hover:text-primary transition-colors"
                   >
                     <span className="truncate">{getCatName(third)}</span>
                     {third.subcategories && third.subcategories.length > 0 && (

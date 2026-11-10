@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Menu, X, MapPin, LogOut, Settings, Phone } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, MapPin, LogOut, Settings, Phone, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
@@ -214,6 +214,22 @@ const Header = () => {
                   </span>
                 </motion.button>
               )}
+
+              {/* Wishlist Button */}
+              <Link
+                to="/wishlist"
+                className="relative hidden md:flex items-center gap-2 text-gray-700 hover:bg-primary-soft hover:text-primary p-1.5 rounded-lg transition-all duration-200"
+                aria-label="Wishlist"
+              >
+                <span className="relative">
+                  <Heart className="h-6 w-6" />
+                  <span className="absolute -right-2 -top-1.5 grid min-w-[18px] place-items-center rounded-full bg-sale px-1 text-[10px] font-bold leading-[18px] text-white">0</span>
+                </span>
+                <span className="hidden xl:flex flex-col text-left leading-tight">
+                  <span className="text-[11px] text-muted-foreground">My</span>
+                  <span className="text-sm font-semibold">Wishlist</span>
+                </span>
+              </Link>
 
               {/* Cart Button */}
               <motion.button
