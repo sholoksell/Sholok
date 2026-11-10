@@ -13,6 +13,9 @@ import CategoryIcon from '@/components/CategoryIcon';
 import { formatPrice } from '@/lib/utils';
 import HomeBannerCarousel from '@/components/HomeBannerCarousel';
 import PromotionalBannerGrid from '@/components/PromotionalBannerGrid';
+import FlashSaleSection from '@/components/FlashSaleSection';
+import ShopByCategorySection from '@/components/ShopByCategorySection';
+import CampaignBanner from '@/components/CampaignBanner';
 
 const HomePage = () => {
   const { t, getLocalizedField, language } = useLanguage();
@@ -338,36 +341,61 @@ const HomePage = () => {
                 <PromotionalBannerGrid />
               </div>
 
-              {/* Offer Slider - Grocery & Spice */}
+              {/* Offer Slider */}
               <div className="p-4 lg:p-6 bg-white">
                 <OfferSlider />
               </div>
 
-              {/* 1. RECOMMENDED FOR YOU */}
+              {/* Flash Sale */}
+              {sectionProducts('recommended-for-you', recommendedProducts).length > 0 && (
+                <div className="p-4 lg:p-6 bg-white">
+                  <FlashSaleSection products={sectionProducts('recommended-for-you', recommendedProducts)} />
+                </div>
+              )}
+
+              {/* Shop by Category icon grid */}
+              <div className="p-4 lg:p-6 bg-gray-50">
+                <ShopByCategorySection />
+              </div>
+
+              {/* New Arrivals */}
               <section className="bg-white p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900 uppercase">{t('recommendedProducts')}</h2>
-                  <Link to="/category/recommended" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-                    {t('viewAll')} <ChevronRight className="h-4 w-4" />
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">New Arrivals</h2>
+                    <p className="mt-1 text-sm text-gray-500">Fresh additions across the store.</p>
+                  </div>
+                  <Link to="/category/new-arrivals" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+                    View All <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {sectionProducts('recommended-for-you', recommendedProducts).slice(0, 4).map((product, i) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                  {sectionProducts('recommended-for-you', recommendedProducts).slice(0, 10).map((product, i) => (
                     <ProductCard key={product._id || product.id || i} product={product} />
                   ))}
                 </div>
               </section>
 
-              {/* 2. TRENDING PRODUCTS */}
+              {/* Campaign Banner - EVERYDAY STYLE */}
+              <div className="p-4 lg:p-6 bg-white">
+                <CampaignBanner />
+              </div>
+
+              {/* More to Love / Trending Products */}
               <section className="bg-white p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900 uppercase">{t('trendingProducts')} 🔥</h2>
-                  <Link to="/category/trending" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-                    {t('viewAll')} <ChevronRight className="h-4 w-4" />
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      <Sparkles className="h-6 w-6 text-primary" /> More to Love
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">Popular picks worth discovering.</p>
+                  </div>
+                  <Link to="/category/trending" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+                    View All <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {sectionProducts('trending-products', trendingProducts).slice(0, 4).map((product, i) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                  {sectionProducts('trending-products', trendingProducts).slice(0, 10).map((product, i) => (
                     <ProductCard key={product._id || product.id || i} product={product} />
                   ))}
                 </div>
@@ -444,7 +472,7 @@ const HomePage = () => {
             <h2 className="text-2xl font-bold text-gray-900 uppercase">
               {getSectionTitle('gadgets-electronics', t('gadgetsElectronicsTitle'), t('gadgetsElectronicsTitle'))}
             </h2>
-            <Link to="/category/gadget" className="text-sm font-bold text-[#E31E24] hover:underline flex items-center gap-1">
+            <Link to="/category/gadget" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
               {t('viewAll')} <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
