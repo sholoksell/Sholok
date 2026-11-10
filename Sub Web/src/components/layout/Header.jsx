@@ -112,11 +112,10 @@ const Header = () => {
             </Button>
 
             {/* Logo */}
-            <div onClick={handleLogoClick} className="flex-shrink-0 cursor-pointer flex flex-col leading-none">
+            <div onClick={handleLogoClick} className="flex-shrink-0 cursor-pointer leading-none">
               <span className="text-2xl md:text-[28px] font-extrabold tracking-tight text-primary">
-                SHOLOK<span className="text-sale">.</span>
+                SHOLOK
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.32em] text-muted-foreground mt-0.5">Shopping</span>
             </div>
 
             {/* Location Selector */}
