@@ -1097,6 +1097,7 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
 }) {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [filterDiv, setFilterDiv] = useState('');
+  const [filterGeoDivision, setFilterGeoDivision] = useState('');
   const [filterDist, setFilterDist] = useState('');
   const [search, setSearch] = useState('');
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -1113,11 +1114,12 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
       const enabled = !(statuses.find(s => s.key === e.key)?.status === 'Disable');
       return enabled &&
         (!filterDiv || e.division === filterDiv) &&
+        (!filterGeoDivision || e.division === filterGeoDivision) &&
         (!filterDist || e.district === filterDist) &&
         (!search || e.area.toLowerCase().includes(search.toLowerCase()) ||
           e.district.toLowerCase().includes(search.toLowerCase()));
     });
-  }, [allEntries, statuses, filterDiv, filterDist, search]);
+  }, [allEntries, statuses, filterDiv, filterGeoDivision, filterDist, search]);
 
   // "unassigned" = not in any group at all
   const unassignedInView = viewList.filter(e => !assignedMap[e.key]);
@@ -1175,18 +1177,24 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
       )}
 
       {/* Filter row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 24px 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, padding: '0 24px 16px' }}>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Store location</div>
           <CustomSelect value={filterDiv} placeholder="Select a store"
             options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
-            onChange={v => { setFilterDiv(v); setFilterDist(''); setChecked(new Set()); }} />
+            onChange={v => { setFilterDiv(v); setChecked(new Set()); }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Division</div>
+          <CustomSelect value={filterGeoDivision} placeholder="All divisions"
+            options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
+            onChange={v => { setFilterGeoDivision(v); setFilterDist(''); setChecked(new Set()); }} />
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>City / district</div>
           <CustomSelect value={filterDist} placeholder="All districts"
-            options={filterDiv
-              ? (BD_DISTRICTS[filterDiv] || []).map(d => ({ value: d, label: d }))
+            options={filterGeoDivision
+              ? (BD_DISTRICTS[filterGeoDivision] || []).map(d => ({ value: d, label: d }))
               : Object.entries(BD_DISTRICTS).flatMap(([div, dists]) => dists.map(d => ({ value: d, label: `${d} · ${div}` })))
             }
             onChange={v => { setFilterDist(v); setChecked(new Set()); }} />
