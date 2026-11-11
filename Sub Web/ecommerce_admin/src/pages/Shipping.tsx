@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   LayoutDashboard, MapPin, Activity, Truck, DollarSign, Database,
   Plus, Pencil, Trash2, Search, ChevronDown, Download, Upload,
-  X, Check, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight,
+  X, Check, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1048,145 +1048,190 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
   updateAssignments: (a: Assignment[]) => void;
   onSwitchGroup: (a: Assignment) => void;
 }) {
+  const [selectedGroupId, setSelectedGroupId] = useState('');
   const [filterDiv, setFilterDiv] = useState('');
-  const [filterGroup, setFilterGroup] = useState('');
+  const [filterDist, setFilterDist] = useState('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [mode, setMode] = useState<'assigned' | 'unassigned'>('unassigned');
+  const [checked, setChecked] = useState<Set<string>>(new Set());
 
-  const assignedKeys = useMemo(() => new Set(assignments.map(a => a.key)), [assignments]);
+  const assignedMap = useMemo(() => {
+    const m: Record<string, Assignment> = {};
+    for (const a of assignments) m[a.key] = a;
+    return m;
+  }, [assignments]);
 
-  const baseList = useMemo(() => {
-    return allEntries.filter(e =>
-      (!filterDiv || e.division === filterDiv) &&
-      (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [allEntries, filterDiv, search]);
+  // Show enabled areas only (status = 'Enable' or no entry = enabled by default)
+  const viewList = useMemo(() => {
+    return allEntries.filter(e => {
+      const enabled = !(statuses.find(s => s.key === e.key)?.status === 'Disable');
+      return enabled &&
+        (!filterDiv || e.division === filterDiv) &&
+        (!filterDist || e.district === filterDist) &&
+        (!search || e.area.toLowerCase().includes(search.toLowerCase()) ||
+          e.district.toLowerCase().includes(search.toLowerCase()));
+    });
+  }, [allEntries, statuses, filterDiv, filterDist, search]);
 
-  const unassignedList = useMemo(() => baseList.filter(e => !assignedKeys.has(e.key)), [baseList, assignedKeys]);
-  const assignedList = useMemo(() => {
-    return assignments.filter(a =>
-      (!filterDiv || a.division === filterDiv) &&
-      (!filterGroup || a.groupId === filterGroup) &&
-      (!search || a.area.toLowerCase().includes(search.toLowerCase()) || a.district.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [assignments, filterDiv, filterGroup, search]);
+  // "unassigned" = not in any group at all
+  const unassignedInView = viewList.filter(e => !assignedMap[e.key]);
 
-  const totalPages = Math.max(1, Math.ceil((mode === 'unassigned' ? unassignedList.length : assignedList.length) / PAGE_SIZE));
-  const displayList = mode === 'unassigned'
-    ? unassignedList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-    : assignedList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const toggleCheck = (key: string) =>
+    setChecked(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const selectAvailable = () =>
+    setChecked(prev => { const n = new Set(prev); unassignedInView.forEach(e => n.add(e.key)); return n; });
+  const clearSel = () => setChecked(new Set());
 
-  const assignArea = (entry: AreaEntry, groupId: string) => {
-    const grp = groups.find(g => g.id === groupId);
+  const assignSelected = () => {
+    if (!selectedGroupId || checked.size === 0) return;
+    const grp = groups.find(g => g.id === selectedGroupId);
     if (!grp) return;
-    const newAss: Assignment = { key: entry.key, division: entry.division, district: entry.district, area: entry.area, groupId, groupName: grp.name };
-    updateAssignments([...assignments, newAss]);
+    const toAdd: Assignment[] = [];
+    for (const key of checked) {
+      const e = allEntries.find(a => a.key === key);
+      if (!e) continue;
+      if (!assignedMap[key]) {
+        toAdd.push({ key, division: e.division, district: e.district, area: e.area, groupId: grp.id, groupName: grp.name });
+      } else if (assignedMap[key].groupId !== grp.id) {
+        // re-assign: replace existing
+        toAdd.push({ key, division: e.division, district: e.district, area: e.area, groupId: grp.id, groupName: grp.name });
+      }
+    }
+    if (toAdd.length === 0) { clearSel(); return; }
+    const replaced = new Set(toAdd.map(a => a.key));
+    updateAssignments([...assignments.filter(a => !replaced.has(a.key)), ...toAdd]);
+    clearSel();
   };
 
-  const unassignArea = (key: string) => {
+  const unassignArea = (key: string) =>
     updateAssignments(assignments.filter(a => a.key !== key));
-  };
+
+  const hasGroups = groups.length > 0;
 
   return (
-    <div>
-      <div className="dm-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div className="dm-section-title">Area Assignment</div>
-          <div className="dm-section-desc">{assignments.length} assigned · {allEntries.length - assignments.length} unassigned</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className={`dm-btn-${mode === 'unassigned' ? 'primary' : 'outline'}`} onClick={() => { setMode('unassigned'); setPage(1); }}>Unassigned</button>
-          <button className={`dm-btn-${mode === 'assigned' ? 'primary' : 'outline'}`} onClick={() => { setMode('assigned'); setPage(1); }}>Assigned</button>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {/* Header */}
+      <div className="dm-section-header" style={{ paddingBottom: 16 }}>
+        <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>ZONE CONFIGURATION</div>
+        <div className="dm-section-title">Delivery area assignment</div>
+        <div className="dm-section-desc">Choose a store and rate group, then assign eligible delivery zones.</div>
       </div>
-      <div style={{ padding: '12px 28px', display: 'flex', gap: 10, flexWrap: 'wrap', borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
-          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
-        </div>
-        <select className="dm-input" style={{ width: 160 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setPage(1); }}>
-          <option value="">All Divisions</option>
-          {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        {mode === 'assigned' && (
-          <select className="dm-input" style={{ width: 160 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); }}>
-            <option value="">All Groups</option>
-            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-        )}
-      </div>
-      <div style={{ overflowX: 'auto', padding: '0 28px 8px' }}>
-        {mode === 'unassigned' ? (
-          <table className="dm-table">
-            <thead><tr><th>Area</th><th>District</th><th>Division</th><th>Assign To</th></tr></thead>
-            <tbody>
-              {displayList.map(e => (
-                <UnassignedRow key={e.key} entry={e} groups={groups} onAssign={assignArea} />
-              ))}
-              {displayList.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>{unassignedList.length === 0 ? 'All areas assigned!' : 'No matching areas'}</td></tr>}
-            </tbody>
-          </table>
-        ) : (
-          <table className="dm-table">
-            <thead><tr><th>Area</th><th>District</th><th>Division</th><th>Rate Group</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
-            <tbody>
-              {displayList.map((a: any) => {
-                const grp = groups.find(g => g.id === a.groupId);
-                return (
-                  <tr key={a.key}>
-                    <td style={{ fontWeight: 500 }}>{a.area}</td>
-                    <td style={{ color: C.mutedFg }}>{a.district}</td>
-                    <td style={{ color: C.mutedFg }}>{a.division}</td>
-                    <td>
-                      {grp ? <span className="dm-badge dm-badge-purple">{grp.name}</span> : <span className="dm-badge dm-badge-gray">{a.groupId}</span>}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                        <button className="dm-btn-ghost" onClick={() => onSwitchGroup(a)}>Switch</button>
-                        <button className="dm-btn-danger" style={{ padding: '5px 8px' }} onClick={() => unassignArea(a.key)}><X size={12} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {displayList.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>No assigned areas</td></tr>}
-            </tbody>
-          </table>
-        )}
-      </div>
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 28px', borderTop: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 12, color: C.mutedFg }}>Page {page} / {totalPages}</span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
-            <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
+
+      {/* Warning when no groups */}
+      {!hasGroups && (
+        <div style={{ margin: '0 24px 16px', border: '1px solid #f5c6cb', borderRadius: 8, padding: '12px 16px', background: '#fff5f5', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <Activity size={16} style={{ color: C.primary, flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13, color: C.primary, marginBottom: 2 }}>Create a rate group to get started</div>
+            <div style={{ fontSize: 12, color: '#c0392b' }}>Only groups created for a store location can be selected here.</div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function UnassignedRow({ entry, groups, onAssign }: { entry: AreaEntry; groups: RateGroup[]; onAssign: (e: AreaEntry, gId: string) => void; }) {
-  const [sel, setSel] = useState('');
-  return (
-    <tr>
-      <td style={{ fontWeight: 500 }}>{entry.area}</td>
-      <td style={{ color: C.mutedFg }}>{entry.district}</td>
-      <td style={{ color: C.mutedFg }}>{entry.division}</td>
-      <td>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <select className="dm-input" style={{ width: 160 }} value={sel} onChange={e => setSel(e.target.value)}>
-            <option value="">Select group…</option>
+      {/* Filter row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, padding: '0 24px 16px' }}>
+        <div>
+          <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Store location</div>
+          <select className="dm-input" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} disabled={!hasGroups}>
+            <option value="">Select a store</option>
             {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
           </select>
-          <button className="dm-btn-primary" style={{ padding: '6px 12px' }} disabled={!sel} onClick={() => { if (sel) onAssign(entry, sel); }}>
-            <Check size={12} /> Assign
-          </button>
         </div>
-      </td>
-    </tr>
+        <div>
+          <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Division / region</div>
+          <select className="dm-input" value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setChecked(new Set()); }}>
+            <option value="">All divisions</option>
+            {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>City / district</div>
+          <select className="dm-input" value={filterDist} onChange={e => { setFilterDist(e.target.value); setChecked(new Set()); }} disabled={!filterDiv}>
+            <option value="">All districts</option>
+            {(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Rate group</div>
+          <select className="dm-input" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} disabled={!hasGroups}>
+            <option value="">Select a rate group</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Grid header */}
+      <div style={{ padding: '0 24px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: C.fg }}>Available delivery areas</div>
+          <div style={{ fontSize: 12, color: C.mutedFg }}>{unassignedInView.length} unassigned and enabled in this view</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
+            <input className="dm-input" style={{ paddingLeft: 28, width: 180 }} placeholder="Search areas..." value={search} onChange={e => { setSearch(e.target.value); setChecked(new Set()); }} />
+          </div>
+          <button className="dm-btn-outline" style={{ fontSize: 12 }} onClick={selectAvailable} disabled={unassignedInView.length === 0}>Select available</button>
+          {checked.size > 0 && <button className="dm-btn-ghost" style={{ fontSize: 12 }} onClick={clearSel}>Clear</button>}
+        </div>
+      </div>
+
+      {/* 3-column area grid in scrollable box */}
+      <div style={{ margin: '0 24px', border: `1px solid ${C.border}`, borderRadius: 8, overflowY: 'auto', maxHeight: 400 }}>
+        {viewList.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: C.mutedFg, fontSize: 13 }}>No areas found</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {viewList.map((e, i) => {
+              const existing = assignedMap[e.key];
+              const isSel = checked.has(e.key);
+              const isAssignedHere = existing && existing.groupId === selectedGroupId;
+              const isAssignedElsewhere = existing && existing.groupId !== selectedGroupId;
+              const col = i % 3;
+              const row = Math.floor(i / 3);
+              const totalRows = Math.ceil(viewList.length / 3);
+              const isLastRow = row === totalRows - 1;
+              return (
+                <div key={e.key} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                  borderBottom: !isLastRow ? `1px solid ${C.border}` : 'none',
+                  borderRight: col < 2 ? `1px solid ${C.border}` : 'none',
+                  background: isSel ? `${C.secondary}88` : 'transparent',
+                  cursor: 'pointer',
+                }} onClick={() => toggleCheck(e.key)}>
+                  <input type="checkbox" checked={isSel} style={{ cursor: 'pointer', flexShrink: 0 }} onChange={() => toggleCheck(e.key)} onClick={ev => ev.stopPropagation()} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: C.fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.area}</div>
+                    <div style={{ fontSize: 11, color: C.mutedFg }}>{e.division} · {e.district}</div>
+                  </div>
+                  {isAssignedHere ? (
+                    <span style={{ fontSize: 11, color: C.mutedFg, flexShrink: 0 }}>Assigned</span>
+                  ) : isAssignedElsewhere ? (
+                    <span style={{ fontSize: 11, color: '#e07020', flexShrink: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{existing.groupName}</span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: C.mutedFg, flexShrink: 0 }}>Available</span>
+                  )}
+                  {existing && (
+                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: C.mutedFg, flexShrink: 0 }}
+                      title="Remove assignment"
+                      onClick={ev => { ev.stopPropagation(); unassignArea(e.key); setChecked(p => { const n = new Set(p); n.delete(e.key); return n; }); }}>
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom action bar */}
+      <div style={{ margin: '12px 24px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, color: C.mutedFg }}>{checked.size} area{checked.size !== 1 ? 's' : ''} selected</span>
+        <button className="dm-btn-primary" style={{ gap: 8 }} disabled={checked.size === 0 || !selectedGroupId} onClick={assignSelected}>
+          Assign selected zones <ArrowRight size={14} />
+        </button>
+      </div>
+    </div>
   );
 }
 
