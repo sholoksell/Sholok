@@ -182,13 +182,17 @@ function areaKey(div: string, dist: string, area: string) {
 }
 
 function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
+  const customKeySet = new Set(customAreas.map(ca => ca.key));
   const entries: AreaEntry[] = [];
   for (const div of BD_DIVISIONS) {
     const districts = BD_DISTRICTS[div] || [];
     for (const dist of districts) {
       const areas = BD_AREAS[dist] || [];
       for (const area of areas) {
-        entries.push({ division: div, district: dist, area, key: areaKey(div, dist, area), isCustom: false });
+        const key = areaKey(div, dist, area);
+        if (!customKeySet.has(key)) {
+          entries.push({ division: div, district: dist, area, key, isCustom: false });
+        }
       }
     }
   }
@@ -256,7 +260,8 @@ export default function Shipping() {
   const [loading, setLoading] = useState(true);
 
   // Modal states
-  const [areaModal, setAreaModal] = useState<{ mode: 'add' | 'edit'; area?: CustomArea } | null>(null);
+  const [areaModal, setAreaModal] = useState<{ mode: 'add' | 'edit'; area?: AreaEntry } | null>(null);
+  const [districtModal, setDistrictModal] = useState<{ division: string; district: string } | null>(null);
   const [groupModal, setGroupModal] = useState<{ mode: 'add' | 'edit'; group?: RateGroup } | null>(null);
   const [overrideModal, setOverrideModal] = useState<Assignment | null>(null);
   const [switchGroupModal, setSwitchGroupModal] = useState<{ assignment: Assignment } | null>(null);
@@ -372,7 +377,8 @@ export default function Shipping() {
             assignments={assignments}
             updateStatuses={updateStatuses}
             onAddCustom={() => setAreaModal({ mode: 'add' })}
-            onEditCustom={(ca) => setAreaModal({ mode: 'edit', area: ca })}
+            onEditArea={(e) => setAreaModal({ mode: 'edit', area: e })}
+            onEditDistrict={(div, dist) => setDistrictModal({ division: div, district: dist })}
             onDeleteCustom={async (key) => {
               try {
                 await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(key)}`);
@@ -438,14 +444,21 @@ export default function Shipping() {
           onSave={async (div, dist, area) => {
             const key = areaKey(div, dist, area);
             const oldKey = areaModal.area?.key;
+            const isCustomEdit = areaModal.area?.isCustom;
             if (areaModal.mode === 'edit' && oldKey) {
-              // delete old + add new
               try {
-                await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(oldKey)}`);
-                await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
-                setCustomAreas(prev => prev.map(a => a.key === oldKey ? { key, division: div, district: dist, area } : a));
+                if (isCustomEdit) {
+                  await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(oldKey)}`);
+                  await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
+                  setCustomAreas(prev => prev.map(a => a.key === oldKey ? { key, division: div, district: dist, area } : a));
+                } else {
+                  // Standard area: add custom entry with new name, disable original
+                  await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
+                  setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
+                  updateStatuses([...statuses.filter(s => s.key !== oldKey), { key: oldKey, status: 'Disable' }]);
+                }
                 setAreaModal(null);
-                toast.success('Custom area updated');
+                toast.success('Area updated');
               } catch { toast.error('Failed to update area'); }
             } else {
               if (customAreas.some(a => a.key === key)) { toast.error('Area already exists'); return; }
@@ -456,6 +469,34 @@ export default function Shipping() {
                 toast.success('Custom area added');
               } catch { toast.error('Failed to add custom area'); }
             }
+          }}
+        />
+      )}
+      {districtModal && (
+        <DistrictModal
+          division={districtModal.division}
+          district={districtModal.district}
+          onClose={() => setDistrictModal(null)}
+          onSave={async (newDistrict) => {
+            try {
+              const standardAreas = (BD_AREAS[districtModal.district] || []).map(a => ({
+                key: areaKey(districtModal.division, districtModal.district, a), area: a,
+              }));
+              await api.post('/delivery-rates/district-rename', {
+                division: districtModal.division, oldDistrict: districtModal.district,
+                newDistrict, standardAreas,
+              });
+              const [oRes, aRes] = await Promise.all([
+                api.get('/delivery-rates/area-overrides'),
+                api.get('/delivery-rates/assignments'),
+              ]);
+              const overrides: Array<{ key: string; division?: string; district?: string; area?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
+              setStatuses(overrides.filter(r => !r.isCustom && r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
+              setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })));
+              setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
+              setDistrictModal(null);
+              toast.success(`District renamed to "${newDistrict}"`);
+            } catch { toast.error('Failed to rename district'); }
           }}
         />
       )}
@@ -711,12 +752,13 @@ function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount,
 const PAGE_SIZE = 50;
 type AreaSortCol = 'division' | 'district' | 'area' | 'status' | 'assignments';
 
-function AreasSection({ allEntries, statuses, customAreas, assignments, updateStatuses, onAddCustom, onEditCustom, onDeleteCustom }: {
+function AreasSection({ allEntries, statuses, customAreas, assignments, updateStatuses, onAddCustom, onEditArea, onEditDistrict, onDeleteCustom }: {
   allEntries: AreaEntry[]; statuses: AreaStatus[]; customAreas: CustomArea[];
   assignments: Assignment[];
   updateStatuses: (s: AreaStatus[]) => void;
   onAddCustom: () => void;
-  onEditCustom: (ca: CustomArea) => void;
+  onEditArea: (e: AreaEntry) => void;
+  onEditDistrict: (division: string, district: string) => void;
   onDeleteCustom: (key: string) => Promise<void>;
 }) {
   const [filterDiv, setFilterDiv] = useState('');
@@ -876,7 +918,15 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
                     <input type="checkbox" checked={isSel} style={{ cursor: 'pointer' }} onChange={() => toggleSelect(e.key)} />
                   </td>
                   <td style={{ color: C.mutedFg }}>{e.division}</td>
-                  <td style={{ color: C.primary, fontWeight: 400 }}>{e.district}</td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ color: C.primary, fontWeight: 400 }}>{e.district}</span>
+                      <button className="dm-btn-ghost" style={{ padding: '1px 4px' }} title="Rename district"
+                        onClick={ev => { ev.stopPropagation(); onEditDistrict(e.division, e.district); }}>
+                        <Pencil size={10} style={{ color: C.mutedFg }} />
+                      </button>
+                    </span>
+                  </td>
                   <td style={{ fontWeight: 600 }}>{e.area}</td>
                   <td>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
@@ -887,15 +937,9 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
                   <td style={{ color: C.mutedFg }}>{asnCount} assignment{asnCount !== 1 ? 's' : ''}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                      {e.isCustom && ca ? (
-                        <button className="dm-btn-ghost" style={{ padding: '4px 7px' }} title="Edit area" onClick={() => onEditCustom(ca)}>
-                          <Pencil size={13} />
-                        </button>
-                      ) : (
-                        <button className="dm-btn-ghost" style={{ padding: '4px 7px', opacity: .4 }} title="Toggle status" onClick={() => toggleStatus(e.key)}>
-                          <Pencil size={13} />
-                        </button>
-                      )}
+                      <button className="dm-btn-ghost" style={{ padding: '4px 7px' }} title="Edit area" onClick={() => onEditArea(e)}>
+                        <Pencil size={13} />
+                      </button>
                       <button className="dm-btn-ghost" style={{ padding: '4px 7px', color: C.mutedFg }}
                         title={e.isCustom ? 'Remove custom area' : (enabled ? 'Disable' : 'Enable')}
                         onClick={() => e.isCustom ? onDeleteCustom(e.key) : toggleStatus(e.key)}>
@@ -1620,7 +1664,7 @@ function DialogFrame({ title, onClose, children, footer }: { title: string; onCl
 }
 
 function AreaModal({ mode, initial, onClose, onSave }: {
-  mode: 'add' | 'edit'; initial?: CustomArea;
+  mode: 'add' | 'edit'; initial?: AreaEntry;
   onClose: () => void;
   onSave: (div: string, dist: string, area: string) => void;
 }) {
@@ -1649,6 +1693,33 @@ function AreaModal({ mode, initial, onClose, onSave }: {
         <div>
           <label className="dm-label">Area Name *</label>
           <input className="dm-input" value={area} onChange={e => setArea(e.target.value)} placeholder="Enter area name" />
+        </div>
+      </div>
+    </DialogFrame>
+  );
+}
+
+function DistrictModal({ division, district, onClose, onSave }: {
+  division: string; district: string;
+  onClose: () => void; onSave: (newDistrict: string) => void;
+}) {
+  const [newDist, setNewDist] = useState(district);
+  return (
+    <DialogFrame title="Rename District" onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (newDist.trim() && newDist.trim() !== district) onSave(newDist.trim()); }}>Rename</button></>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <label className="dm-label">Division</label>
+          <input className="dm-input" value={division} disabled style={{ background: '#f5f5f5', color: '#888' }} />
+        </div>
+        <div>
+          <label className="dm-label">Current district name</label>
+          <input className="dm-input" value={district} disabled style={{ background: '#f5f5f5', color: '#888' }} />
+        </div>
+        <div>
+          <label className="dm-label">New district name *</label>
+          <input className="dm-input" value={newDist} onChange={e => setNewDist(e.target.value)} placeholder="Enter new name" autoFocus />
+          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Renames the district across all delivery areas and assignments.</div>
         </div>
       </div>
     </DialogFrame>
