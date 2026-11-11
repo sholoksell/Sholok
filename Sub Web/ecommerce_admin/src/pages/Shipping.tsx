@@ -1135,31 +1135,29 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
       )}
 
       {/* Filter row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, padding: '0 24px 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 24px 16px' }}>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Store location</div>
-          <select className="dm-input" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} disabled={!hasGroups}>
-            <option value="">Select a store</option>
-            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Division / region</div>
           <select className="dm-input" value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setChecked(new Set()); }}>
-            <option value="">All divisions</option>
+            <option value="">Select a store</option>
             {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>City / district</div>
-          <select className="dm-input" value={filterDist} onChange={e => { setFilterDist(e.target.value); setChecked(new Set()); }} disabled={!filterDiv}>
+          <select className="dm-input" value={filterDist} onChange={e => { setFilterDist(e.target.value); setChecked(new Set()); }}>
             <option value="">All districts</option>
-            {(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => <option key={d} value={d}>{d}</option>)}
+            {filterDiv
+              ? (BD_DISTRICTS[filterDiv] || []).map(d => <option key={d} value={d}>{d}</option>)
+              : Object.entries(BD_DISTRICTS).flatMap(([div, dists]) =>
+                  dists.map(d => <option key={`${div}-${d}`} value={d}>{d} · {div}</option>)
+                )
+            }
           </select>
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Rate group</div>
-          <select className="dm-input" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} disabled={!hasGroups}>
+          <select className="dm-input" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)}>
             <option value="">Select a rate group</option>
             {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
           </select>
