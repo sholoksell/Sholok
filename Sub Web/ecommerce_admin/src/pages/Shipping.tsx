@@ -1236,84 +1236,219 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
 }
 
 // ── Rates Section ──────────────────────────────────────────────────────────────
+type RateSortCol = 'store' | 'group' | 'division' | 'district' | 'area' | 'base';
 function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   assignments: Assignment[]; groups: RateGroup[];
   onOverride: (a: Assignment) => void;
   onRemoveOverride: (key: string) => void;
 }) {
   const [filterGroup, setFilterGroup] = useState('');
+  const [filterDiv, setFilterDiv] = useState('');
+  const [filterDist, setFilterDist] = useState('');
   const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
+  const [sortCol, setSortCol] = useState<RateSortCol>('store');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const cbRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() => assignments.filter(a =>
-    (!filterGroup || a.groupId === filterGroup) &&
-    (!search || a.area.toLowerCase().includes(search.toLowerCase()) || a.district.toLowerCase().includes(search.toLowerCase()))
-  ), [assignments, filterGroup, search]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    const list = assignments.filter(a =>
+      (!filterGroup || a.groupId === filterGroup) &&
+      (!filterDiv || a.division === filterDiv) &&
+      (!filterDist || a.district === filterDist) &&
+      (!q || a.area.toLowerCase().includes(q) || a.district.toLowerCase().includes(q) ||
+        a.division.toLowerCase().includes(q) || (a.groupName || '').toLowerCase().includes(q))
+    );
+    list.sort((a, b) => {
+      const ga = groups.find(g => g.id === a.groupId);
+      const gb = groups.find(g => g.id === b.groupId);
+      let va: string | number, vb: string | number;
+      if (sortCol === 'store')    { va = ga?.name || ''; vb = gb?.name || ''; }
+      else if (sortCol === 'group')    { va = ga?.name || ''; vb = gb?.name || ''; }
+      else if (sortCol === 'division') { va = a.division; vb = b.division; }
+      else if (sortCol === 'district') { va = a.district; vb = b.district; }
+      else if (sortCol === 'area')     { va = a.area; vb = b.area; }
+      else { va = a.baseOverride ?? ga?.base ?? 0; vb = b.baseOverride ?? gb?.base ?? 0; }
+      const cmp = typeof va === 'number' ? va - vb : (va as string).localeCompare(vb as string);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [assignments, groups, filterGroup, filterDiv, filterDist, search, sortCol, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const display = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const display = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const pageAllSel = display.length > 0 && display.every(a => selected.has(a.key));
+  const pagePartial = display.some(a => selected.has(a.key)) && !pageAllSel;
+  useEffect(() => { if (cbRef.current) cbRef.current.indeterminate = pagePartial; }, [pagePartial]);
+
+  const toggleSel = (key: string) =>
+    setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const selectPage = () =>
+    setSelected(prev => { const n = new Set(prev); display.forEach(a => n.add(a.key)); return n; });
+  const clearSel = () => setSelected(new Set());
+
+  const removeSelected = () => {
+    for (const key of selected) onRemoveOverride(key);
+    clearSel();
+  };
+
+  const toggleSort = (col: RateSortCol) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
+
+  const exportCsv = () => {
+    const rows: string[][] = [['Store/Group','Group','Division','District','Delivery Area','Base·1KG','2KG','3KG']];
+    for (const a of filtered) {
+      const grp = groups.find(g => g.id === a.groupId);
+      const base = a.baseOverride ?? grp?.base ?? 0;
+      const add = a.additionalOverride ?? grp?.additional ?? 0;
+      const r2 = Number(base) + Number(add);
+      const r3 = Number(base) + Number(add) * 2;
+      rows.push([grp?.name || a.groupId, grp?.name || '', a.division, a.district, a.area, String(base), String(r2), String(r3)]);
+    }
+    downloadCsv(rows, 'assigned-zone-rates.csv');
+  };
+
+  const SortIcon = ({ col }: { col: RateSortCol }) => (
+    <span style={{ marginLeft: 3, opacity: sortCol === col ? 1 : 0.35, fontSize: 10 }}>
+      {sortCol === col ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+    </span>
+  );
+
+  const start = filtered.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, filtered.length);
 
   return (
     <div>
+      {/* Header */}
       <div className="dm-section-header">
-        <div className="dm-section-title">Zone Rates</div>
-        <div className="dm-section-desc">{assignments.length} assigned zones · {assignments.filter(a => a.baseOverride != null).length} with overrides</div>
+        <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>ACTIVE PRICING</div>
+        <div className="dm-section-title">Assigned zone rates</div>
+        <div className="dm-section-desc">Review store-area assignments, delivery charges, and individual rate overrides.</div>
       </div>
-      <div style={{ padding: '12px 28px', display: 'flex', gap: 10, flexWrap: 'wrap', borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
-          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search areas…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+
+      {/* Filter bar */}
+      <div style={{ padding: '0 24px 12px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 2, minWidth: 200 }}>
+          <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
+          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search store, group, district, area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
-        <select className="dm-input" style={{ width: 180 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); }}>
-          <option value="">All Rate Groups</option>
+        <select className="dm-input" style={{ flex: 1, minWidth: 140 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); setSelected(new Set()); }}>
+          <option value="">All store locations</option>
           {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
+        <select className="dm-input" style={{ flex: 1, minWidth: 130 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setPage(1); setSelected(new Set()); }}>
+          <option value="">All divisions</option>
+          {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select className="dm-input" style={{ flex: 1, minWidth: 130 }} value={filterDist} onChange={e => { setFilterDist(e.target.value); setPage(1); setSelected(new Set()); }} disabled={!filterDiv}>
+          <option value="">All districts</option>
+          {(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select className="dm-input" style={{ flex: 1, minWidth: 130 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); setSelected(new Set()); }}>
+          <option value="">All rate groups</option>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+        <button className="dm-btn-outline" style={{ fontSize: 12, whiteSpace: 'nowrap' }} onClick={exportCsv}><Download size={13} /> Export CSV</button>
       </div>
-      <div style={{ overflowX: 'auto', padding: '0 28px 8px' }}>
-        <table className="dm-table">
+
+      {/* Selection toolbar */}
+      <div style={{ padding: '7px 24px', display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, fontSize: 13, flexWrap: 'wrap' }}>
+        <span style={{ color: C.mutedFg }}><strong style={{ color: selected.size > 0 ? C.primary : C.fg }}>{selected.size} selected</strong> · {filtered.length} assignments</span>
+        <div style={{ flex: 1 }} />
+        <button className="dm-btn-ghost" style={{ fontSize: 12 }} onClick={selectPage} disabled={display.length === 0}>Select page</button>
+        {selected.size > 0 && <button className="dm-btn-ghost" style={{ fontSize: 12 }} onClick={clearSel}>Clear</button>}
+        <button className="dm-btn-ghost" style={{ fontSize: 12, opacity: selected.size === 0 ? .4 : 1, color: selected.size > 0 ? '#c0392b' : undefined }}
+          disabled={selected.size === 0} onClick={removeSelected}>
+          <Trash2 size={12} /> Remove selected
+        </button>
+      </div>
+
+      {/* Table */}
+      <div style={{ overflowX: 'auto', padding: '0 24px 8px' }}>
+        <table className="dm-table" style={{ tableLayout: 'auto' }}>
           <thead>
             <tr>
-              <th>Area</th><th>District</th><th>Rate Group</th><th>Base (৳)</th><th>Extra/kg (৳)</th><th style={{ textAlign: 'right' }}>Actions</th>
+              <th style={{ width: 36, padding: '10px 8px 10px 0' }}>
+                <input ref={cbRef} type="checkbox" checked={pageAllSel} style={{ cursor: 'pointer' }}
+                  onChange={e => e.target.checked ? selectPage() : clearSel()} />
+              </th>
+              {([['store','Store'],['group','Group'],['division','Division'],['district','District'],['area','Delivery area'],['base','Base · 1 KG']] as [RateSortCol, string][]).map(([col, label]) => (
+                <th key={col} onClick={() => toggleSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  {label}<SortIcon col={col} />
+                </th>
+              ))}
+              <th style={{ whiteSpace: 'nowrap' }}>2 KG</th>
+              <th style={{ whiteSpace: 'nowrap' }}>3 KG</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {display.map(a => {
               const grp = groups.find(g => g.id === a.groupId);
               const hasOverride = a.baseOverride != null || a.additionalOverride != null;
-              const base = a.baseOverride ?? grp?.base ?? '—';
-              const add = a.additionalOverride ?? grp?.additional ?? '—';
+              const base = Number(a.baseOverride ?? grp?.base ?? 0);
+              const add = Number(a.additionalOverride ?? grp?.additional ?? 0);
+              const r2 = base + add;
+              const r3 = base + add * 2;
+              const isSel = selected.has(a.key);
               return (
-                <tr key={a.key}>
-                  <td style={{ fontWeight: 500 }}>{a.area}</td>
-                  <td style={{ color: C.mutedFg }}>{a.district}</td>
-                  <td><span className="dm-badge dm-badge-purple">{grp?.name || a.groupId}</span></td>
-                  <td>
-                    <span style={{ fontWeight: hasOverride ? 700 : 400, color: hasOverride ? C.primary : C.fg }}>৳{base}</span>
-                    {hasOverride && <span style={{ marginLeft: 4, fontSize: 10, color: C.mutedFg }}>(override)</span>}
+                <tr key={a.key} style={{ background: isSel ? `${C.secondary}88` : '' }}>
+                  <td style={{ padding: '10px 8px 10px 0' }}>
+                    <input type="checkbox" checked={isSel} style={{ cursor: 'pointer' }} onChange={() => toggleSel(a.key)} />
                   </td>
-                  <td><span style={{ fontWeight: hasOverride ? 700 : 400, color: hasOverride ? C.primary : C.fg }}>৳{add}</span></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                      <button className="dm-btn-ghost" onClick={() => onOverride(a)}><Pencil size={13} /> Override</button>
-                      {hasOverride && <button className="dm-btn-danger" style={{ padding: '5px 8px' }} onClick={() => onRemoveOverride(a.key)}><X size={12} /></button>}
+                  <td style={{ fontWeight: 500, color: C.fg }}>{grp?.name || a.groupId}</td>
+                  <td><span className="dm-badge dm-badge-purple" style={{ fontSize: 11 }}>{grp?.name || a.groupId}</span></td>
+                  <td style={{ color: C.mutedFg }}>{a.division}</td>
+                  <td style={{ color: C.primary }}>{a.district}</td>
+                  <td style={{ fontWeight: 600 }}>{a.area}</td>
+                  <td>
+                    <span style={{ color: hasOverride ? C.primary : C.fg, fontWeight: hasOverride ? 700 : 400 }}>৳{base}</span>
+                    {hasOverride && <span style={{ marginLeft: 4, fontSize: 10, color: '#e07020' }}>override</span>}
+                  </td>
+                  <td style={{ color: C.mutedFg }}>৳{r2}</td>
+                  <td style={{ color: C.mutedFg }}>৳{r3}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="dm-btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => onOverride(a)}>
+                        <Pencil size={12} />
+                      </button>
+                      {hasOverride && (
+                        <button className="dm-btn-ghost" style={{ padding: '4px 8px', color: '#c0392b' }} onClick={() => onRemoveOverride(a.key)}>
+                          <X size={12} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               );
             })}
-            {display.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>No zones found</td></tr>}
+            {display.length === 0 && (
+              <tr><td colSpan={10} style={{ textAlign: 'center', color: C.mutedFg, padding: 32, fontSize: 13 }}>No assigned zone rates match these filters.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 28px', borderTop: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 12, color: C.mutedFg }}>Page {page} / {totalPages}</span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
-            <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
-          </div>
+
+      {/* Pagination footer */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', borderTop: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 12, color: C.mutedFg }}>Showing <strong>{start}–{end}</strong> of <strong>{filtered.length}</strong></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, color: C.mutedFg }}>Rows</span>
+          <select className="dm-input" style={{ width: 70, padding: '4px 8px' }} value={pageSize}
+            onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}>
+            {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
+          <span style={{ fontSize: 12, color: C.fg, whiteSpace: 'nowrap' }}>Page {page} of {totalPages}</span>
+          <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
