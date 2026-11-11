@@ -869,7 +869,7 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
                     <input type="checkbox" checked={isSel} style={{ cursor: 'pointer' }} onChange={() => toggleSelect(e.key)} />
                   </td>
                   <td style={{ color: C.mutedFg }}>{e.division}</td>
-                  <td style={{ color: C.mutedFg, color: C.primary, fontWeight: 400 }}>{e.district}</td>
+                  <td style={{ color: C.primary, fontWeight: 400 }}>{e.district}</td>
                   <td style={{ fontWeight: 600 }}>{e.area}</td>
                   <td>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
