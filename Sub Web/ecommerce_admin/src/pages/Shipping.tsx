@@ -1669,7 +1669,6 @@ function AreaModal({ mode, initial, onClose, onSave }: {
   const [div, setDiv] = useState(initial?.division || '');
   const [dist, setDist] = useState(initial?.district || '');
   const [area, setArea] = useState(initial?.area || '');
-  const availDists = div ? (BD_DISTRICTS[div] || []) : [];
   return (
     <DialogFrame title={mode === 'add' ? 'Add Custom Area' : 'Edit Area'} onClose={onClose}
       footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (div && dist && area.trim()) onSave(div, dist, area.trim()); }}>Save</button></>}>
@@ -1683,10 +1682,7 @@ function AreaModal({ mode, initial, onClose, onSave }: {
         </div>
         <div>
           <label className="dm-label">District *</label>
-          <select className="dm-input" value={dist} onChange={e => setDist(e.target.value)} disabled={!div}>
-            <option value="">Select district…</option>
-            {availDists.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <input className="dm-input" value={dist} onChange={e => setDist(e.target.value)} placeholder="Enter district name" />
         </div>
         <div>
           <label className="dm-label">Area Name *</label>
