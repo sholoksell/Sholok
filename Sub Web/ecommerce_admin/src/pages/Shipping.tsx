@@ -362,8 +362,10 @@ export default function Shipping() {
         {section === 'areas' && (
           <AreasSection
             allEntries={allEntries} statuses={statuses} customAreas={customAreas}
+            assignments={assignments}
             updateStatuses={updateStatuses}
             onAddCustom={() => setAreaModal({ mode: 'add' })}
+            onEditCustom={(ca) => setAreaModal({ mode: 'edit', area: ca })}
             onDeleteCustom={async (key) => {
               try {
                 await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(key)}`);
@@ -428,13 +430,25 @@ export default function Shipping() {
           onClose={() => setAreaModal(null)}
           onSave={async (div, dist, area) => {
             const key = areaKey(div, dist, area);
-            if (customAreas.some(a => a.key === key)) { toast.error('Area already exists'); return; }
-            try {
-              await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
-              setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
-              setAreaModal(null);
-              toast.success('Custom area added');
-            } catch { toast.error('Failed to add custom area'); }
+            const oldKey = areaModal.area?.key;
+            if (areaModal.mode === 'edit' && oldKey) {
+              // delete old + add new
+              try {
+                await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(oldKey)}`);
+                await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
+                setCustomAreas(prev => prev.map(a => a.key === oldKey ? { key, division: div, district: dist, area } : a));
+                setAreaModal(null);
+                toast.success('Custom area updated');
+              } catch { toast.error('Failed to update area'); }
+            } else {
+              if (customAreas.some(a => a.key === key)) { toast.error('Area already exists'); return; }
+              try {
+                await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
+                setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
+                setAreaModal(null);
+                toast.success('Custom area added');
+              } catch { toast.error('Failed to add custom area'); }
+            }
           }}
         />
       )}
@@ -688,122 +702,223 @@ function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount,
 
 // ── Areas Section ──────────────────────────────────────────────────────────────
 const PAGE_SIZE = 50;
-function AreasSection({ allEntries, statuses, customAreas, updateStatuses, onAddCustom, onDeleteCustom }: {
+type AreaSortCol = 'division' | 'district' | 'area' | 'status' | 'assignments';
+
+function AreasSection({ allEntries, statuses, customAreas, assignments, updateStatuses, onAddCustom, onEditCustom, onDeleteCustom }: {
   allEntries: AreaEntry[]; statuses: AreaStatus[]; customAreas: CustomArea[];
+  assignments: Assignment[];
   updateStatuses: (s: AreaStatus[]) => void;
   onAddCustom: () => void;
+  onEditCustom: (ca: CustomArea) => void;
   onDeleteCustom: (key: string) => Promise<void>;
 }) {
   const [filterDiv, setFilterDiv] = useState('');
   const [filterDist, setFilterDist] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortCol, setSortCol] = useState<AreaSortCol>('division');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const cbRef = useRef<HTMLInputElement>(null);
+
+  const asnMap = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of assignments) m[a.key] = (m[a.key] || 0) + 1;
+    return m;
+  }, [assignments]);
 
   const filtered = useMemo(() => {
-    return allEntries.filter(e =>
+    const list = allEntries.filter(e =>
       (!filterDiv || e.division === filterDiv) &&
       (!filterDist || e.district === filterDist) &&
-      (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()))
+      (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()) || e.division.toLowerCase().includes(search.toLowerCase()))
     );
-  }, [allEntries, filterDiv, filterDist, search]);
+    list.sort((a, b) => {
+      let va: string | number, vb: string | number;
+      if (sortCol === 'division')    { va = a.division; vb = b.division; }
+      else if (sortCol === 'district')   { va = a.district; vb = b.district; }
+      else if (sortCol === 'area')       { va = a.area; vb = b.area; }
+      else if (sortCol === 'status')     { va = statusFor(statuses, a.key); vb = statusFor(statuses, b.key); }
+      else { va = asnMap[a.key] || 0; vb = asnMap[b.key] || 0; }
+      const cmp = typeof va === 'number' ? va - vb : va.localeCompare(vb as string);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [allEntries, filterDiv, filterDist, search, sortCol, sortDir, statuses, asnMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageEntries = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const pageAllSelected = pageEntries.length > 0 && pageEntries.every(e => selected.has(e.key));
+  const pagePartial = pageEntries.some(e => selected.has(e.key)) && !pageAllSelected;
+
+  useEffect(() => {
+    if (cbRef.current) cbRef.current.indeterminate = pagePartial;
+  }, [pagePartial]);
+
+  const toggleSelect = (key: string) =>
+    setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const selectPage = () =>
+    setSelected(prev => { const n = new Set(prev); pageEntries.forEach(e => n.add(e.key)); return n; });
+  const clearSel = () => setSelected(new Set());
+
   const toggleStatus = (key: string) => {
     const cur = statusFor(statuses, key);
-    const next = cur === 'Enable' ? 'Disable' : 'Enable';
-    const existing = statuses.find(s => s.key === key);
-    let updated: AreaStatus[];
-    if (next === 'Enable') {
-      updated = statuses.filter(s => s.key !== key);
+    if (cur === 'Enable') {
+      updateStatuses([...statuses.filter(s => s.key !== key), { key, status: 'Disable' }]);
     } else {
-      if (existing) {
-        updated = statuses.map(s => s.key === key ? { ...s, status: next } : s);
-      } else {
-        updated = [...statuses, { key, status: next }];
-      }
+      updateStatuses(statuses.filter(s => s.key !== key));
     }
-    updateStatuses(updated);
   };
 
-  const availDists = filterDiv ? (BD_DISTRICTS[filterDiv] || []) : [];
+  const bulkEnable = () => {
+    updateStatuses(statuses.filter(s => !selected.has(s.key)));
+    clearSel();
+  };
+  const bulkDisable = () => {
+    const next = statuses.filter(s => !selected.has(s.key));
+    selected.forEach(key => { if (!next.find(s => s.key === key)) next.push({ key, status: 'Disable' }); });
+    updateStatuses(next);
+    clearSel();
+  };
+
+  const toggleSort = (col: AreaSortCol) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
+
+  const exportCsv = () => {
+    const rows: string[][] = [['Division','District','Delivery Area','Status','Assignments','Type']];
+    for (const e of filtered) {
+      rows.push([e.division, e.district, e.area, statusFor(statuses, e.key) === 'Enable' ? 'Enabled' : 'Disabled', String(asnMap[e.key] || 0), e.isCustom ? 'Custom' : 'Standard']);
+    }
+    downloadCsv(rows, 'delivery-areas.csv');
+  };
+
+  const SortIcon = ({ col }: { col: AreaSortCol }) => (
+    <span style={{ marginLeft: 4, opacity: sortCol === col ? 1 : 0.35, fontSize: 10 }}>
+      {sortCol === col ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+    </span>
+  );
 
   return (
     <div>
+      {/* Header */}
       <div className="dm-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div className="dm-section-title">Delivery Areas</div>
-          <div className="dm-section-desc">{allEntries.length} total areas · {statuses.filter(s => s.status === 'Disable').length} disabled</div>
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>GEOGRAPHIC CATALOG</div>
+          <div className="dm-section-title">Delivery areas</div>
+          <div className="dm-section-desc">Manage the Bangladesh delivery hierarchy, custom zones, and area availability.</div>
         </div>
-        <button className="dm-btn-primary" onClick={onAddCustom}><Plus size={14} /> Add Custom Area</button>
+        <button className="dm-btn-primary" onClick={onAddCustom}><Plus size={14} /> Add delivery area</button>
       </div>
-      <div style={{ padding: '16px 28px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+
+      {/* Filters */}
+      <div style={{ padding: '12px 24px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
-          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search areas…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search district or area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
-        <select className="dm-input" style={{ width: 160 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setPage(1); }}>
-          <option value="">All Divisions</option>
+        <select className="dm-input" style={{ width: 160 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setPage(1); setSelected(new Set()); }}>
+          <option value="">All divisions</option>
           {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
-        {filterDiv && (
-          <select className="dm-input" style={{ width: 160 }} value={filterDist} onChange={e => { setFilterDist(e.target.value); setPage(1); }}>
-            <option value="">All Districts</option>
-            {availDists.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        )}
+        <select className="dm-input" style={{ width: 160 }} value={filterDist} onChange={e => { setFilterDist(e.target.value); setPage(1); setSelected(new Set()); }} disabled={!filterDiv}>
+          <option value="">All districts</option>
+          {(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <button className="dm-btn-outline" onClick={exportCsv}><Download size={13} /> Export CSV</button>
       </div>
-      <div style={{ overflowX: 'auto', padding: '0 28px 8px' }}>
-        <table className="dm-table">
+
+      {/* Selection toolbar */}
+      <div style={{ padding: '7px 24px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${C.border}`, background: selected.size > 0 ? C.secondary : 'transparent', fontSize: 13, flexWrap: 'wrap' }}>
+        <span style={{ color: C.mutedFg }}>{selected.size > 0 ? <strong style={{ color: C.primary }}>{selected.size} selected</strong> : '0 selected'} · {filtered.length} matching areas</span>
+        <div style={{ flex: 1 }} />
+        <button className="dm-btn-ghost" style={{ fontSize: 12 }} onClick={selectPage}>Select page</button>
+        {selected.size > 0 && <button className="dm-btn-ghost" style={{ fontSize: 12 }} onClick={clearSel}>Clear</button>}
+        <button className="dm-btn-outline" style={{ fontSize: 12, opacity: selected.size === 0 ? .4 : 1 }} disabled={selected.size === 0} onClick={bulkEnable}>Enable</button>
+        <button className="dm-btn-outline" style={{ fontSize: 12, opacity: selected.size === 0 ? .4 : 1 }} disabled={selected.size === 0} onClick={bulkDisable}>Disable</button>
+      </div>
+
+      {/* Table */}
+      <div style={{ overflowX: 'auto', padding: '0 24px 8px' }}>
+        <table className="dm-table" style={{ tableLayout: 'auto' }}>
           <thead>
             <tr>
-              <th>Area</th><th>District</th><th>Division</th><th>Type</th><th style={{ textAlign: 'right' }}>Status</th>
+              <th style={{ width: 36, padding: '10px 8px 10px 14px' }}>
+                <input ref={cbRef} type="checkbox" checked={pageAllSelected} style={{ cursor: 'pointer' }}
+                  onChange={e => e.target.checked ? selectPage() : clearSel()} />
+              </th>
+              {([['division','Division'],['district','District'],['area','Delivery area'],['status','Status'],['assignments','Assignments']] as [AreaSortCol, string][]).map(([col, label]) => (
+                <th key={col} onClick={() => toggleSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  {label}<SortIcon col={col} />
+                </th>
+              ))}
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {pageEntries.map(e => {
               const enabled = statusFor(statuses, e.key) === 'Enable';
+              const asnCount = asnMap[e.key] || 0;
+              const isSel = selected.has(e.key);
+              const ca = customAreas.find(c => c.key === e.key);
               return (
-                <tr key={e.key}>
-                  <td style={{ fontWeight: 500 }}>{e.area}</td>
-                  <td style={{ color: C.mutedFg }}>{e.district}</td>
-                  <td style={{ color: C.mutedFg }}>{e.division}</td>
-                  <td>
-                    {e.isCustom
-                      ? <span className="dm-badge dm-badge-purple">Custom</span>
-                      : <span className="dm-badge dm-badge-gray">Standard</span>}
+                <tr key={e.key} style={{ background: isSel ? `${C.secondary}88` : '' }}>
+                  <td style={{ padding: '10px 8px 10px 14px' }}>
+                    <input type="checkbox" checked={isSel} style={{ cursor: 'pointer' }} onChange={() => toggleSelect(e.key)} />
                   </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: enabled ? '#0a6128' : C.mutedFg }}>{enabled ? 'Enabled' : 'Disabled'}</span>
-                      <Switch checked={enabled} onCheckedChange={() => toggleStatus(e.key)} />
-                      {e.isCustom && (
-                        <button className="dm-btn-danger" style={{ padding: '4px 8px' }} onClick={() => onDeleteCustom(e.key)}>
-                          <Trash2 size={12} />
+                  <td style={{ color: C.mutedFg }}>{e.division}</td>
+                  <td style={{ color: C.mutedFg, color: C.primary, fontWeight: 400 }}>{e.district}</td>
+                  <td style={{ fontWeight: 600 }}>{e.area}</td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: enabled ? C.primary : C.mutedFg, flexShrink: 0, display: 'inline-block' }} />
+                      <span style={{ color: enabled ? C.primary : C.mutedFg }}>{enabled ? 'Enabled' : 'Disabled'}</span>
+                    </span>
+                  </td>
+                  <td style={{ color: C.mutedFg }}>{asnCount} assignment{asnCount !== 1 ? 's' : ''}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                      {e.isCustom && ca ? (
+                        <button className="dm-btn-ghost" style={{ padding: '4px 7px' }} title="Edit area" onClick={() => onEditCustom(ca)}>
+                          <Pencil size={13} />
+                        </button>
+                      ) : (
+                        <button className="dm-btn-ghost" style={{ padding: '4px 7px', opacity: .4 }} title="Toggle status" onClick={() => toggleStatus(e.key)}>
+                          <Pencil size={13} />
                         </button>
                       )}
+                      <button className="dm-btn-ghost" style={{ padding: '4px 7px', color: C.mutedFg }}
+                        title={e.isCustom ? 'Remove custom area' : (enabled ? 'Disable' : 'Enable')}
+                        onClick={() => e.isCustom ? onDeleteCustom(e.key) : toggleStatus(e.key)}>
+                        <X size={13} />
+                      </button>
                     </div>
                   </td>
                 </tr>
               );
             })}
             {pageEntries.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>No areas found</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: C.mutedFg, padding: 36 }}>No areas found</td></tr>
             )}
           </tbody>
         </table>
       </div>
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 28px', borderTop: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 12, color: C.mutedFg }}>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
-          <div style={{ display: 'flex', gap: 6 }}>
+
+      {/* Pagination */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderTop: `1px solid ${C.border}` }}>
+        <span style={{ fontSize: 12, color: C.mutedFg }}>
+          {filtered.length > 0 ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} areas` : '0 areas'}
+        </span>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
-            <span style={{ fontSize: 12, alignSelf: 'center', color: C.fg }}>Page {page} / {totalPages}</span>
+            <span style={{ fontSize: 12, color: C.fg }}>Page {page} / {totalPages}</span>
             <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
