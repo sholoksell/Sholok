@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
@@ -355,6 +355,7 @@ export default function Shipping() {
           <DashboardSection
             totalAreas={totalAreas} assignedCount={assignedCount}
             groupCount={groups.length} enabledCount={enabledCount}
+            disabledCount={totalAreas - enabledCount}
             setSection={setSection}
           />
         )}
@@ -527,59 +528,158 @@ export default function Shipping() {
 }
 
 // ── Dashboard Section ──────────────────────────────────────────────────────────
-function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount, setSection }: {
-  totalAreas: number; assignedCount: number; groupCount: number; enabledCount: number;
+function MetricCard({ iconEl, label, value, sub }: { iconEl: React.ReactNode; label: string; value: string | number; sub: string }) {
+  return (
+    <div className="dm-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 8, background: C.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {iconEl}
+      </div>
+      <div>
+        <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: C.fg, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 3 }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount, disabledCount, setSection }: {
+  totalAreas: number; assignedCount: number; groupCount: number; enabledCount: number; disabledCount: number;
   setSection: (s: Section) => void;
 }) {
+  const divisionCounts = useMemo(() => BD_DIVISIONS.map((div, i) => ({
+    name: div,
+    num: i + 1,
+    count: (BD_DISTRICTS[div] || []).reduce((s, d) => s + (BD_AREAS[d] || []).length, 0),
+  })), []);
+  const maxCount = Math.max(...divisionCounts.map(d => d.count), 1);
+  const unassignedCount = totalAreas - assignedCount;
+  const coveragePct = totalAreas > 0 ? (assignedCount / totalAreas) * 100 : 0;
+  const totalDistricts = Object.values(BD_DISTRICTS).reduce((s, arr) => s + arr.length, 0);
+
   return (
     <div>
-      <div className="dm-welcome">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <Truck size={22} color="rgba(255,255,255,.8)" />
-          <span style={{ fontSize: 20, fontWeight: 700 }}>Delivery Area & Rate Management</span>
-        </div>
-        <p style={{ fontSize: 13, opacity: .85, maxWidth: 480 }}>
-          Manage delivery zones, rate groups, and fee structures for the entire Bangladesh coverage area.
-        </p>
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <button className="dm-btn-primary" style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }} onClick={() => setSection('areas')}>
-            <MapPin size={14} /> Manage Areas
-          </button>
-          <button className="dm-btn-primary" style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }} onClick={() => setSection('groups')}>
-            <Activity size={14} /> Rate Groups
-          </button>
-        </div>
-      </div>
-      <div className="dm-metric-grid">
-        {[
-          { label: 'Total Areas', value: totalAreas, sub: '8 Divisions · 64 Districts', color: C.primary },
-          { label: 'Assigned Areas', value: assignedCount, sub: `${totalAreas - assignedCount} unassigned`, color: '#0a6128' },
-          { label: 'Rate Groups', value: groupCount, sub: `Max ${MAX_RATE_GROUPS} groups`, color: '#a5211c' },
-          { label: 'Enabled Areas', value: enabledCount, sub: `${totalAreas - enabledCount} disabled`, color: '#5d0096' },
-        ].map(m => (
-          <div key={m.label} className="dm-metric-card">
-            <div className="dm-metric-label">{m.label}</div>
-            <div className="dm-metric-value" style={{ color: m.color }}>{m.value}</div>
-            <div className="dm-metric-sub">{m.sub}</div>
+      {/* Dark header banner */}
+      <div style={{ background: C.sidebar, padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ color: C.sidebarMuted, fontSize: 11, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 10 }}>
+            DELIVERY OPERATIONS · BANGLADESH
           </div>
-        ))}
+          <div style={{ color: C.sidebarFg, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
+            Good day. Let's keep every route moving.
+          </div>
+          <div style={{ color: C.sidebarMuted, fontSize: 13 }}>
+            Your area coverage and pricing controls, all in one place.
+          </div>
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '14px 22px', textAlign: 'center', flexShrink: 0 }}>
+          <div style={{ color: C.sidebarMuted, fontSize: 10, letterSpacing: '0.1em', fontWeight: 600, marginBottom: 4 }}>DATASET VERIFIED</div>
+          <div style={{ color: C.sidebarFg, fontSize: 22, fontWeight: 700, letterSpacing: '0.02em' }}>08 / {totalDistricts} / {totalAreas}</div>
+          <div style={{ color: C.sidebarMuted, fontSize: 11, marginTop: 2 }}>Divisions · districts · areas</div>
+        </div>
       </div>
-      <div style={{ padding: '0 28px 28px' }}>
-        <div className="dm-card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12, fontSize: 14 }}>Quick Actions</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+
+      {/* 4 Metric cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, padding: '20px 24px 16px' }}>
+        <MetricCard iconEl={<MapPin size={16} color={C.primary} />} label="Divisions" value="08" sub="Bangladesh regions" />
+        <MetricCard iconEl={<LayoutDashboard size={16} color={C.primary} />} label="Districts" value={totalDistricts} sub="0 custom" />
+        <MetricCard iconEl={<Truck size={16} color={C.primary} />} label="Delivery areas" value={totalAreas} sub={`${enabledCount} enabled`} />
+        <MetricCard iconEl={<Activity size={16} color={C.primary} />} label="Rate groups" value={groupCount} sub={`of ${MAX_RATE_GROUPS} available`} />
+      </div>
+
+      {/* Network Health + Quick Access */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14, padding: '0 24px 16px' }}>
+        {/* Network Health */}
+        <div className="dm-card" style={{ padding: 24 }}>
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 10 }}>NETWORK HEALTH</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: C.fg }}>Assignment coverage</div>
+              <div style={{ fontSize: 12, color: C.mutedFg, marginTop: 3 }}>Delivery areas with at least one active rate group.</div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <span style={{ fontSize: 28, fontWeight: 700, color: C.primary }}>{coveragePct.toFixed(1)}%</span>
+              <div style={{ fontSize: 11, color: C.mutedFg }}>covered</div>
+            </div>
+          </div>
+          {/* Progress bar */}
+          <div style={{ background: C.muted, borderRadius: 999, height: 6, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ width: `${coveragePct}%`, background: C.primary, height: '100%', borderRadius: 999, transition: 'width .4s ease' }} />
+          </div>
+          {/* Stats row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
             {[
-              { label: 'View Delivery Areas', icon: MapPin, s: 'areas' as Section },
-              { label: 'Manage Rate Groups', icon: Activity, s: 'groups' as Section },
-              { label: 'Assign Areas to Groups', icon: Truck, s: 'assign' as Section },
-              { label: 'View Zone Rates', icon: DollarSign, s: 'rates' as Section },
-              { label: 'Backup & Restore', icon: Database, s: 'backup' as Section },
-            ].map(({ label, icon: Icon, s }) => (
-              <button key={s} className="dm-btn-outline" onClick={() => setSection(s)}>
-                <Icon size={14} /> {label}
-              </button>
+              { label: 'Assigned',   value: assignedCount,   dot: C.primary },
+              { label: 'Unassigned', value: unassignedCount, dot: C.destructive },
+              { label: 'Enabled',    value: enabledCount,    dot: '#0a6128' },
+              { label: 'Disabled',   value: disabledCount,   dot: C.mutedFg },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: 'center', padding: '8px 4px', background: C.muted, borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 4 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.dot }} />
+                  <span style={{ fontSize: 11, color: C.mutedFg }}>{s.label}</span>
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: C.fg }}>{s.value}</div>
+              </div>
             ))}
           </div>
+          {/* View unassigned button */}
+          <button onClick={() => setSection('assign')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 8, background: 'transparent', color: C.fg, fontSize: 13, cursor: 'pointer' }}>
+            <span>View unassigned areas</span>
+            <ChevronRight size={15} color={C.mutedFg} />
+          </button>
+        </div>
+
+        {/* Quick Access */}
+        <div className="dm-card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em' }}>QUICK ACCESS</div>
+            <Activity size={14} color={C.mutedFg} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.fg, marginBottom: 14 }}>Work faster</div>
+          {[
+            { title: 'Manage delivery areas',  desc: 'Update zones and availability',    Icon: MapPin,   s: 'areas'  as Section },
+            { title: 'Set up rate groups',      desc: 'Create your store pricing rules',  Icon: Activity, s: 'groups' as Section },
+            { title: 'Assign delivery zones',   desc: 'Connect areas to a store rate',   Icon: Truck,    s: 'assign' as Section },
+          ].map(({ title, desc, Icon, s }, idx, arr) => (
+            <button key={s} onClick={() => setSection(s)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderTop: `1px solid ${C.border}`, borderBottom: idx === arr.length - 1 ? `1px solid ${C.border}` : 'none', background: 'transparent', border: 'none', borderTop: `1px solid ${C.border}`, cursor: 'pointer' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: C.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon size={14} color={C.primary} />
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.fg }}>{title}</div>
+                <div style={{ fontSize: 11, color: C.mutedFg }}>{desc}</div>
+              </div>
+              <ChevronRight size={14} color={C.mutedFg} />
+            </button>
+          ))}
+          {groupCount === 0 && (
+            <div style={{ marginTop: 12, padding: '8px 12px', background: '#fce8e4', border: '1px solid #f1b8b5', borderRadius: 6, fontSize: 12, color: C.orange, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+              No rate groups are pre-created. Add your own before assigning zones.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* National Footprint */}
+      <div className="dm-card" style={{ margin: '0 24px 24px', padding: 24 }}>
+        <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>NATIONAL FOOTPRINT</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.fg }}>Delivery areas by division</div>
+          <div style={{ fontSize: 12, color: C.mutedFg }}>{totalAreas} total zones</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 48px' }}>
+          {divisionCounts.map(({ name, num, count }) => (
+            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 11, color: C.mutedFg, minWidth: 18 }}>{String(num).padStart(2, '0')}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: C.fg, minWidth: 92 }}>{name}</span>
+              <div style={{ flex: 1, background: C.muted, borderRadius: 2, height: 6, overflow: 'hidden' }}>
+                <div style={{ width: `${(count / maxCount) * 100}%`, background: C.primary, height: '100%', borderRadius: 2 }} />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.fg, minWidth: 30, textAlign: 'right' }}>{count}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
