@@ -345,7 +345,7 @@ export default function Shipping() {
       <nav style={{ position: 'fixed', left: 256, top: 0, bottom: 0, width: 192, background: C.sidebar, zIndex: 50, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ padding: '20px 16px 12px', borderBottom: `1px solid ${C.softBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Truck size={18} color={C.primaryLight} />
-          <span style={{ color: C.sidebarFg, fontWeight: 600, fontSize: 13 }}>Delivery Mgmt</span>
+          <span style={{ color: C.sidebarFg, fontWeight: 600, fontSize: 13 }}>Delivery Operations</span>
         </div>
         <div style={{ flex: 1, padding: '8px 0' }}>
           {NAV_ITEMS.map(({ id, label, Icon }) => {
