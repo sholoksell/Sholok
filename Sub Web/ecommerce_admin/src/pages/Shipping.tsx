@@ -6,6 +6,7 @@ import {
   LayoutDashboard, MapPin, Activity, Truck, DollarSign, Database,
   Plus, Pencil, Trash2, Search, ChevronDown, Download, Upload,
   X, Check, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, ArrowRight,
+  Shield, FileJson,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1458,15 +1459,21 @@ function BackupSection({ groups, assignments, statuses, customAreas, onImport }:
   groups: RateGroup[]; assignments: Assignment[]; statuses: AreaStatus[]; customAreas: CustomArea[];
   onImport: (data: any) => void;
 }) {
+  const [importFileName, setImportFileName] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportFileName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string);
         onImport(data);
-      } catch { toast.error('Invalid JSON file'); }
+        toast.success('Backup imported successfully');
+      } catch { toast.error('Invalid JSON file — make sure this is a Sholok backup'); }
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -1474,56 +1481,117 @@ function BackupSection({ groups, assignments, statuses, customAreas, onImport }:
 
   const exportJson = () => {
     const data = { groups, assignments, statuses, customAreas, exportedAt: new Date().toISOString() };
-    downloadText(JSON.stringify(data, null, 2), `delivery-backup-${Date.now()}.json`);
+    downloadText(JSON.stringify(data, null, 2), `sholok-delivery-backup-${Date.now()}.json`);
+    toast.success('Backup exported');
   };
 
-  const exportCsv = () => {
-    const rows: string[][] = [['Key','Area','District','Division','GroupId','GroupName','BaseOverride','AdditionalOverride']];
-    for (const a of assignments) {
-      rows.push([a.key, a.area, a.district, a.division, a.groupId, a.groupName || '', String(a.baseOverride ?? ''), String(a.additionalOverride ?? '')]);
-    }
-    downloadCsv(rows, `delivery-assignments-${Date.now()}.csv`);
+  const handleReset = () => {
+    if (!confirmReset) { setConfirmReset(true); return; }
+    onImport({ groups: [], assignments: [], statuses: [], customAreas: [] });
+    setConfirmReset(false);
+    toast.success('Application data reset');
   };
 
   return (
     <div>
+      {/* Header */}
       <div className="dm-section-header">
-        <div className="dm-section-title">Data Backup & Restore</div>
-        <div className="dm-section-desc">Export or import your delivery configuration</div>
+        <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>DATA SAFETY</div>
+        <div className="dm-section-title">Backup &amp; restore</div>
+        <div className="dm-section-desc" style={{ color: '#e07020' }}>
+          Export a complete copy of your local settings or restore a previously exported backup.
+        </div>
       </div>
-      <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-        {[
-          { title: 'Export Full Backup', desc: 'Download all groups, assignments, statuses, and custom areas as JSON.', action: exportJson, label: 'Export JSON', Icon: Download },
-          { title: 'Export Assignments CSV', desc: 'Download area-to-group assignments as a spreadsheet.', action: exportCsv, label: 'Export CSV', Icon: Download },
-          { title: 'Import Backup', desc: 'Restore from a previously exported JSON backup file.', action: null, label: 'Import JSON', Icon: Upload },
-        ].map(card => (
-          <div key={card.title} className="dm-card" style={{ padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: C.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <card.Icon size={16} color={C.primary} />
-              </div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{card.title}</div>
-            </div>
-            <p style={{ fontSize: 13, color: C.mutedFg, marginBottom: 16, lineHeight: 1.5 }}>{card.desc}</p>
-            {card.action ? (
-              <button className="dm-btn-primary" onClick={card.action}><card.Icon size={13} /> {card.label}</button>
-            ) : (
-              <label className="dm-btn-primary" style={{ cursor: 'pointer' }}>
-                <Upload size={13} /> {card.label}
-                <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
-              </label>
-            )}
+
+      {/* Two-card row */}
+      <div style={{ padding: '0 24px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+        {/* Export card */}
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, background: C.secondary }}>
+            <Download size={18} style={{ color: C.primary }} />
           </div>
-        ))}
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>SAVE A COPY</div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: C.fg, marginBottom: 8 }}>Export backup</div>
+          <p style={{ fontSize: 13, color: C.mutedFg, lineHeight: 1.6, marginBottom: 16 }}>
+            Download your rate groups, custom areas and districts, assignments, status settings, and rate overrides as a JSON file.
+          </p>
+          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: C.mutedFg, marginBottom: 20 }}>
+            <span><Check size={12} style={{ color: C.primary, display: 'inline', marginRight: 4 }} />{groups.length} rate groups</span>
+            <span><Check size={12} style={{ color: C.primary, display: 'inline', marginRight: 4 }} />{customAreas.length} custom areas</span>
+            <span><Check size={12} style={{ color: C.primary, display: 'inline', marginRight: 4 }} />{assignments.length} assignments</span>
+          </div>
+          <button className="dm-btn-primary" onClick={exportJson} style={{ gap: 8 }}>
+            <Download size={14} /> Export JSON backup
+          </button>
+        </div>
+
+        {/* Import card */}
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, background: C.secondary }}>
+            <FileJson size={18} style={{ color: C.primary }} />
+          </div>
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>RESTORE A COPY</div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: C.fg, marginBottom: 8 }}>Import backup</div>
+          <p style={{ fontSize: 13, color: C.mutedFg, lineHeight: 1.6, marginBottom: 16 }}>
+            Choose a Sholok JSON backup. The file is checked before it replaces your current browser data.
+          </p>
+          {/* File drop zone */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+            border: `1px solid ${C.border}`, borderRadius: 8, cursor: 'pointer',
+            background: C.secondary, marginBottom: 12,
+          }}>
+            <FileJson size={20} style={{ color: C.primary, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: C.fg }}>
+                {importFileName || 'Select a backup file'}
+              </div>
+              <div style={{ fontSize: 11, color: C.mutedFg }}>JSON files exported from Sholok</div>
+            </div>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#c0392b' }}>
+            <AlertTriangle size={12} />
+            Importing replaces the current saved settings in this browser.
+          </div>
+        </div>
       </div>
-      <div style={{ padding: '0 28px 28px' }}>
-        <div className="dm-card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>Current State</div>
-          <div style={{ display: 'flex', gap: 24, fontSize: 13, color: C.mutedFg, flexWrap: 'wrap' }}>
-            <span><strong style={{ color: C.fg }}>{groups.length}</strong> Rate Groups</span>
-            <span><strong style={{ color: C.fg }}>{assignments.length}</strong> Assignments</span>
-            <span><strong style={{ color: C.fg }}>{statuses.length}</strong> Status Overrides</span>
-            <span><strong style={{ color: C.fg }}>{customAreas.length}</strong> Custom Areas</span>
+
+      {/* Reset section */}
+      <div style={{ margin: '0 24px 16px', border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid #f5c6cb', background: '#fff5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Trash2 size={16} style={{ color: '#c0392b' }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: C.fg, marginBottom: 2 }}>Reset application data</div>
+          <div style={{ fontSize: 12, color: C.mutedFg, lineHeight: 1.5 }}>
+            Remove locally saved rate groups, custom areas, assignments, status changes, and overrides.{' '}
+            <span style={{ color: C.fg }}>The built-in Bangladesh location list remains intact.</span>
+          </div>
+        </div>
+        {confirmReset ? (
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button className="dm-btn-ghost" style={{ fontSize: 12 }} onClick={() => setConfirmReset(false)}>Cancel</button>
+            <button style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, border: '1px solid #c0392b', background: '#c0392b', color: '#fff', cursor: 'pointer', fontWeight: 600 }} onClick={handleReset}>
+              Confirm reset
+            </button>
+          </div>
+        ) : (
+          <button style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, border: '1px solid #c0392b', background: 'transparent', color: '#c0392b', cursor: 'pointer', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }} onClick={handleReset}>
+            Reset local data
+          </button>
+        )}
+      </div>
+
+      {/* Footer note */}
+      <div style={{ margin: '0 24px 24px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <Shield size={15} style={{ color: C.primary, flexShrink: 0, marginTop: 1 }} />
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 13, color: C.primary, marginBottom: 1 }}>Local to this browser</div>
+          <div style={{ fontSize: 12, color: C.mutedFg }}>
+            Saved changes do not sync to other devices or browsers. Keep a backup if you need to transfer your{' '}
+            <span style={{ color: '#e07020', textDecoration: 'underline', cursor: 'default' }}>settings</span>.
           </div>
         </div>
       </div>
