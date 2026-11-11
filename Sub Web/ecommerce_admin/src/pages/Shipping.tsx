@@ -1,23 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { shippingApi, DeliveryArea, ShippingStats, ShippingOrder, ShippingMethod } from '@/services/shippingService';
 import api from '@/lib/axios';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import {
+  LayoutDashboard, MapPin, Activity, Truck, DollarSign, Database,
+  Plus, Pencil, Trash2, Search, ChevronDown, Download, Upload,
+  X, Check, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import {
-  Truck, MapPin, Package, CheckCircle, Clock, Plus, Pencil, Trash2,
-  Search, Settings, Eye, Edit, RefreshCw, ChevronDown, Save, Globe,
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// ── Bangladesh location data (8 Divisions · 64 Districts · 763 Areas) ─────────
+// ── BD Location Data ───────────────────────────────────────────────────────────
 const BD_DIVISIONS = ['Dhaka','Chattogram','Rajshahi','Khulna','Barishal','Sylhet','Rangpur','Mymensingh'];
 const BD_DISTRICTS: Record<string, string[]> = {
   Dhaka:      ['Dhaka','Faridpur','Gazipur','Gopalganj','Kishoreganj','Madaripur','Manikganj','Munshiganj','Narayanganj','Narsingdi','Rajbari','Shariatpur','Tangail'],
@@ -30,1574 +26,1206 @@ const BD_DISTRICTS: Record<string, string[]> = {
   Mymensingh: ['Jamalpur','Mymensingh','Netrokona','Sherpur'],
 };
 const BD_AREAS: Record<string, string[]> = {
-  // Dhaka Division
-  Dhaka:          ['Adabor','Agargaon','Ainusbag (Dakshinkhan)','Ashkona','Askona Airport Road','Azimpur','Badda (Middle Badda)','Badda (Merul Badda)','Badda (North Badda)','Badda (South Badda)','Baigertek (Mirpur)','Bailey Road','Banani (Block A)','Banani (Block B to K)','Banani DOHS','Banga Bazar','Bangabandhu Avenue','Bangshal','Baridhara DOHS','Baridhara J-Block','Basabo','Bashundhara R/A (Block A-C)','Bashundhara R/A (Block D-I)','Bashundhara R/A (Block J-N)','Begum Bazar','Bijoynagar','Bongo Bhaban Area','Bosila (Mohammadpur)','Cantonment','Chawkbazar','Chankarpul','Dakshinkhan','Darussalam','Dayaganj','Demra','Dhamrai','Dhania','Dhanmondi (Road 1 to 15)','Dhanmondi (Road 16 to 32)','Dhakeshwari','Dholaikhal','Dholaipar','Dohar','Elephant Road','Eskaton (New Eskaton)','Eskaton (Old Eskaton)','Fakirapul','Farmgate','Fayedabad','Gabtoli','Gendaria','Golartek (Mirpur)','Gudaraghat (Badda)','Gulshan 1','Gulshan 2','Gulistan','Hajipara (Rampura)','Hatirjheel Area','Hazaribagh','High Court Area','Ibrahimpur (Kafrul)','Imamganj','Islampur','Jatrabari','Jhilpar (Shahjadpur)','Jigatola','Jurain','Kafrul','Kajla','Kakrail','Kalabagan','Kallayanpur','Kalshi (Mirpur)','Kamalapur','Kaptan Bazar','Kawla','Kellar Mor (Lalbagh)','Keraniganj (Abdullahpur)','Keraniganj (Hasnabad)','Keraniganj (Jinjira)','Keraniganj (Kadamtoli)','Keraniganj (Rohitpur)','Khilgaon (Block A-C)','Khilgaon (Tazmahal Road)','Khilkhet','Kochukhet','Kotwali','Kuril','Lalbagh','Lalmatia','Laxmibazar','Madartek','Malibagh','Maniknagar','Matuail','Midford','Middle Para (Khilkhet)','Mirpur 1','Mirpur 2','Mirpur 6','Mirpur 7','Mirpur 10','Mirpur 11','Mirpur 12','Mirpur 13','Mirpur 14','Mirpur DOHS','Mirpur Section 11.5','Mirpur Zoo Road','Moghbazar','Mohammadpur (Asad Avenue)','Mohammadpur (Housing)','Mohammadpur (Japan Garden)','Mohammadpur (Town Hall)','Monipur (60-Feet)','Monipuripara','Motijheel','Mouchak','Mugda','Naddapara','Narinda','Naya Bazar','Naya Paltan','Nawabganj','Nawabpur','New Market','Niketon','Nikunja 1','Nikunja 2','Nilkhet','Paikpara (Mirpur)','Palashi','Pallabi','Panthapath','Postogola','Press Club','Purana Paltan','Puran Dhaka (General)','Rajarbagh','Rajendrapur (Keraniganj)','Rampura','Rayer Bazar','Rayerbagh','Rupnagar (Mirpur)','Sabujbagh','Sadarghat','Sayedabad','Sector 1 (Uttara)','Sector 3 (Uttara)','Sector 4 (Uttara)','Sector 5 (Uttara)','Sector 6 (Uttara)','Sector 7 (Uttara)','Sector 9 (Uttara)','Sector 10 (Uttara)','Sector 11 (Uttara)','Sector 12 (Uttara)','Sector 13 (Uttara)','Sector 14 (Uttara)','Shahbagh','Shahjahanpur','Shantinagar','Shere Bangla Nagar','Shewra (Kuril)','Shewrapara (East)','Shewrapara (West)','Shiddheswari','Shonir Akhra','Shyampur','Siddique Bazar','Subidbazar','Sutrapur','Taltola (Agargaon)','Tatibazar','Tejgaon Industrial Area','Tejkunipara','Tikatuly','Tipu Sultan Road','Tolna (Khilkhet)','Uttara Model Town','Uttarkhan','Uttar Para (Khilkhet)','Vasantek','Wari','Zigatola','Ashulia','Birulia','DEPZ (Savar)','Jirabo','Nabinagar','Savar Sadar','Savar Cantonment'],
-  Faridpur:       ['Alfadanga','Bhanga','Boalmari','Charbhadrasan','Faridpur Sadar','Madhukhali','Nagarkanda','Sadarpur','Saltha'],
-  Gazipur:        ['Board Bazar','Chandra','Cherag Ali','Chowrasta','Gacha','Gazipur Sadar','Kaliakair','Kaliganj','Kapasia','Konabari','Mawna','Mouchak','Pubail','Safipur','Shibbari','Sreepur','Tongi (East)','Tongi (West)'],
-  Gopalganj:      ['Gopalganj Sadar','Kashiani','Kotalipara','Muksudpur','Tungipara'],
-  Kishoreganj:    ['Austagram','Bajitpur','Bhairab','Hossainpur','Itna','Karimganj','Katiadi','Kishoreganj Sadar','Kuliarchar','Mithamain','Nikli','Pakundia','Tarail'],
-  Madaripur:      ['Kalkini','Madaripur Sadar','Rajoir','Shibchar'],
-  Manikganj:      ['Daulatpur','Ghior','Harirampur','Manikganj Sadar','Saturia','Shibalaya','Singair'],
-  Munshiganj:     ['Gajaria','Hasara','Louhajang','Mawa','Muktarpur','Munshiganj Sadar','Sirajdikhan','Sreenagar','Tongibari'],
-  Narayanganj:    ['Araihazar','Bandar','Chashara','Fatullah','Gauchhia','Gopaldi','Kanchpur','Madanpur','Mandalpara','Narayanganj Sadar','Nitaiaganj','Purbachal','Rupganj','Shiddhirganj','Sonargaon'],
-  Narsingdi:      ['Belabo','Ghorashal','Madhabdi','Monohardi','Narsingdi Sadar','Palash','Raipura','Shekherchar','Shibpur'],
-  Rajbari:        ['Baliakandi','Goalanda','Kalukhali','Pangsha','Rajbari Sadar'],
-  Shariatpur:     ['Bhedarganj','Damudya','Gosairhat','Naria','Shariatpur Sadar','Zanjira'],
-  Tangail:        ['Basail','Bhuapur','Delduar','Dhanbari','Elenga','Ghatail','Gopalpur','Gorai','Kalihati','Madhupur','Mirzapur','Nagarpur','Sakhipur','Tangail Sadar'],
-  // Chattogram Division
-  Bandarban:      ['Alikadam','Bandarban Sadar','Lama'],
-  Brahmanbaria:   ['Akhaura','Ashuganj','Bancharampur','Bijoynagar','Brahmanbaria Sadar','Kasba','Nabinagar','Nasirnagar','Sarail'],
-  Chandpur:       ['Chandpur Sadar','Faridganj','Haimchar','Hajiganj','Kachua','Matlab North','Matlab South','Puranbazar','Shahrasti'],
-  Chattogram:     ['Agrabad','Akbar Shah','Anwara','Baizid Bostami','Bakalia','Bandar','Banshkhali','Baraiyarhat','Bhatiari','Boalkhali','Chandanaish','Chandgaon','Chawkbazar','Choudhury Hat','Dewanhart','Dohazari','Double Mooring','EPZ','GEC Circle','Halishahar','Hathazari','Khulshi','Kotwali','Kumira','Lalkhan Bazar','Lohagara','Madarbari','Mirsharai','Nasirabad','Pahartali','Panchlaish','Patenga','Patiya','Rangunia','Raozan','Sandwip','Satkania','Sitakunda'],
-  Cumilla:        ['Barura','Brahmanpara','Burichang','Chandina','Chauddagram','Cumilla EPZ','Cumilla Sadar','Cumilla Sadar South','Daudkandi','Debidwar','Homna','Kandirpar','Laksam','Meghna','Monohargonj','Muradnagar','Nangalkot','Paduar Bazar','Shasongachha','Titas'],
-  "Cox's Bazar":  ['Chakaria',"Cox's Bazar Sadar",'Kolatoli','Kutubdia','Link Road','Maheshkhali','Pekua','Ramu','Teknaf','Ukhia'],
-  Feni:           ['Chhagalnaiya','Daganbhuiyan','Feni Sadar','Fulgazi','Parshuram','Sonagazi','Trunk Road'],
-  Khagrachhari:   ['Khagrachhari Sadar','Matiranga','Ramgarh'],
-  Lakshmipur:     ['Kamalnagar','Lakshmipur Sadar','Raipur','Ramganj','Ramgati'],
-  Noakhali:       ['Begumganj (Chowmuhani)','Bosurhat','Chatkhil','Companiganj','Hatiya','Kabirhat','Maijdee (Noakhali Sadar)','Senbagh','Sonaimuri','Subarnachar'],
-  Rangamati:      ['Kaptai','Kaukhali','Rangamati Sadar'],
-  // Rajshahi Division
-  Bogra:          ['Adamdighi','Banani (Bogra)','Bogra Sadar','Dhunat','Dupchanchia','Gabtali','Joleshoritola','Kahaloo','Nandigram','Santahar','Sariakandi','Satmatha','Shajahanpur','Sherpur','Shibganj','Sonatala'],
-  Chapainawabganj:['Bholahat','Chapainawabganj Sadar','Gomastapur','Kansat','Nachole','Shibganj'],
-  Joypurhat:      ['Akkelpur','Joypurhat Sadar','Kalai','Khetlal','Panchbibi'],
-  Naogaon:        ['Atrai','Badalgachhi','Dhamoirhat','Mahadevpur','Manda','Naogaon Sadar','Niamatpur','Patnitala','Porsha','Raninagar','Sapahar'],
-  Natore:         ['Bagatipara','Baraigram','Bonpara','Gurudaspur','Lalpur','Naldanga','Natore Sadar','Singra'],
-  Pabna:          ['Atgharia','Bera','Bhangoora','Chatmohar','Faridpur','Ishwardi','Pabna Sadar','Rooppur','Santhia','Sujanagar'],
-  Rajshahi:       ['Bagha','Bagmara','Bhabaniganj','Binodpur','Charghat','Durgapur','Godagari','Kazla','Mohanpur','New Market (Rajshahi)','Paba','Puthia','Rajshahi City Center','Saheb Bazar','Tanore','Uposhahar'],
-  Sirajganj:      ['Belkuchi','Chouhali','Enayetpur','Kamarkhanda','Kazipur','Raiganj','Shahjadpur','Sirajganj Sadar','Tarash','Ullahpara'],
-  // Khulna Division
-  Bagerhat:       ['Bagerhat Sadar','Chitalmari','Fakirhat','Kachua','Mollahat','Mongla','Morrelganj','Rampal','Sharankhola'],
-  Chuadanga:      ['Alamdanga','Chuadanga Sadar','Damurhuda','Darshana','Jibannagar'],
-  Jashore:        ['Abhaynagar (Nawapara)','Bagherpara','Benapole','Chanchra','Chaugachha','Jashore Sadar','Jhikargachha','Keshabpur','Manirampur','Palbari','Sharsha'],
-  Jhenaidah:      ['Harinakunda','Jhenaidah Sadar','Kaliganj','Kotchandpur','Maheshpur','Shailkupa'],
-  Khulna:         ['Batiaghata','Boyra','Chalna','Dacope','Daulatpur','Dighalia','Dumuria','Khalishpur','Khulna City Center','Koyra','Paikgachha','Phultala','Rupsha','Shibbari','Terokhada'],
-  Kushtia:        ['Bheramara','Chourhas','Daulatpur','Khoksa','Kumarkhali','Kushtia Sadar','Mirpur'],
-  Magura:         ['Magura Sadar','Mohammadpur','Shalikha','Sreepur'],
-  Meherpur:       ['Gangni','Meherpur Sadar','Mujibnagar'],
-  Narail:         ['Kalia','Lohagara','Narail Sadar'],
-  Satkhira:       ['Assasuni','Debhata','Kalaroa','Kaliganj','Satkhira Sadar','Shyamnagar','Tala'],
-  // Barishal Division
-  Barguna:        ['Amtali','Bamna','Barguna Sadar','Betagi','Patharghata','Taltali'],
-  Barishal:       ['Agailjhara','Babuganj','Bakerganj','Banaripara','Barishal City Center','Gournadi','Hijla','Mehendiganj','Muladi','Nathullabad','Rupatali','Uzirpur'],
-  Bhola:          ['Baborhanuddin','Bhola Sadar','Char Fasson','Daulatkhan','Lalmohan','Manpura','Tazumuddin'],
-  Jhalokathi:     ['Jhalokathi Sadar','Kathalia','Nalchity','Rajapur'],
-  Patuakhali:     ['Bauphal','Dashmina','Dumki','Galachipa','Kalapara (Kuakata)','Mirzaganj','Patuakhali Sadar','Rangabali'],
-  Pirojpur:       ['Bhandaria','Kawkhali','Mathbaria','Nazirpur','Nesarabad (Swarupkathi)','Pirojpur Sadar','Zianagar'],
-  // Sylhet Division
-  Habiganj:       ['Ajmiriganj','Bahubal','Baniyachong','Chunarughat','Habiganj Sadar','Lakhai','Madhabpur','Nabiganj','Shayestaganj'],
-  Moulvibazar:    ['Barlekha','Juri','Kamalganj','Kulaura','Moulvibazar Sadar','Rajnagar','Sreemangal'],
-  Sunamganj:      ['Chhatak','Dharmapasha','Dowarabazar','Jagannathpur','Jamalganj','Shalai','South Sunamganj','Sunamganj Sadar','Tahirpur'],
-  Sylhet:         ['Balaganj','Beani Bazar','Bishwanath','Chowhatta','Companiganj','Fenchuganj','Golapganj','Gowainghat','Jaintiapur','Jindabazar','Kanaighat','Osmani Nagar','South Surma','Sylhet City Center','Tilagarh','Uposhahar','Zakiganj'],
-  // Rangpur Division
-  Dinajpur:       ['Biral','Birampur','Birganj','Bochaganj','Chirirbandar','Dinajpur Sadar','Ghoraghat','Hakimpur (Hili)','Kaharole','Khansama','Nawabganj','Parbatipur','Phulbari'],
-  Gaibandha:      ['Fulchhari','Gaibandha Sadar','Gobindaganj','Palashbari','Sadullapur','Saghata','Sundarganj'],
-  Kurigram:       ['Bhurungamari','Char Rajibpur','Chilmari','Kurigram Sadar','Nageshwari','Phulbari','Rajarhat','Roumari','Ulipur'],
-  Lalmonirhat:    ['Aditmari','Burimari','Hatibandha','Kaliganj','Lalmonirhat Sadar','Patgram'],
-  Nilphamari:     ['Dimla','Domar','Jaldhaka','Kishoreganj','Nilphamari Sadar','Saidpur'],
-  Panchagarh:     ['Atwari','Banglabandha','Boda','Debiganj','Panchagarh Sadar','Tetulia'],
-  Rangpur:        ['Badarganj','Gangachhara','Kaunia','Lalbagh (Rangpur)','Mithapukur','Pirgachha','Pirganj','Rangpur City Center','Shapla Chottor','Taraganj'],
-  Thakurgaon:     ['Baliadangi','Haripur','Pirganj','Ranisankail','Thakurgaon Sadar'],
-  // Mymensingh Division
-  Jamalpur:       ['Baksiganj','Dewanganj','Islampur','Jamalpur Sadar','Madarganj','Melandohn','Sarishabari'],
-  Mymensingh:     ['Bhaluka','Dhobaura','Fulbaria','Gafargaon','Ganginar Paar','Gauripur','Haluaghat','Ishwarganj','Maskanda','Muktagachha','Mymensingh Sadar','Nandail','Phulpur','Seedstore','Square Masterbari','Tarakanda','Town Hall Area','Trishal'],
-  Netrokona:      ['Atpara','Barhatta','Durgapur','Kalmakanda','Kendua','Khaliajuri','Madan','Mohanganj','Netrokona Sadar','Purbadhala'],
-  Sherpur:        ['Jhenaigati','Nakla','Nalitabari','Sherpur Sadar','Sreebardi'],
+  Dhaka: ['Adabor','Agargaon','Ashkona','Azimpur','Badda (Middle Badda)','Badda (North Badda)','Badda (South Badda)','Bailey Road','Banani (Block A)','Banani (Block B to K)','Banani DOHS','Banga Bazar','Bangabandhu Avenue','Bangshal','Baridhara DOHS','Baridhara J-Block','Basabo','Bashundhara R/A (Block A-C)','Bashundhara R/A (Block D-I)','Bashundhara R/A (Block J-N)','Begum Bazar','Bijoynagar','Cantonment','Chawkbazar','Dakshinkhan','Darussalam','Demra','Dhamrai','Dhanmondi (Road 1 to 15)','Dhanmondi (Road 16 to 32)','Dohar','Elephant Road','Farmgate','Gabtoli','Gendaria','Gulshan 1','Gulshan 2','Gulistan','Hazaribagh','Ibrahimpur (Kafrul)','Jatrabari','Kafrul','Kalabagan','Kallayanpur','Kamalapur','Kawla','Keraniganj (Abdullahpur)','Keraniganj (Hasnabad)','Keraniganj (Jinjira)','Keraniganj (Rohitpur)','Khilgaon (Block A-C)','Khilkhet','Lalbagh','Lalmatia','Malibagh','Maniknagar','Matuail','Mirpur 1','Mirpur 2','Mirpur 6','Mirpur 7','Mirpur 10','Mirpur 11','Mirpur 12','Mirpur 13','Mirpur 14','Mirpur DOHS','Moghbazar','Mohammadpur (Asad Avenue)','Mohammadpur (Housing)','Motijheel','Mugda','Naya Paltan','New Market','Niketon','Nikunja 1','Nikunja 2','Pallabi','Panthapath','Purana Paltan','Rampura','Rupnagar (Mirpur)','Sabujbagh','Sadarghat','Sector 1 (Uttara)','Sector 3 (Uttara)','Sector 4 (Uttara)','Sector 5 (Uttara)','Sector 6 (Uttara)','Sector 7 (Uttara)','Sector 9 (Uttara)','Sector 10 (Uttara)','Sector 11 (Uttara)','Sector 12 (Uttara)','Sector 13 (Uttara)','Sector 14 (Uttara)','Shahbagh','Shantinagar','Shewrapara (East)','Shewrapara (West)','Tejgaon Industrial Area','Tejkunipara','Uttara Model Town','Uttarkhan','Wari','Ashulia','DEPZ (Savar)','Savar Sadar'],
+  Faridpur: ['Alfadanga','Bhanga','Boalmari','Charbhadrasan','Faridpur Sadar','Madhukhali','Nagarkanda','Sadarpur','Saltha'],
+  Gazipur: ['Board Bazar','Chandra','Chowrasta','Gazipur Sadar','Kaliakair','Kaliganj','Kapasia','Konabari','Mawna','Pubail','Safipur','Sreepur','Tongi (East)','Tongi (West)'],
+  Gopalganj: ['Gopalganj Sadar','Kashiani','Kotalipara','Muksudpur','Tungipara'],
+  Kishoreganj: ['Austagram','Bajitpur','Bhairab','Hossainpur','Itna','Karimganj','Katiadi','Kishoreganj Sadar','Kuliarchar','Mithamain','Nikli','Pakundia','Tarail'],
+  Madaripur: ['Kalkini','Madaripur Sadar','Rajoir','Shibchar'],
+  Manikganj: ['Daulatpur','Ghior','Harirampur','Manikganj Sadar','Saturia','Shibalaya','Singair'],
+  Munshiganj: ['Gajaria','Louhajang','Mawa','Munshiganj Sadar','Sirajdikhan','Sreenagar','Tongibari'],
+  Narayanganj: ['Araihazar','Bandar','Fatullah','Kanchpur','Narayanganj Sadar','Purbachal','Rupganj','Shiddhirganj','Sonargaon'],
+  Narsingdi: ['Belabo','Ghorashal','Madhabdi','Monohardi','Narsingdi Sadar','Palash','Raipura','Shibpur'],
+  Rajbari: ['Baliakandi','Goalanda','Kalukhali','Pangsha','Rajbari Sadar'],
+  Shariatpur: ['Bhedarganj','Damudya','Gosairhat','Naria','Shariatpur Sadar','Zanjira'],
+  Tangail: ['Basail','Bhuapur','Delduar','Dhanbari','Elenga','Ghatail','Gopalpur','Kalihati','Madhupur','Mirzapur','Nagarpur','Sakhipur','Tangail Sadar'],
+  Bandarban: ['Alikadam','Bandarban Sadar','Lama'],
+  Brahmanbaria: ['Akhaura','Ashuganj','Bancharampur','Brahmanbaria Sadar','Kasba','Nabinagar','Nasirnagar','Sarail'],
+  Chandpur: ['Chandpur Sadar','Faridganj','Haimchar','Hajiganj','Kachua','Matlab North','Matlab South','Shahrasti'],
+  Chattogram: ['Agrabad','Akbar Shah','Anwara','Baizid Bostami','Bakalia','Bandar','Banshkhali','Boalkhali','Chandanaish','Chandgaon','Chawkbazar','Dohazari','Double Mooring','EPZ','GEC Circle','Halishahar','Hathazari','Khulshi','Kotwali','Kumira','Lalkhan Bazar','Lohagara','Mirsharai','Nasirabad','Pahartali','Panchlaish','Patenga','Patiya','Rangunia','Raozan','Sandwip','Satkania','Sitakunda'],
+  Cumilla: ['Barura','Brahmanpara','Burichang','Chandina','Chauddagram','Cumilla Sadar','Daudkandi','Debidwar','Homna','Kandirpar','Laksam','Meghna','Muradnagar','Nangalkot','Titas'],
+  "Cox's Bazar": ['Chakaria',"Cox's Bazar Sadar",'Kolatoli','Kutubdia','Maheshkhali','Pekua','Ramu','Teknaf','Ukhia'],
+  Feni: ['Chhagalnaiya','Daganbhuiyan','Feni Sadar','Fulgazi','Parshuram','Sonagazi'],
+  Khagrachhari: ['Khagrachhari Sadar','Matiranga','Ramgarh'],
+  Lakshmipur: ['Kamalnagar','Lakshmipur Sadar','Raipur','Ramganj','Ramgati'],
+  Noakhali: ['Begumganj (Chowmuhani)','Bosurhat','Chatkhil','Companiganj','Hatiya','Kabirhat','Maijdee (Noakhali Sadar)','Senbagh','Sonaimuri','Subarnachar'],
+  Rangamati: ['Kaptai','Kaukhali','Rangamati Sadar'],
+  Bogra: ['Adamdighi','Bogra Sadar','Dhunat','Dupchanchia','Gabtali','Kahaloo','Nandigram','Santahar','Sariakandi','Shajahanpur','Sherpur','Shibganj','Sonatala'],
+  Chapainawabganj: ['Bholahat','Chapainawabganj Sadar','Gomastapur','Kansat','Nachole','Shibganj'],
+  Joypurhat: ['Akkelpur','Joypurhat Sadar','Kalai','Khetlal','Panchbibi'],
+  Naogaon: ['Atrai','Badalgachhi','Dhamoirhat','Mahadevpur','Manda','Naogaon Sadar','Niamatpur','Patnitala','Porsha','Raninagar','Sapahar'],
+  Natore: ['Bagatipara','Baraigram','Bonpara','Gurudaspur','Lalpur','Naldanga','Natore Sadar','Singra'],
+  Pabna: ['Atgharia','Bera','Bhangoora','Chatmohar','Faridpur (Pabna)','Ishwardi','Pabna Sadar','Santhia','Sujanagar'],
+  Rajshahi: ['Bagha','Bagmara','Charghat','Durgapur','Godagari','Kazla','Mohanpur','Paba','Puthia','Rajshahi City Center','Saheb Bazar','Tanore'],
+  Sirajganj: ['Belkuchi','Chouhali','Enayetpur','Kamarkhanda','Kazipur','Raiganj','Shahjadpur','Sirajganj Sadar','Tarash','Ullahpara'],
+  Bagerhat: ['Bagerhat Sadar','Chitalmari','Fakirhat','Kachua (Bagerhat)','Mollahat','Mongla','Morrelganj','Rampal','Sharankhola'],
+  Chuadanga: ['Alamdanga','Chuadanga Sadar','Damurhuda','Darshana','Jibannagar'],
+  Jashore: ['Abhaynagar (Nawapara)','Bagherpara','Benapole','Chaugachha','Jashore Sadar','Jhikargachha','Keshabpur','Manirampur','Sharsha'],
+  Jhenaidah: ['Harinakunda','Jhenaidah Sadar','Kaliganj (Jhenaidah)','Kotchandpur','Maheshpur','Shailkupa'],
+  Khulna: ['Batiaghata','Boyra','Chalna','Dacope','Daulatpur (Khulna)','Dighalia','Dumuria','Khalishpur','Khulna City Center','Koyra','Paikgachha','Phultala','Rupsha'],
+  Kushtia: ['Bheramara','Daulatpur (Kushtia)','Khoksa','Kumarkhali','Kushtia Sadar','Mirpur (Kushtia)'],
+  Magura: ['Magura Sadar','Mohammadpur (Magura)','Shalikha','Sreepur (Magura)'],
+  Meherpur: ['Gangni','Meherpur Sadar','Mujibnagar'],
+  Narail: ['Kalia','Lohagara (Narail)','Narail Sadar'],
+  Satkhira: ['Assasuni','Debhata','Kalaroa','Kaliganj (Satkhira)','Satkhira Sadar','Shyamnagar','Tala'],
+  Barguna: ['Amtali','Bamna','Barguna Sadar','Betagi','Patharghata','Taltali'],
+  Barishal: ['Agailjhara','Babuganj','Bakerganj','Banaripara','Barishal City Center','Gournadi','Hijla','Mehendiganj','Muladi','Uzirpur'],
+  Bhola: ['Baborhanuddin','Bhola Sadar','Char Fasson','Daulatkhan','Lalmohan','Manpura','Tazumuddin'],
+  Jhalokathi: ['Jhalokathi Sadar','Kathalia','Nalchity','Rajapur'],
+  Patuakhali: ['Bauphal','Dashmina','Dumki','Galachipa','Kalapara (Kuakata)','Mirzaganj','Patuakhali Sadar','Rangabali'],
+  Pirojpur: ['Bhandaria','Kawkhali','Mathbaria','Nazirpur','Nesarabad (Swarupkathi)','Pirojpur Sadar','Zianagar'],
+  Habiganj: ['Ajmiriganj','Bahubal','Baniyachong','Chunarughat','Habiganj Sadar','Lakhai','Madhabpur','Nabiganj','Shayestaganj'],
+  Moulvibazar: ['Barlekha','Juri','Kamalganj','Kulaura','Moulvibazar Sadar','Rajnagar','Sreemangal'],
+  Sunamganj: ['Chhatak','Dharmapasha','Dowarabazar','Jagannathpur','Jamalganj','South Sunamganj','Sunamganj Sadar','Tahirpur'],
+  Sylhet: ['Balaganj','Beani Bazar','Bishwanath','Chowhatta','Companiganj (Sylhet)','Fenchuganj','Golapganj','Gowainghat','Jaintiapur','Kanaighat','Osmani Nagar','South Surma','Sylhet City Center','Zakiganj'],
+  Dinajpur: ['Biral','Birampur','Birganj','Bochaganj','Chirirbandar','Dinajpur Sadar','Ghoraghat','Hakimpur (Hili)','Kaharole','Khansama','Nawabganj (Dinajpur)','Parbatipur','Phulbari (Dinajpur)'],
+  Gaibandha: ['Fulchhari','Gaibandha Sadar','Gobindaganj','Palashbari','Sadullapur','Saghata','Sundarganj'],
+  Kurigram: ['Bhurungamari','Char Rajibpur','Chilmari','Kurigram Sadar','Nageshwari','Phulbari (Kurigram)','Rajarhat','Roumari','Ulipur'],
+  Lalmonirhat: ['Aditmari','Burimari','Hatibandha','Kaliganj (Lalmonirhat)','Lalmonirhat Sadar','Patgram'],
+  Nilphamari: ['Dimla','Domar','Jaldhaka','Kishoreganj (Nilphamari)','Nilphamari Sadar','Saidpur'],
+  Panchagarh: ['Atwari','Banglabandha','Boda','Debiganj','Panchagarh Sadar','Tetulia'],
+  Rangpur: ['Badarganj','Gangachhara','Kaunia','Mithapukur','Pirgachha','Pirganj (Rangpur)','Rangpur City Center','Taraganj'],
+  Thakurgaon: ['Baliadangi','Haripur','Pirganj (Thakurgaon)','Ranisankail','Thakurgaon Sadar'],
+  Jamalpur: ['Baksiganj','Dewanganj','Islampur','Jamalpur Sadar','Madarganj','Melandohn','Sarishabari'],
+  Mymensingh: ['Bhaluka','Dhobaura','Fulbaria','Gafargaon','Gauripur','Haluaghat','Ishwarganj','Muktagachha','Mymensingh Sadar','Nandail','Phulpur','Trishal'],
+  Netrokona: ['Atpara','Barhatta','Durgapur (Netrokona)','Kalmakanda','Kendua','Khaliajuri','Madan','Mohanganj','Netrokona Sadar','Purbadhala'],
+  Sherpur: ['Jhenaigati','Nakla','Nalitabari','Sherpur Sadar','Sreebardi'],
 };
-
-// Count total areas
-const BD_TOTAL_AREAS = Object.values(BD_AREAS).reduce((s, a) => s + a.length, 0);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface RateGroup { id: string; store: string; name: string; base: number; additional: number; weightSlabs?: string; }
-interface Assignment { key: string; store: string; division: string; district: string; area: string; areaId: string; groupId: string; groupName?: string; baseOverride?: number | null; additionalOverride?: number | null; weightSlabsOverride?: string | null; }
-interface Shipment {
-  _id: string; shipmentNumber: string; orderId: string | number; sourceType: string; sourceLabel: string;
-  status: string; courierName: string; trackingNumber: string; estimatedDaysMin: number; estimatedDaysMax: number;
-  deliveryCharge: number; totalWeightKg: number; deliveredAt: string; createdAt: string; items?: any[]; trackingEvents?: any[];
-}
-interface Courier { _id: string; name: string; }
-interface GroceryArea { _id: string; name: string; nameBn: string; isActive: boolean; }
-interface GroceryDistrict { _id: string; name: string; nameBn: string; isActive: boolean; areas: GroceryArea[]; }
-interface ShippingPolicy {
-  _id: string; sourceType: string; divisionId: number; districtId: number; areaName: string;
-  isInsideCity: boolean; baseWeightKg: number; baseCharge: number; extraChargePerKg: number;
-  estimatedDaysMin: number; estimatedDaysMax: number; freeDeliveryThreshold: number | null; isActive: boolean;
+type Section = 'dashboard' | 'areas' | 'groups' | 'assign' | 'rates' | 'backup';
+
+interface RateGroup {
+  id: string;
+  name: string;
+  base: number;
+  additional: number;
+  weightSlabs?: string;
 }
 
-// ── Status configs ─────────────────────────────────────────────────────────────
-const SHIPPING_STATUS: Record<string, { label: string; className: string }> = {
-  confirmed:        { label: 'Confirmed',        className: 'bg-blue-500/20 text-blue-400' },
-  processing:       { label: 'Processing',       className: 'bg-primary/20 text-primary' },
-  shipped:          { label: 'Shipped',          className: 'bg-chart-4/20 text-chart-4' },
-  out_for_delivery: { label: 'Out for Delivery', className: 'bg-cyan-500/20 text-cyan-400' },
-  delivered:        { label: 'Delivered',        className: 'bg-success/20 text-success' },
-};
-const SHIPMENT_STATUS: Record<string, { label: string; className: string }> = {
-  pending:          { label: 'Pending',          className: 'bg-warning/20 text-warning' },
-  confirmed:        { label: 'Confirmed',        className: 'bg-blue-500/20 text-blue-400' },
-  processing:       { label: 'Processing',       className: 'bg-chart-1/20 text-chart-1' },
-  ready_for_pickup: { label: 'Ready for Pickup', className: 'bg-chart-4/20 text-chart-4' },
-  picked_up:        { label: 'Picked Up',        className: 'bg-chart-3/20 text-chart-3' },
-  in_transit:       { label: 'In Transit',       className: 'bg-chart-2/20 text-chart-2' },
-  out_for_delivery: { label: 'Out for Delivery', className: 'bg-cyan-500/20 text-cyan-400' },
-  delivered:        { label: 'Delivered',        className: 'bg-success/20 text-success' },
-  failed_delivery:  { label: 'Failed Delivery',  className: 'bg-destructive/20 text-destructive' },
-  returned:         { label: 'Returned',         className: 'bg-muted text-muted-foreground' },
-  cancelled:        { label: 'Cancelled',        className: 'bg-muted text-muted-foreground' },
+interface Assignment {
+  key: string;
+  division: string;
+  district: string;
+  area: string;
+  groupId: string;
+  groupName?: string;
+  baseOverride?: number | null;
+  additionalOverride?: number | null;
+  weightSlabsOverride?: string | null;
+}
+
+interface AreaStatus {
+  key: string;
+  status: 'Enable' | 'Disable';
+}
+
+interface CustomArea {
+  key: string;
+  division: string;
+  district: string;
+  area: string;
+}
+
+interface AreaEntry {
+  division: string;
+  district: string;
+  area: string;
+  key: string;
+  isCustom: boolean;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const MAX_RATE_GROUPS = 17;
+const VALID_SECTIONS: Section[] = ['dashboard','areas','groups','assign','rates','backup'];
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard',   Icon: LayoutDashboard },
+  { id: 'areas',     label: 'Delivery Areas', Icon: MapPin },
+  { id: 'groups',    label: 'Rate Groups',    Icon: Activity },
+  { id: 'assign',    label: 'Area Assignment',Icon: Truck },
+  { id: 'rates',     label: 'Zone Rates',     Icon: DollarSign },
+  { id: 'backup',    label: 'Data Backup',    Icon: Database },
+];
+
+// Design tokens
+const C = {
+  primary:    '#5d0096',
+  sidebar:    '#24152b',
+  sidebarFg:  '#f7f2f9',
+  sidebarMuted:'#cdc0d4',
+  sidebarActive:'#392246',
+  primaryLight:'#d9b2f0',
+  bg:         '#faf9fb',
+  card:       '#ffffff',
+  border:     '#ded9e2',
+  muted:      '#f3f1f4',
+  mutedFg:    '#635d66',
+  fg:         '#201d23',
+  secondary:  '#f2eaf6',
+  secondaryFg:'#4a1765',
+  success:    '#5d0096',
+  orange:     '#a5211c',
+  orangeSoft: '#fce8e4',
+  destructive:'#d31710',
+  softBorder: 'rgba(255,255,255,0.09)',
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-const mkGroupId  = (name: string) => `${slugify('main')}_${slugify(name)}_${Date.now()}`;
-const mkAssignKey = (div: string, dist: string, area: string) =>
-  `main|${div}|${dist}|${area}`.replace(/\s+/g, '_');
+function createId() { return Math.random().toString(36).slice(2, 10); }
 
-type Tab = 'shipments' | 'orders' | 'rate-groups' | 'assignments' | 'areas' | 'assigned-rates' | 'methods' | 'grocery' | 'policies';
-const VALID_TABS: Tab[] = ['shipments','orders','rate-groups','assignments','areas','assigned-rates','methods','grocery','policies'];
+function areaKey(div: string, dist: string, area: string) {
+  return `${div}|${dist}|${area}`;
+}
 
-export default function Shipping() {
-  const { t } = useLanguage();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab: Tab = VALID_TABS.includes(searchParams.get('tab') as Tab) ? searchParams.get('tab') as Tab : 'shipments';
-  const setTab = (id: Tab) => setSearchParams({ tab: id }, { replace: false });
-
-  // ── Shipping Orders (old system) ──────────────────────────────────────────
-  const [stats, setStats]       = useState<ShippingStats | null>(null);
-  const [orders, setOrders]     = useState<ShippingOrder[]>([]);
-  const [areas, setAreas]       = useState<DeliveryArea[]>([]);
-  const [methods, setMethods]   = useState<ShippingMethod[]>([]);
-  const [search, setSearch]     = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [areaDialogOpen, setAreaDialogOpen]     = useState(false);
-  const [editingArea, setEditingArea]           = useState<DeliveryArea | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', city: '', deliveryCharge: 0, freeDeliveryThreshold: 0, estimatedDeliveryDays: 1, postalCodes: '' });
-  const [methodDialogOpen, setMethodDialogOpen] = useState(false);
-  const [editingMethod, setEditingMethod]       = useState<ShippingMethod | null>(null);
-  const [methodForm, setMethodForm] = useState({ name: '', type: 'flat' as ShippingMethod['type'], baseCharge: 0, freeThreshold: 0, isActive: true });
-
-  // ── Shipments (full tracking) ──────────────────────────────────────────────
-  const [shipments, setShipments]   = useState<Shipment[]>([]);
-  const [couriers, setCouriers]     = useState<Courier[]>([]);
-  const [shipSearch, setShipSearch] = useState('');
-  const [shipStatus, setShipStatus] = useState('all');
-  const [shipPage, setShipPage]     = useState(1);
-  const [shipTotal, setShipTotal]   = useState(0);
-  const [viewShipment, setViewShipment] = useState<Shipment | null>(null);
-  const [viewOpen, setViewOpen]         = useState(false);
-  const [updateOpen, setUpdateOpen]     = useState(false);
-  const [updateShipment, setUpdateShipment] = useState<Shipment | null>(null);
-  const [updateForm, setUpdateForm] = useState({ status: '', courier_id: '', courier_name: '', tracking_number: '', description: '' });
-
-  // ── Rate Groups ────────────────────────────────────────────────────────────
-  const [groups, setGroups]         = useState<RateGroup[]>([]);
-  const [groupsSaving, setGroupsSaving] = useState(false);
-  const [newGroup, setNewGroup]     = useState({ name: '', base: '', additional: '', slabs: '', store: 'Dhaka' });
-
-  // ── Fee Preview ────────────────────────────────────────────────────────────
-  const [prevDiv, setPrevDiv]   = useState('');
-  const [prevDist, setPrevDist] = useState('');
-  const [prevArea, setPrevArea] = useState('');
-  const [prevResult, setPrevResult] = useState<{ charge: number; matched: boolean; groupName?: string } | null>(null);
-  const [prevLoading, setPrevLoading] = useState(false);
-
-  // ── Area Assignments ───────────────────────────────────────────────────────
-  const [assignments, setAssignments]   = useState<Assignment[]>([]);
-  const [assignSaving, setAssignSaving] = useState(false);
-  const [selDiv, setSelDiv]   = useState('');
-  const [selDist, setSelDist] = useState('');
-  const [selArea, setSelArea] = useState('');
-  const [selGroup, setSelGroup] = useState('');
-
-  // ── Grocery Coverage ───────────────────────────────────────────────────────
-  const [groceryDistricts, setGroceryDistricts] = useState<GroceryDistrict[]>([]);
-  const [gAreaDialogOpen, setGAreaDialogOpen]   = useState(false);
-  const [gAreaForm, setGAreaForm] = useState({ district_id: '', name: '', name_bn: '' });
-  const [gEditArea, setGEditArea] = useState<(GroceryArea & { districtId: string }) | null>(null);
-
-  // ── Shipping Policies ──────────────────────────────────────────────────────
-  const [policies, setPolicies]             = useState<ShippingPolicy[]>([]);
-  const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
-  const [policyForm, setPolicyForm] = useState({ area_name: '', is_inside_city: false, base_weight_kg: '1', base_charge: '100', extra_charge_per_kg: '30', estimated_days_min: '1', estimated_days_max: '3', free_delivery_threshold: '' });
-  const [editPolicy, setEditPolicy] = useState<ShippingPolicy | null>(null);
-
-  const [loading, setLoading] = useState(false);
-
-  // ── BD Area Management (Delivery Areas tab) ────────────────────────────────
-  const [areaStatuses, setAreaStatuses]       = useState<Record<string, 'Enable' | 'Disable'>>({});
-  const [areaStatusesSaving, setAreaStatusesSaving] = useState(false);
-  const [customAreas, setCustomAreas]         = useState<{ key: string; div: string; dist: string; area: string }[]>([]);
-  const [selBdAreas, setSelBdAreas]           = useState<Set<string>>(new Set());
-  const [areasPage, setAreasPage]             = useState(1);
-  const [areasPageSize, setAreasPageSize]     = useState(25);
-  const [areasSearch, setAreasSearch]         = useState('');
-  const [areasFilterDiv, setAreasFilterDiv]   = useState('');
-  const [areasFilterDist, setAreasFilterDist] = useState('');
-  const [bdAreaFormOpen, setBdAreaFormOpen]   = useState(false);
-  const [bdAreaForm, setBdAreaForm]           = useState({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '', mode: 'area' as 'area' | 'district' });
-  const [areasShowUnassigned, setAreasShowUnassigned] = useState(false);
-
-  // ── Assignment checkbox view state ─────────────────────────────────────────
-  const [assignStore2, setAssignStore2]   = useState('Dhaka');
-  const [assignDiv2, setAssignDiv2]       = useState('');
-  const [assignDist2, setAssignDist2]     = useState('');
-  const [assignGroup2, setAssignGroup2]   = useState('');
-  const [assignSearch2, setAssignSearch2] = useState('');
-
-  // ── Assigned Rates tab filters ─────────────────────────────────────────────
-  const [arStore, setArStore]   = useState('');
-  const [arDiv, setArDiv]       = useState('');
-  const [arDist, setArDist]     = useState('');
-  const [arGroup, setArGroup]   = useState('');
-  const [arSearch, setArSearch] = useState('');
-  const [arPage, setArPage]     = useState(1);
-  const [arPerPage, setArPerPage] = useState(25);
-  const [arSelKeys, setArSelKeys] = useState<Set<string>>(new Set());
-  const [arChangingGroup, setArChangingGroup] = useState<string | null>(null);
-  const [arEditingRateKey, setArEditingRateKey] = useState<string | null>(null);
-  const [arRateForm, setArRateForm] = useState({ base: '', additional: '', slabs: '' });
-  const [arRateSaving, setArRateSaving] = useState(false);
-
-  // ── Load all data ─────────────────────────────────────────────────────────
-  const loadShippingOrders = useCallback(async () => {
-    const [sRes, aRes, oRes, mRes] = await Promise.allSettled([
-      shippingApi.getStats(), shippingApi.getAreas(), shippingApi.getOrders(), shippingApi.getMethods(),
-    ]);
-    if (sRes.status === 'fulfilled') setStats(sRes.value);
-    if (aRes.status === 'fulfilled') setAreas(aRes.value);
-    if (oRes.status === 'fulfilled') setOrders(oRes.value);
-    if (mRes.status === 'fulfilled') setMethods(mRes.value);
-  }, []);
-
-  const loadShipments = useCallback(async () => {
-    const params: any = { page: shipPage, limit: 20 };
-    if (shipStatus !== 'all') params.status = shipStatus;
-    const [sRes, cRes] = await Promise.allSettled([
-      api.get('/shipments', { params }), api.get('/couriers'),
-    ]);
-    if (sRes.status === 'fulfilled') { setShipments(sRes.value.data.shipments || []); setShipTotal(sRes.value.data.total || 0); }
-    if (cRes.status === 'fulfilled') setCouriers(cRes.value.data || []);
-  }, [shipPage, shipStatus]);
-
-  const loadRates = useCallback(async () => {
-    const [gRes, aRes, oRes] = await Promise.allSettled([
-      api.get('/delivery-rates/rate-groups'),
-      api.get('/delivery-rates/assignments'),
-      api.get('/delivery-rates/area-overrides'),
-    ]);
-    if (gRes.status === 'fulfilled') setGroups(gRes.value.data);
-    if (aRes.status === 'fulfilled') setAssignments(aRes.value.data);
-    if (oRes.status === 'fulfilled') {
-      const overrides: { key: string; division: string; district: string; area: string; status: 'Enable' | 'Disable'; isCustom: boolean }[] = oRes.value.data;
-      const statusMap: Record<string, 'Enable' | 'Disable'> = {};
-      const customs: { key: string; div: string; dist: string; area: string }[] = [];
-      overrides.forEach(o => {
-        if (o.status === 'Disable') statusMap[o.key] = 'Disable';
-        if (o.isCustom) customs.push({ key: o.key, div: o.division, dist: o.district, area: o.area });
-      });
-      setAreaStatuses(statusMap);
-      setCustomAreas(customs);
+function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
+  const entries: AreaEntry[] = [];
+  for (const div of BD_DIVISIONS) {
+    const districts = BD_DISTRICTS[div] || [];
+    for (const dist of districts) {
+      const areas = BD_AREAS[dist] || [];
+      for (const area of areas) {
+        entries.push({ division: div, district: dist, area, key: areaKey(div, dist, area), isCustom: false });
+      }
     }
-  }, []);
+  }
+  for (const ca of customAreas) {
+    entries.push({ division: ca.division, district: ca.district, area: ca.area, key: ca.key, isCustom: true });
+  }
+  return entries;
+}
 
-  const loadCoverage = useCallback(async () => {
-    const [gRes, pRes] = await Promise.allSettled([
-      api.get('/delivery-coverage/grocery/districts'),
-      api.get('/delivery-coverage/shipping-policies'),
-    ]);
-    if (gRes.status === 'fulfilled') setGroceryDistricts(gRes.value.data || []);
-    if (pRes.status === 'fulfilled') setPolicies(pRes.value.data || []);
-  }, []);
+function statusFor(statuses: AreaStatus[], key: string): 'Enable' | 'Disable' {
+  const found = statuses.find(s => s.key === key);
+  return found ? found.status : 'Enable';
+}
+
+interface WeightSlab { upTo: number; charge: number; }
+function parseSlabs(str?: string): WeightSlab[] {
+  if (!str) return [];
+  return str.split(',').map(s => {
+    const [w, c] = s.split(':');
+    return { upTo: parseFloat(w), charge: parseFloat(c) };
+  }).filter(s => !isNaN(s.upTo) && !isNaN(s.charge));
+}
+
+function slabText(slabs: WeightSlab[]) {
+  if (!slabs.length) return '';
+  return slabs.map(s => `${s.upTo}kg→৳${s.charge}`).join(', ');
+}
+
+function rateForWeight(group: RateGroup, weightKg: number): number {
+  const slabs = parseSlabs(group.weightSlabs);
+  if (slabs.length) {
+    const slab = slabs.find(s => weightKg <= s.upTo);
+    if (slab) return slab.charge;
+    return group.base + Math.max(0, weightKg - 1) * group.additional;
+  }
+  return group.base + Math.max(0, weightKg - 1) * group.additional;
+}
+
+function downloadText(content: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+  a.download = filename;
+  a.click();
+}
+
+function downloadCsv(rows: string[][], filename: string) {
+  const content = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/csv' }));
+  a.download = filename;
+  a.click();
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+export default function Shipping() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawSec = searchParams.get('s') as Section;
+  const section: Section = VALID_SECTIONS.includes(rawSec) ? rawSec : 'dashboard';
+  const setSection = (s: Section) => setSearchParams({ s }, { replace: false });
+
+  const [groups, setGroups] = useState<RateGroup[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [statuses, setStatuses] = useState<AreaStatus[]>([]);
+  const [customAreas, setCustomAreas] = useState<CustomArea[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal states
+  const [areaModal, setAreaModal] = useState<{ mode: 'add' | 'edit'; area?: CustomArea } | null>(null);
+  const [groupModal, setGroupModal] = useState<{ mode: 'add' | 'edit'; group?: RateGroup } | null>(null);
+  const [overrideModal, setOverrideModal] = useState<Assignment | null>(null);
+  const [switchGroupModal, setSwitchGroupModal] = useState<{ assignment: Assignment } | null>(null);
+
+  const syncGRef = useRef<ReturnType<typeof setTimeout>>();
+  const syncARef = useRef<ReturnType<typeof setTimeout>>();
+  const syncSRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    setLoading(true);
-    Promise.allSettled([loadShippingOrders(), loadShipments(), loadRates(), loadCoverage()])
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const [gRes, aRes, oRes] = await Promise.all([
+          api.get('/delivery-rates/rate-groups'),
+          api.get('/delivery-rates/assignments'),
+          api.get('/delivery-rates/area-overrides'),
+        ]);
+        setGroups(Array.isArray(gRes.data) ? gRes.data : []);
+        setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
+        const ovData = oRes.data || {};
+        setStatuses(Array.isArray(ovData.statuses) ? ovData.statuses : []);
+        setCustomAreas(Array.isArray(ovData.customAreas) ? ovData.customAreas : []);
+      } catch {
+        toast.error('Failed to load delivery data');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  useEffect(() => { loadShipments(); }, [shipPage, shipStatus]);
+  const syncGroups = useCallback((data: RateGroup[]) => {
+    clearTimeout(syncGRef.current);
+    syncGRef.current = setTimeout(() => {
+      api.post('/delivery-rates/rate-groups/sync', data).catch(() => toast.error('Failed to save rate groups'));
+    }, 1000);
+  }, []);
 
-  // ── Orders ──────────────────────────────────────────────────────────────────
-  const filteredOrders = orders.filter(o => {
-    const name = (o.customerId && typeof o.customerId === 'object') ? (o.customerId as any).name : '';
-    return (!search || name.toLowerCase().includes(search.toLowerCase()) || o.orderNumber?.toLowerCase().includes(search.toLowerCase()))
-      && (statusFilter === 'all' || o.status === statusFilter);
-  });
-  const updateOrderStatus = async (id: string, status: string) => {
-    try { await shippingApi.updateOrderStatus(id, status); toast.success('Status updated'); loadShippingOrders(); }
-    catch { toast.error('Failed'); }
-  };
+  const syncAssignments = useCallback((data: Assignment[]) => {
+    clearTimeout(syncARef.current);
+    syncARef.current = setTimeout(() => {
+      api.post('/delivery-rates/assignments/sync', data).catch(() => toast.error('Failed to save assignments'));
+    }, 1000);
+  }, []);
 
-  // ── Areas ───────────────────────────────────────────────────────────────────
-  const saveArea = async () => {
-    try {
-      const data = { ...areaForm, postalCodes: areaForm.postalCodes.split(',').map(s => s.trim()).filter(Boolean) };
-      if (editingArea) { await shippingApi.updateArea(editingArea._id, data); toast.success('Area updated'); }
-      else { await shippingApi.createArea(data); toast.success('Area created'); }
-      setAreaDialogOpen(false); setEditingArea(null); loadShippingOrders();
-    } catch { toast.error('Failed to save area'); }
-  };
-  const deleteArea = async (id: string) => {
-    if (!confirm('Delete this delivery area?')) return;
-    try { await shippingApi.deleteArea(id); toast.success('Deleted'); loadShippingOrders(); } catch { toast.error('Failed'); }
-  };
-  const openEditArea = (a: DeliveryArea) => {
-    setEditingArea(a);
-    setAreaForm({ name: a.name, city: a.city, deliveryCharge: a.deliveryCharge, freeDeliveryThreshold: a.freeDeliveryThreshold, estimatedDeliveryDays: a.estimatedDeliveryDays, postalCodes: a.postalCodes.join(', ') });
-    setAreaDialogOpen(true);
-  };
+  const syncStatuses = useCallback((data: AreaStatus[]) => {
+    clearTimeout(syncSRef.current);
+    syncSRef.current = setTimeout(() => {
+      api.post('/delivery-rates/area-statuses/sync', data).catch(() => toast.error('Failed to save area statuses'));
+    }, 1000);
+  }, []);
 
-  // ── Methods ─────────────────────────────────────────────────────────────────
-  const saveMethod = async () => {
-    try {
-      if (editingMethod) { await shippingApi.updateMethod(editingMethod._id, methodForm); toast.success('Method updated'); }
-      else { await shippingApi.createMethod(methodForm); toast.success('Method created'); }
-      setMethodDialogOpen(false); loadShippingOrders();
-    } catch { toast.error('Failed to save method'); }
-  };
-  const deleteMethod = async (id: string) => {
-    if (!confirm('Delete?')) return;
-    try { await shippingApi.deleteMethod(id); toast.success('Deleted'); loadShippingOrders(); } catch { toast.error('Failed'); }
-  };
-  const openEditMethod = (m: ShippingMethod) => {
-    setEditingMethod(m);
-    setMethodForm({ name: m.name, type: m.type, baseCharge: m.baseCharge, freeThreshold: m.freeThreshold || 0, isActive: m.isActive });
-    setMethodDialogOpen(true);
-  };
+  const updateGroups = (next: RateGroup[]) => { setGroups(next); syncGroups(next); };
+  const updateAssignments = (next: Assignment[]) => { setAssignments(next); syncAssignments(next); };
+  const updateStatuses = (next: AreaStatus[]) => { setStatuses(next); syncStatuses(next); };
 
-  // ── Shipments ───────────────────────────────────────────────────────────────
-  const openViewShipment = async (s: Shipment) => {
-    try { const { data } = await api.get(`/shipments/${s._id}`); setViewShipment(data); setViewOpen(true); }
-    catch { toast.error('Failed to load details'); }
-  };
-  const openUpdateShipment = (s: Shipment) => {
-    setUpdateShipment(s);
-    setUpdateForm({ status: s.status, courier_id: '', courier_name: s.courierName || '', tracking_number: s.trackingNumber || '', description: '' });
-    setUpdateOpen(true);
-  };
-  const submitShipmentUpdate = async () => {
-    if (!updateShipment) return;
-    try { await api.put(`/shipments/${updateShipment._id}/status`, updateForm); toast.success('Shipment updated'); setUpdateOpen(false); loadShipments(); }
-    catch (e: any) { toast.error(e.response?.data?.message || 'Error'); }
-  };
-  const filteredShipments = shipments.filter(s =>
-    !shipSearch || s.shipmentNumber?.toLowerCase().includes(shipSearch.toLowerCase()) ||
-    String(s.orderId).includes(shipSearch) || s.trackingNumber?.toLowerCase().includes(shipSearch.toLowerCase())
-  );
+  const allEntries = useMemo(() => allAreaEntries(customAreas), [customAreas]);
+  const totalAreas = allEntries.length;
+  const assignedCount = assignments.length;
+  const enabledCount = allEntries.filter(e => statusFor(statuses, e.key) === 'Enable').length;
 
-  // ── Rate Groups ──────────────────────────────────────────────────────────────
-  const addGroup = () => {
-    const name = newGroup.name.trim();
-    if (!name) return toast.error('Group name required');
-    setGroups(g => [...g, { id: mkGroupId(name), store: newGroup.store || 'Dhaka', name, base: parseFloat(newGroup.base) || 0, additional: parseFloat(newGroup.additional) || 0, weightSlabs: newGroup.slabs.trim() || undefined }]);
-    setNewGroup({ name: '', base: '', additional: '', slabs: '', store: newGroup.store });
-  };
-  const saveGroups = async () => {
-    setGroupsSaving(true);
-    try { await api.post('/delivery-rates/rate-groups/sync', groups); toast.success('Rate groups saved'); loadRates(); }
-    catch { toast.error('Failed to save'); } finally { setGroupsSaving(false); }
-  };
-  const previewFee = async () => {
-    if (!prevDist) return toast.error('Select a district first');
-    setPrevLoading(true); setPrevResult(null);
-    try {
-      const params = new URLSearchParams({ district: prevDist });
-      if (prevArea) params.append('area', prevArea);
-      const { data } = await api.get(`/delivery-rates/charge?${params}`);
-      setPrevResult(data);
-    } catch { setPrevResult({ charge: 0, matched: false }); }
-    finally { setPrevLoading(false); }
-  };
-
-  // ── Area Assignments ─────────────────────────────────────────────────────────
-  const addAssignment = () => {
-    if (!selDist) return toast.error('Select a district');
-    if (!selGroup) return toast.error('Select a rate group');
-    const key = mkAssignKey(selDiv, selDist, selArea);
-    if (assignments.find(a => a.key === key)) return toast.error('Already assigned');
-    const group = groups.find(g => g.id === selGroup);
-    setAssignments(a => [...a, { key, store: 'main', division: selDiv, district: selDist, area: selArea, areaId: selArea || selDist, groupId: selGroup, groupName: group?.name }]);
-    setSelArea('');
-  };
-  const saveAssignments = async (data?: typeof assignments) => {
-    setAssignSaving(true);
-    const toSave = (data ?? assignments).filter((a: any) => a.key && a.groupId);
-    try { await api.post('/delivery-rates/assignments/sync', toSave); toast.success('Assignments saved'); loadRates(); }
-    catch { toast.error('Failed'); } finally { setAssignSaving(false); }
-  };
-  const districtList  = selDiv  ? (BD_DISTRICTS[selDiv]  || []) : [];
-  const areaList      = selDist ? (BD_AREAS[selDist]     || []) : [];
-
-  // ── Grocery Coverage ─────────────────────────────────────────────────────────
-  const toggleGroceryArea = async (area: GroceryArea) => {
-    try { await api.put(`/delivery-coverage/grocery/areas/${area._id}`, { is_active: area.isActive ? 0 : 1 }); toast.success('Updated'); loadCoverage(); }
-    catch { toast.error('Failed'); }
-  };
-  const saveGroceryArea = async () => {
-    try {
-      if (gEditArea) { await api.put(`/delivery-coverage/grocery/areas/${gEditArea._id}`, { name: gAreaForm.name, name_bn: gAreaForm.name_bn }); toast.success('Area updated'); }
-      else { await api.post('/delivery-coverage/grocery/areas', gAreaForm); toast.success('Area added'); }
-      setGAreaDialogOpen(false); loadCoverage();
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Error'); }
-  };
-
-  // ── Shipping Policies ─────────────────────────────────────────────────────────
-  const savePolicy = async () => {
-    try {
-      const payload = { ...policyForm, base_weight_kg: Number(policyForm.base_weight_kg), base_charge: Number(policyForm.base_charge), extra_charge_per_kg: Number(policyForm.extra_charge_per_kg), estimated_days_min: Number(policyForm.estimated_days_min), estimated_days_max: Number(policyForm.estimated_days_max), free_delivery_threshold: policyForm.free_delivery_threshold ? Number(policyForm.free_delivery_threshold) : null, is_inside_city: policyForm.is_inside_city ? 1 : 0 };
-      if (editPolicy) { await api.put(`/delivery-coverage/shipping-policies/${editPolicy._id}`, payload); toast.success('Policy updated'); }
-      else { await api.post('/delivery-coverage/shipping-policies', { source_type: 'sholok', source_id: 1, ...payload }); toast.success('Policy created'); }
-      setPolicyDialogOpen(false); loadCoverage();
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Error'); }
-  };
-  const openEditPolicy = (p: ShippingPolicy) => {
-    setEditPolicy(p);
-    setPolicyForm({ area_name: p.areaName || '', is_inside_city: p.isInsideCity, base_weight_kg: String(p.baseWeightKg), base_charge: String(p.baseCharge), extra_charge_per_kg: String(p.extraChargePerKg), estimated_days_min: String(p.estimatedDaysMin), estimated_days_max: String(p.estimatedDaysMax), free_delivery_threshold: p.freeDeliveryThreshold ? String(p.freeDeliveryThreshold) : '' });
-    setPolicyDialogOpen(true);
-  };
-
-  // ── BD Area flat list (memoized) — hardcoded BD + custom areas from DB ──────
-  const allBdAreas = useMemo(() => {
-    const customKeys = new Set(customAreas.map(c => c.key));
-    const list: { div: string; dist: string; area: string; key: string; isCustom?: boolean }[] = [];
-    BD_DIVISIONS.forEach(div => {
-      (BD_DISTRICTS[div] || []).forEach(dist => {
-        (BD_AREAS[dist] || []).forEach(area => {
-          const stdKey = `D-${div}-${dist}-${area}`;
-          if (!customKeys.has(stdKey)) {
-            list.push({ div, dist, area, key: stdKey });
-          }
-        });
-      });
-    });
-    customAreas.forEach(c => list.push({ div: c.div, dist: c.dist, area: c.area, key: c.key, isCustom: true }));
-    return list;
-  }, [customAreas]);
-
-  const assignedAreaKeys = useMemo(() => new Set(assignments.map(a => a.key)), [assignments]);
-  const filteredBdAreas = useMemo(() => allBdAreas.filter(a => {
-    if (areasFilterDiv && a.div !== areasFilterDiv) return false;
-    if (areasFilterDist && a.dist !== areasFilterDist) return false;
-    if (areasSearch) { const q = areasSearch.toLowerCase(); if (!a.dist.toLowerCase().includes(q) && !a.area.toLowerCase().includes(q)) return false; }
-    if (areasShowUnassigned && assignedAreaKeys.has(a.key)) return false;
-    return true;
-  }), [allBdAreas, areasFilterDiv, areasFilterDist, areasSearch, areasShowUnassigned, assignedAreaKeys]);
-
-  const areasTotalPages = Math.ceil(filteredBdAreas.length / areasPageSize) || 1;
-  const pagedBdAreas    = filteredBdAreas.slice((areasPage - 1) * areasPageSize, areasPage * areasPageSize);
-
-  const toggleBdArea = (key: string) => setSelBdAreas(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
-  const bulkSetStatus = (status: 'Enable' | 'Disable') => {
-    setAreaStatuses(prev => { const n = { ...prev }; selBdAreas.forEach(k => { n[k] = status; }); return n; });
-  };
-  const exportAreasCsv = () => {
-    const rows = [['Division','District','Area','Status']];
-    filteredBdAreas.forEach(a => rows.push([a.div, a.dist, a.area, areaStatuses[a.key] || 'Enable']));
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement('a'); link.href = url; link.download = 'delivery_areas.csv'; link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const saveAreaStatuses = async () => {
-    setAreaStatusesSaving(true);
-    try { await api.post('/delivery-rates/area-statuses/sync', areaStatuses); toast.success('Area statuses saved'); }
-    catch { toast.error('Failed to save statuses'); } finally { setAreaStatusesSaving(false); }
-  };
-
-  const saveCustomArea = async () => {
-    // When editing an existing area, lock district to the original — never change it via districtNew
-    const dist = (bdAreaForm.editKey && bdAreaForm.mode === 'area')
-      ? bdAreaForm.district
-      : (bdAreaForm.districtNew.trim() || bdAreaForm.district);
-    const area = bdAreaForm.area.trim();
-
-    if (bdAreaForm.mode === 'district') {
-      const newDist = bdAreaForm.districtNew.trim();
-      if (!newDist) return toast.error('New district name required');
-      try {
-        // Convert all standard areas under the old district to custom overrides so the rename
-        // is immediately visible in the UI (hardcoded BD_AREAS can't be changed at runtime)
-        const standardAreas = (BD_AREAS[bdAreaForm.district] || []).map((a: string) => ({
-          key: `D-${bdAreaForm.division}-${bdAreaForm.district}-${a}`,
-          area: a,
-        }));
-        await api.post('/delivery-rates/district-rename', {
-          division: bdAreaForm.division, oldDistrict: bdAreaForm.district,
-          newDistrict: newDist, standardAreas,
-        });
-        toast.success('District renamed');
-        setBdAreaFormOpen(false);
-        loadRates();
-      } catch { toast.error('Failed to rename district'); }
-      return;
-    }
-
-    if (!area) return toast.error('Area name required');
-
-    if (!bdAreaForm.editKey) {
-      const isDup = allBdAreas.some(x =>
-        x.div.toLowerCase() === bdAreaForm.division.toLowerCase() &&
-        x.dist.toLowerCase() === dist.toLowerCase() &&
-        x.area.toLowerCase() === area.toLowerCase()
-      );
-      if (isDup) return toast.error('This area already exists in this region/district');
-    }
-
-    const key = bdAreaForm.editKey || `custom-${bdAreaForm.division}-${dist}-${area}`.replace(/\s+/g, '_');
-    try {
-      await api.post('/delivery-rates/area-overrides/custom', { key, division: bdAreaForm.division, district: dist, area });
-      toast.success('Custom area saved');
-      setBdAreaFormOpen(false);
-      loadRates();
-    } catch { toast.error('Failed to save area'); }
-  };
-
-  const deleteCustomArea = async (key: string) => {
-    if (!confirm('Delete this custom area?')) return;
-    try {
-      await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(key)}`);
-      toast.success('Deleted');
-      loadRates();
-    } catch { toast.error('Failed to delete'); }
-  };
-
-  const calcCharge = (g: RateGroup, kg: number) => {
-    if (g.weightSlabs) {
-      const slabs = g.weightSlabs.split(',').map(s => { const [m, p] = s.trim().split(':'); return { maxKg: parseFloat(m), price: parseFloat(p) }; }).filter(s => !isNaN(s.maxKg) && !isNaN(s.price));
-      const slab = slabs.find(s => kg <= s.maxKg);
-      if (slab) return slab.price;
-    }
-    return g.base + g.additional * Math.max(0, kg - 1);
-  };
-
-  const calcZoneCharge = (a: Assignment, group: RateGroup | undefined, kg: number) => {
-    const effBase = a.baseOverride != null ? a.baseOverride : (group?.base ?? 0);
-    const effAdd  = a.additionalOverride != null ? a.additionalOverride : (group?.additional ?? 0);
-    const effSlabs = a.weightSlabsOverride != null ? a.weightSlabsOverride : (group?.weightSlabs ?? '');
-    return calcCharge({ id: '', store: '', name: '', base: effBase, additional: effAdd, weightSlabs: effSlabs }, kg);
-  };
-
-  const saveZoneRateOverride = async (key: string) => {
-    setArRateSaving(true);
-    try {
-      const base = parseFloat(arRateForm.base);
-      const additional = parseFloat(arRateForm.additional) || 0;
-      if (isNaN(base)) { toast.error('Base rate required'); setArRateSaving(false); return; }
-      await api.put('/delivery-rates/assignments/rate-override', { key, base, additional, slabs: arRateForm.slabs });
-      setAssignments(as => as.map(a => a.key === key ? { ...a, baseOverride: base, additionalOverride: additional, weightSlabsOverride: arRateForm.slabs || null } : a));
-      toast.success('Zone rate saved');
-      setArEditingRateKey(null);
-    } catch { toast.error('Failed to save'); } finally { setArRateSaving(false); }
-  };
-
-  const resetZoneRateOverride = async (key: string) => {
-    try {
-      await api.delete(`/delivery-rates/assignments/rate-override/${encodeURIComponent(key)}`);
-      setAssignments(as => as.map(a => a.key === key ? { ...a, baseOverride: null, additionalOverride: null, weightSlabsOverride: null } : a));
-      toast.success('Reset to group rate');
-      setArEditingRateKey(null);
-    } catch { toast.error('Failed to reset'); }
-  };
-
-  const assignFilteredAreas = useMemo(() => allBdAreas.filter(a => {
-    if (assignDiv2 && a.div !== assignDiv2) return false;
-    if (assignDist2 && a.dist !== assignDist2) return false;
-    if (assignSearch2) { const q = assignSearch2.toLowerCase(); if (!a.area.toLowerCase().includes(q) && !a.dist.toLowerCase().includes(q)) return false; }
-    return true;
-  }), [allBdAreas, assignDiv2, assignDist2, assignSearch2]);
-
-  const isAreaAssigned = (key: string) => assignments.some(a => a.key === key && a.store === assignStore2 && a.groupId === assignGroup2);
-  const toggleAreaAssign = (item: { div: string; dist: string; area: string; key: string }) => {
-    const existing = assignments.find(a => a.key === item.key && a.store === assignStore2 && a.groupId === assignGroup2);
-    if (existing) {
-      setAssignments(as => as.filter(a => !(a.key === item.key && a.store === assignStore2 && a.groupId === assignGroup2)));
-    } else {
-      if (!assignGroup2) return toast.error('Select a Rate Group first');
-      const group = groups.find(g => g.id === assignGroup2);
-      // Remove any existing assignment for this area+store (even with a different group) to prevent duplicate keys
-      setAssignments(as => [
-        ...as.filter(a => !(a.key === item.key && a.store === assignStore2)),
-        { key: item.key, store: assignStore2, division: item.div, district: item.dist, area: item.area, areaId: item.key, groupId: assignGroup2, groupName: group?.name },
-      ]);
-    }
-  };
-
-  const filteredAssignments = useMemo(() => assignments.filter(a => {
-    if (arStore && a.store !== arStore) return false;
-    if (arDiv && a.division !== arDiv) return false;
-    if (arDist && a.district !== arDist) return false;
-    if (arGroup && a.groupId !== arGroup) return false;
-    if (arSearch) { const q = arSearch.toLowerCase(); if (!a.district.toLowerCase().includes(q) && !a.area.toLowerCase().includes(q) && !(a.groupName || '').toLowerCase().includes(q)) return false; }
-    return true;
-  }), [assignments, arStore, arDiv, arDist, arGroup, arSearch]);
-
-  const arTotalPages = Math.ceil(filteredAssignments.length / arPerPage) || 1;
-  const pagedAssignments = filteredAssignments.slice((arPage - 1) * arPerPage, arPage * arPerPage);
-
-  // ── Tab button helper ─────────────────────────────────────────────────────────
-  const TabBtn = ({ id, label }: { id: Tab; label: string }) => (
-    <button onClick={() => setTab(id)} className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors border-b-2 ${tab === id ? 'border-primary text-primary bg-background' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{label}</button>
-  );
+  if (loading) {
+    return (
+      <div style={{ margin: '-24px', display: 'flex', minHeight: '100vh' }}>
+        <nav style={{ position: 'fixed', left: 256, top: 0, bottom: 0, width: 192, background: C.sidebar, zIndex: 50 }} />
+        <main style={{ marginLeft: 192, flex: 1, background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: C.mutedFg, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            Loading delivery data…
+          </div>
+        </main>
+        <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div style={{ margin: '-24px', display: 'flex', minHeight: '100vh' }}>
+      {/* Secondary sidebar */}
+      <nav style={{ position: 'fixed', left: 256, top: 0, bottom: 0, width: 192, background: C.sidebar, zIndex: 50, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <div style={{ padding: '20px 16px 12px', borderBottom: `1px solid ${C.softBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Truck size={18} color={C.primaryLight} />
+          <span style={{ color: C.sidebarFg, fontWeight: 600, fontSize: 13 }}>Delivery Mgmt</span>
+        </div>
+        <div style={{ flex: 1, padding: '8px 0' }}>
+          {NAV_ITEMS.map(({ id, label, Icon }) => {
+            const active = section === id;
+            return (
+              <button key={id} onClick={() => setSection(id as Section)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: active ? C.sidebarActive : 'transparent', color: active ? C.sidebarFg : C.sidebarMuted, border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: active ? 600 : 400, transition: 'all .15s', borderLeft: active ? `3px solid ${C.primary}` : '3px solid transparent' }}>
+                <Icon size={15} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Content */}
+      <main style={{ marginLeft: 192, flex: 1, background: C.bg, minHeight: '100vh', padding: 0 }}>
+        {section === 'dashboard' && (
+          <DashboardSection
+            totalAreas={totalAreas} assignedCount={assignedCount}
+            groupCount={groups.length} enabledCount={enabledCount}
+            setSection={setSection}
+          />
+        )}
+        {section === 'areas' && (
+          <AreasSection
+            allEntries={allEntries} statuses={statuses} customAreas={customAreas}
+            updateStatuses={updateStatuses}
+            onAddCustom={() => setAreaModal({ mode: 'add' })}
+            onDeleteCustom={async (key) => {
+              try {
+                await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(key)}`);
+                setCustomAreas(prev => prev.filter(a => a.key !== key));
+                toast.success('Custom area removed');
+              } catch { toast.error('Failed to remove custom area'); }
+            }}
+          />
+        )}
+        {section === 'groups' && (
+          <GroupsSection
+            groups={groups} updateGroups={updateGroups}
+            onAdd={() => setGroupModal({ mode: 'add' })}
+            onEdit={(g) => setGroupModal({ mode: 'edit', group: g })}
+            onDelete={(id) => {
+              const next = groups.filter(g => g.id !== id);
+              updateGroups(next);
+              toast.success('Rate group deleted');
+            }}
+          />
+        )}
+        {section === 'assign' && (
+          <AssignSection
+            allEntries={allEntries} groups={groups} assignments={assignments}
+            statuses={statuses} updateAssignments={updateAssignments}
+            onSwitchGroup={(a) => setSwitchGroupModal({ assignment: a })}
+          />
+        )}
+        {section === 'rates' && (
+          <RatesSection
+            assignments={assignments} groups={groups}
+            onOverride={(a) => setOverrideModal(a)}
+            onRemoveOverride={async (key) => {
+              try {
+                await api.delete(`/delivery-rates/assignments/rate-override/${encodeURIComponent(key)}`);
+                setAssignments(prev => prev.map(a => a.key === key ? { ...a, baseOverride: null, additionalOverride: null, weightSlabsOverride: null } : a));
+                toast.success('Override removed');
+              } catch { toast.error('Failed to remove override'); }
+            }}
+          />
+        )}
+        {section === 'backup' && (
+          <BackupSection
+            groups={groups} assignments={assignments}
+            statuses={statuses} customAreas={customAreas}
+            onImport={(data) => {
+              if (data.groups) updateGroups(data.groups);
+              if (data.assignments) updateAssignments(data.assignments);
+              if (data.statuses) updateStatuses(data.statuses);
+              if (data.customAreas) setCustomAreas(data.customAreas);
+              toast.success('Data imported successfully');
+            }}
+          />
+        )}
+      </main>
+
+      {/* Modals */}
+      {areaModal && (
+        <AreaModal
+          mode={areaModal.mode}
+          initial={areaModal.area}
+          onClose={() => setAreaModal(null)}
+          onSave={async (div, dist, area) => {
+            const key = areaKey(div, dist, area);
+            if (customAreas.some(a => a.key === key)) { toast.error('Area already exists'); return; }
+            try {
+              await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
+              setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
+              setAreaModal(null);
+              toast.success('Custom area added');
+            } catch { toast.error('Failed to add custom area'); }
+          }}
+        />
+      )}
+      {groupModal && (
+        <GroupModal
+          mode={groupModal.mode}
+          initial={groupModal.group}
+          onClose={() => setGroupModal(null)}
+          onSave={(g) => {
+            if (groupModal.mode === 'add') {
+              if (groups.length >= MAX_RATE_GROUPS) { toast.error(`Max ${MAX_RATE_GROUPS} rate groups allowed`); return; }
+              const newGroup: RateGroup = { ...g, id: createId() };
+              updateGroups([...groups, newGroup]);
+            } else {
+              updateGroups(groups.map(x => x.id === g.id ? g : x));
+            }
+            setGroupModal(null);
+            toast.success(groupModal.mode === 'add' ? 'Rate group created' : 'Rate group updated');
+          }}
+        />
+      )}
+      {overrideModal && (
+        <OverrideModal
+          assignment={overrideModal}
+          groups={groups}
+          onClose={() => setOverrideModal(null)}
+          onSave={async (data) => {
+            try {
+              await api.put('/delivery-rates/assignments/rate-override', data);
+              setAssignments(prev => prev.map(a => a.key === data.key ? { ...a, baseOverride: data.base, additionalOverride: data.additional, weightSlabsOverride: data.slabs || null } : a));
+              setOverrideModal(null);
+              toast.success('Rate override saved');
+            } catch { toast.error('Failed to save override'); }
+          }}
+        />
+      )}
+      {switchGroupModal && (
+        <SwitchGroupModal
+          assignment={switchGroupModal.assignment}
+          groups={groups}
+          onClose={() => setSwitchGroupModal(null)}
+          onSave={(newGroupId) => {
+            const grp = groups.find(g => g.id === newGroupId);
+            updateAssignments(assignments.map(a => a.key === switchGroupModal.assignment.key ? { ...a, groupId: newGroupId, groupName: grp?.name } : a));
+            setSwitchGroupModal(null);
+            toast.success('Group switched');
+          }}
+        />
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .dm-btn-primary { background: ${C.primary}; color: #fff; border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .dm-btn-primary:hover { background: #4a0079; }
+        .dm-btn-outline { background: transparent; color: ${C.fg}; border: 1px solid ${C.border}; border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .dm-btn-outline:hover { background: ${C.muted}; }
+        .dm-btn-ghost { background: transparent; color: ${C.mutedFg}; border: none; border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .dm-btn-ghost:hover { background: ${C.muted}; color: ${C.fg}; }
+        .dm-btn-danger { background: transparent; color: ${C.destructive}; border: 1px solid ${C.destructive}22; border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .dm-btn-danger:hover { background: ${C.destructive}11; }
+        .dm-input { border: 1px solid ${C.border}; border-radius: 6px; padding: 7px 11px; font-size: 13px; color: ${C.fg}; background: #fff; outline: none; width: 100%; }
+        .dm-input:focus { border-color: ${C.primary}; box-shadow: 0 0 0 2px ${C.primary}22; }
+        .dm-label { font-size: 12px; font-weight: 500; color: ${C.fg}; margin-bottom: 5px; display: block; }
+        .dm-card { background: #fff; border: 1px solid ${C.border}; border-radius: 10px; }
+        .dm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .dm-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: ${C.mutedFg}; border-bottom: 1px solid ${C.border}; background: ${C.muted}; }
+        .dm-table td { padding: 10px 14px; border-bottom: 1px solid ${C.border}22; color: ${C.fg}; vertical-align: middle; }
+        .dm-table tr:last-child td { border-bottom: none; }
+        .dm-table tr:hover td { background: ${C.secondary}44; }
+        .dm-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+        .dm-badge-purple { background: ${C.secondary}; color: ${C.secondaryFg}; }
+        .dm-badge-green { background: #e6f9ed; color: #0a6128; }
+        .dm-badge-red { background: #fdeced; color: ${C.destructive}; }
+        .dm-badge-gray { background: ${C.muted}; color: ${C.mutedFg}; }
+        .dm-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: center; justify-content: center; }
+        .dm-modal { background: #fff; border-radius: 12px; padding: 24px; min-width: 360px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .dm-modal-title { font-size: 16px; font-weight: 600; color: ${C.fg}; margin-bottom: 20px; }
+        .dm-section-header { padding: 24px 28px 20px; border-bottom: 1px solid ${C.border}; }
+        .dm-section-title { font-size: 20px; font-weight: 700; color: ${C.fg}; }
+        .dm-section-desc { font-size: 13px; color: ${C.mutedFg}; margin-top: 2px; }
+        .dm-welcome { background: linear-gradient(135deg, ${C.primary} 0%, #8b00cc 100%); border-radius: 12px; padding: 24px 28px; color: #fff; margin: 24px 28px 0; }
+        .dm-metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 28px; }
+        .dm-metric-card { background: #fff; border: 1px solid ${C.border}; border-radius: 10px; padding: 18px; }
+        .dm-metric-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: ${C.mutedFg}; }
+        .dm-metric-value { font-size: 28px; font-weight: 700; color: ${C.fg}; margin: 4px 0 2px; line-height: 1; }
+        .dm-metric-sub { font-size: 12px; color: ${C.mutedFg}; }
+        @media (max-width: 900px) { .dm-metric-grid { grid-template-columns: repeat(2,1fr); } }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Dashboard Section ──────────────────────────────────────────────────────────
+function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount, setSection }: {
+  totalAreas: number; assignedCount: number; groupCount: number; enabledCount: number;
+  setSection: (s: Section) => void;
+}) {
+  return (
+    <div>
+      <div className="dm-welcome">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <Truck size={22} color="rgba(255,255,255,.8)" />
+          <span style={{ fontSize: 20, fontWeight: 700 }}>Delivery Area & Rate Management</span>
+        </div>
+        <p style={{ fontSize: 13, opacity: .85, maxWidth: 480 }}>
+          Manage delivery zones, rate groups, and fee structures for the entire Bangladesh coverage area.
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <button className="dm-btn-primary" style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }} onClick={() => setSection('areas')}>
+            <MapPin size={14} /> Manage Areas
+          </button>
+          <button className="dm-btn-primary" style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }} onClick={() => setSection('groups')}>
+            <Activity size={14} /> Rate Groups
+          </button>
+        </div>
+      </div>
+      <div className="dm-metric-grid">
+        {[
+          { label: 'Total Areas', value: totalAreas, sub: '8 Divisions · 64 Districts', color: C.primary },
+          { label: 'Assigned Areas', value: assignedCount, sub: `${totalAreas - assignedCount} unassigned`, color: '#0a6128' },
+          { label: 'Rate Groups', value: groupCount, sub: `Max ${MAX_RATE_GROUPS} groups`, color: '#a5211c' },
+          { label: 'Enabled Areas', value: enabledCount, sub: `${totalAreas - enabledCount} disabled`, color: '#5d0096' },
+        ].map(m => (
+          <div key={m.label} className="dm-metric-card">
+            <div className="dm-metric-label">{m.label}</div>
+            <div className="dm-metric-value" style={{ color: m.color }}>{m.value}</div>
+            <div className="dm-metric-sub">{m.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '0 28px 28px' }}>
+        <div className="dm-card" style={{ padding: 20 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12, fontSize: 14 }}>Quick Actions</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {[
+              { label: 'View Delivery Areas', icon: MapPin, s: 'areas' as Section },
+              { label: 'Manage Rate Groups', icon: Activity, s: 'groups' as Section },
+              { label: 'Assign Areas to Groups', icon: Truck, s: 'assign' as Section },
+              { label: 'View Zone Rates', icon: DollarSign, s: 'rates' as Section },
+              { label: 'Backup & Restore', icon: Database, s: 'backup' as Section },
+            ].map(({ label, icon: Icon, s }) => (
+              <button key={s} className="dm-btn-outline" onClick={() => setSection(s)}>
+                <Icon size={14} /> {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Areas Section ──────────────────────────────────────────────────────────────
+const PAGE_SIZE = 50;
+function AreasSection({ allEntries, statuses, customAreas, updateStatuses, onAddCustom, onDeleteCustom }: {
+  allEntries: AreaEntry[]; statuses: AreaStatus[]; customAreas: CustomArea[];
+  updateStatuses: (s: AreaStatus[]) => void;
+  onAddCustom: () => void;
+  onDeleteCustom: (key: string) => Promise<void>;
+}) {
+  const [filterDiv, setFilterDiv] = useState('');
+  const [filterDist, setFilterDist] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  const filtered = useMemo(() => {
+    return allEntries.filter(e =>
+      (!filterDiv || e.division === filterDiv) &&
+      (!filterDist || e.district === filterDist) &&
+      (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [allEntries, filterDiv, filterDist, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageEntries = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const toggleStatus = (key: string) => {
+    const cur = statusFor(statuses, key);
+    const next = cur === 'Enable' ? 'Disable' : 'Enable';
+    const existing = statuses.find(s => s.key === key);
+    let updated: AreaStatus[];
+    if (next === 'Enable') {
+      updated = statuses.filter(s => s.key !== key);
+    } else {
+      if (existing) {
+        updated = statuses.map(s => s.key === key ? { ...s, status: next } : s);
+      } else {
+        updated = [...statuses, { key, status: next }];
+      }
+    }
+    updateStatuses(updated);
+  };
+
+  const availDists = filterDiv ? (BD_DISTRICTS[filterDiv] || []) : [];
+
+  return (
+    <div>
+      <div className="dm-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('shippingManagement')}</h1>
-          <p className="text-muted-foreground">{t('manageDeliveryAreas')}</p>
+          <div className="dm-section-title">Delivery Areas</div>
+          <div className="dm-section-desc">{allEntries.length} total areas · {statuses.filter(s => s.status === 'Disable').length} disabled</div>
         </div>
-        <Button variant="outline" onClick={() => { loadShippingOrders(); loadShipments(); loadRates(); loadCoverage(); }}>
-          <RefreshCw className="w-4 h-4 mr-2" />{t('refresh')}
-        </Button>
+        <button className="dm-btn-primary" onClick={onAddCustom}><Plus size={14} /> Add Custom Area</button>
       </div>
-
-      {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Package className="w-5 h-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">{t('pendingShipment')}</p><p className="text-2xl font-bold">{stats.pendingShipment}</p></div></CardContent></Card>
-          <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center"><Truck className="w-5 h-5 text-warning" /></div><div><p className="text-sm text-muted-foreground">{t('shippedInTransit')}</p><p className="text-2xl font-bold">{stats.shippedOrders + stats.outForDelivery}</p></div></CardContent></Card>
-          <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-success" /></div><div><p className="text-sm text-muted-foreground">{t('delivered')}</p><p className="text-2xl font-bold">{stats.deliveredOrders}</p></div></CardContent></Card>
-          <Card className="glass-card border-border"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-chart-4/10 flex items-center justify-center"><MapPin className="w-5 h-5 text-chart-4" /></div><div><p className="text-sm text-muted-foreground">{t('activeAreas')}</p><p className="text-2xl font-bold">{stats.activeAreas}</p></div></CardContent></Card>
+      <div style={{ padding: '16px 28px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
+          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search areas…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex gap-0 border-b border-border overflow-x-auto">
-        <TabBtn id="shipments"     label="Shipments" />
-        <TabBtn id="orders"        label="Orders" />
-        <TabBtn id="areas"         label="⌖ Delivery Areas" />
-        <TabBtn id="rate-groups"   label="৳ Rate Groups" />
-        <TabBtn id="assignments"   label="⇄ Area Assignment" />
-        <TabBtn id="assigned-rates" label="▤ Assigned Zone Rates" />
-        <TabBtn id="methods"       label="Methods" />
-        <TabBtn id="grocery"       label="Grocery" />
-        <TabBtn id="policies"      label="Policies" />
+        <select className="dm-input" style={{ width: 160 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setPage(1); }}>
+          <option value="">All Divisions</option>
+          {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        {filterDiv && (
+          <select className="dm-input" style={{ width: 160 }} value={filterDist} onChange={e => { setFilterDist(e.target.value); setPage(1); }}>
+            <option value="">All Districts</option>
+            {availDists.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
       </div>
-
-      {/* ════ SHIPMENTS TAB ════════════════════════════════════════════════ */}
-      {tab === 'shipments' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
-            {[{ label: 'Total', count: shipTotal, icon: Package, color: 'text-primary' }, { label: 'Pending', count: shipments.filter(s => s.status === 'pending').length, icon: Clock, color: 'text-warning' }, { label: 'In Transit', count: shipments.filter(s => s.status === 'in_transit').length, icon: Truck, color: 'text-chart-2' }, { label: 'Delivered', count: shipments.filter(s => s.status === 'delivered').length, icon: CheckCircle, color: 'text-success' }].map(({ label, count, icon: Icon, color }) => (
-              <Card key={label}><CardContent className="pt-4 pb-4"><div className="flex items-center gap-3"><Icon className={`w-7 h-7 ${color}`} /><div><p className="text-xl font-bold">{count}</p><p className="text-muted-foreground text-xs">{label}</p></div></div></CardContent></Card>
-            ))}
-          </div>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search shipments..." className="pl-9" value={shipSearch} onChange={e => setShipSearch(e.target.value)} /></div>
-                <Select value={shipStatus} onValueChange={v => { setShipStatus(v); setShipPage(1); }}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Status" /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">All Status</SelectItem>{Object.keys(SHIPMENT_STATUS).map(s => <SelectItem key={s} value={s}>{SHIPMENT_STATUS[s].label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow><TableHead>Shipment #</TableHead><TableHead>Order</TableHead><TableHead>Source</TableHead><TableHead>Status</TableHead><TableHead>Courier</TableHead><TableHead>Tracking</TableHead><TableHead>Charge</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {filteredShipments.map(s => (
-                    <TableRow key={s._id}>
-                      <TableCell className="font-mono text-sm font-medium">{s.shipmentNumber}</TableCell>
-                      <TableCell>#{s.orderId}</TableCell>
-                      <TableCell><Badge variant="outline">{s.sourceType}{s.sourceLabel ? ` · ${s.sourceLabel}` : ''}</Badge></TableCell>
-                      <TableCell><Badge className={SHIPMENT_STATUS[s.status]?.className || 'bg-muted text-muted-foreground'}>{SHIPMENT_STATUS[s.status]?.label || s.status}</Badge></TableCell>
-                      <TableCell className="text-sm">{s.courierName || '—'}</TableCell>
-                      <TableCell className="font-mono text-xs">{s.trackingNumber || '—'}</TableCell>
-                      <TableCell>৳{s.deliveryCharge?.toLocaleString()}</TableCell>
-                      <TableCell><div className="flex items-center gap-1"><Button size="sm" variant="outline" onClick={() => openViewShipment(s)}><Eye className="w-3 h-3" /></Button><Button size="sm" variant="outline" onClick={() => openUpdateShipment(s)}><Edit className="w-3 h-3" /></Button></div></TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredShipments.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No shipments found</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-              {shipTotal > 20 && (
-                <div className="flex justify-center gap-2 mt-4">
-                  <Button variant="outline" size="sm" disabled={shipPage === 1} onClick={() => setShipPage(p => p - 1)}>Previous</Button>
-                  <span className="py-2 text-sm text-muted-foreground">Page {shipPage} of {Math.ceil(shipTotal / 20)}</span>
-                  <Button variant="outline" size="sm" disabled={shipPage * 20 >= shipTotal} onClick={() => setShipPage(p => p + 1)}>Next</Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ════ ORDERS TAB ════════════════════════════════════════════════════ */}
-      {tab === 'orders' && (
-        <Card className="glass-card border-border">
-          <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <CardTitle>{t('shipmentOrders')}</CardTitle>
-              <div className="flex gap-2">
-                <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder={t('searchOrders')} className="pl-9 w-64" value={search} onChange={e => setSearch(e.target.value)} /></div>
-                <select className="bg-background border border-border rounded-md px-3 py-2 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                  <option value="all">All Status</option>
-                  {Object.keys(SHIPPING_STATUS).map(s => <option key={s} value={s}>{SHIPPING_STATUS[s].label}</option>)}
-                </select>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>{t('order')}</TableHead><TableHead>{t('customer')}</TableHead><TableHead>{t('total')}</TableHead><TableHead>{t('status')}</TableHead><TableHead>{t('date')}</TableHead><TableHead>{t('actions')}</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {filteredOrders.map(order => {
-                  const customerName = (order.customerId && typeof order.customerId === 'object') ? (order.customerId as any).name : 'N/A';
-                  const cfg = SHIPPING_STATUS[order.status] || { label: order.status, className: 'bg-muted text-muted-foreground' };
-                  return (
-                    <TableRow key={order._id}>
-                      <TableCell className="font-medium">#{order.orderNumber}</TableCell>
-                      <TableCell>{customerName}</TableCell>
-                      <TableCell>৳{Number(order.total || 0).toFixed(2)}</TableCell>
-                      <TableCell><Badge className={cfg.className}>{cfg.label}</Badge></TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <select className="bg-background border border-border rounded px-2 py-1 text-xs" value={order.status} onChange={e => updateOrderStatus(order._id, e.target.value)}>
-                          {Object.entries(SHIPPING_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {filteredOrders.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('noShipmentOrders')}</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ════ RATE GROUPS TAB ══════════════════════════════════════════════ */}
-      {tab === 'rate-groups' && (
-        <div className="space-y-4">
-
-          {/* Coverage Summary */}
-          {(() => {
-            const totalAreas = BD_TOTAL_AREAS;
-            const assigned = new Set(assignments.map(a => a.key)).size;
-            const pct = totalAreas ? Math.round(assigned / totalAreas * 100) : 0;
-            return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Total Areas (BD)', val: totalAreas, color: 'text-muted-foreground' },
-                  { label: 'Assigned', val: assigned, color: 'text-primary' },
-                  { label: 'Unassigned', val: totalAreas - assigned, color: 'text-warning' },
-                  { label: 'Coverage', val: `${pct}%`, color: pct === 100 ? 'text-success' : pct > 50 ? 'text-primary' : 'text-warning' },
-                ].map(({ label, val, color }) => (
-                  <Card key={label}><CardContent className="pt-4 pb-3">
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className={`text-2xl font-bold ${color}`}>{val}</p>
-                  </CardContent></Card>
-                ))}
-              </div>
-            );
-          })()}
-
-          {/* Add Group form */}
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-base font-semibold mb-4">Add New Rate Group</h2>
-            <p className="text-xs text-muted-foreground mb-3">Create up to 17 reusable delivery charge groups by store location. Only groups you create can be assigned.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1">Store Location</label>
-                <select value={newGroup.store || 'Dhaka'} onChange={e => setNewGroup(g => ({ ...g, store: e.target.value }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                  {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Group Name *</label><Input value={newGroup.name} onChange={e => setNewGroup(g => ({ ...g, name: e.target.value }))} placeholder="e.g. Inside Dhaka" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Base Rate — First 1kg (৳) *</label><Input type="number" min="0" value={newGroup.base} onChange={e => setNewGroup(g => ({ ...g, base: e.target.value }))} placeholder="60" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Additional / kg (৳)</label><Input type="number" min="0" value={newGroup.additional} onChange={e => setNewGroup(g => ({ ...g, additional: e.target.value }))} placeholder="20" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground block mb-1">Weight Slabs <span className="font-normal">(optional)</span></label><Input value={newGroup.slabs} onChange={e => setNewGroup(g => ({ ...g, slabs: e.target.value }))} placeholder="1:60, 2:80, 5:120" /></div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">Formula: <code className="bg-muted px-1 rounded text-xs">Base + Additional × (KG − 1)</code>. Weight Slabs format: <code className="bg-muted px-1 rounded text-xs">maxKg:price, maxKg:price</code> — overrides formula when set.</p>
-            <Button onClick={addGroup} className="mt-3"><Plus className="w-4 h-4 mr-2" />Add Group</Button>
-          </div>
-
-          {/* Groups table */}
-          <Card className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between py-3">
-              <CardTitle className="text-sm">{groups.length} Rate Groups · {BD_TOTAL_AREAS} areas · connects to checkout automatically</CardTitle>
-              <Button size="sm" onClick={saveGroups} disabled={groupsSaving}><Save className="w-4 h-4 mr-1" />{groupsSaving ? 'Saving…' : 'Save All'}</Button>
-            </CardHeader>
-            <CardContent className="pt-0 overflow-x-auto">
-              <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Base / 1kg (৳)</TableHead><TableHead>Extra/kg (৳)</TableHead><TableHead>Weight Slabs</TableHead><TableHead>Assigned Areas</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {groups.map(g => {
-                    const assignedCount = assignments.filter(a => a.groupId === g.id).length;
-                    return (
-                      <TableRow key={g.id}>
-                        <TableCell><Input value={g.name} className="w-32 h-8 text-sm" onChange={e => { const newName = e.target.value; setGroups(gs => gs.map(x => x.id === g.id ? { ...x, name: newName } : x)); setAssignments(as => as.map(a => a.groupId === g.id ? { ...a, groupName: newName } : a)); }} /></TableCell>
-                        <TableCell><Input type="number" min="0" value={g.base} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, base: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
-                        <TableCell><Input type="number" min="0" value={g.additional} className="w-24 h-8 text-sm" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, additional: parseFloat(e.target.value) || 0 } : x))} /></TableCell>
-                        <TableCell><Input value={g.weightSlabs || ''} className="w-40 h-8 text-xs font-mono" placeholder="1:60, 2:80…" onChange={e => setGroups(gs => gs.map(x => x.id === g.id ? { ...x, weightSlabs: e.target.value } : x))} /></TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Badge variant="outline">{assignedCount} Zone{assignedCount !== 1 ? 's' : ''}</Badge>
-                            {assignedCount > 0 && (
-                              <Button size="sm" variant="ghost" className="h-6 text-xs text-primary px-2" onClick={() => { setArGroup(g.id); setTab('assigned-rates'); }}>View</Button>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell><Button variant="ghost" size="icon" onClick={() => setGroups(gs => gs.filter(x => x.id !== g.id))}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {groups.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No rate groups yet. Add one above.</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Fee Preview */}
-          <Card className="border-border border-dashed">
-            <CardHeader className="py-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse inline-block"></span>
-                Checkout Fee Preview — Test what a customer will pay
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <p className="text-xs text-muted-foreground">Select a location below to see exactly which Rate Group matches and what delivery fee the customer will see at checkout.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Division</label>
-                  <div className="relative">
-                    <select value={prevDiv} onChange={e => { setPrevDiv(e.target.value); setPrevDist(''); setPrevArea(''); setPrevResult(null); }} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background pr-8">
-                      <option value="">All</option>
-                      {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">District *</label>
-                  <div className="relative">
-                    <select value={prevDist} onChange={e => { setPrevDist(e.target.value); setPrevArea(''); setPrevResult(null); }} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background pr-8">
-                      <option value="">Select</option>
-                      {(prevDiv ? BD_DISTRICTS[prevDiv] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Area (optional)</label>
-                  <div className="relative">
-                    <select value={prevArea} onChange={e => { setPrevArea(e.target.value); setPrevResult(null); }} disabled={!prevDist} className="w-full appearance-none border border-border rounded-lg px-3 py-2 text-sm bg-background pr-8 disabled:opacity-50">
-                      <option value="">All areas</option>
-                      {(BD_AREAS[prevDist] || []).map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                </div>
-                <Button onClick={previewFee} disabled={prevLoading || !prevDist} className="w-full">
-                  {prevLoading ? 'Calculating…' : 'Check Fee'}
-                </Button>
-              </div>
-              {prevResult && (
-                <div className={`mt-3 p-4 rounded-lg border flex items-center gap-4 ${prevResult.matched ? 'bg-success/10 border-success/30' : 'bg-warning/10 border-warning/30'}`}>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">{prevResult.matched ? `৳${prevResult.charge} delivery fee` : 'No matching rate group — default fee applies'}</p>
-                    {prevResult.matched && prevResult.groupName && <p className="text-xs text-muted-foreground mt-0.5">Matched group: <strong>{prevResult.groupName}</strong></p>}
-                    <p className="text-xs text-muted-foreground mt-0.5">Location: {[prevDiv, prevDist, prevArea].filter(Boolean).join(' › ')}</p>
-                  </div>
-                  <div className={`text-3xl font-bold ${prevResult.matched ? 'text-success' : 'text-warning'}`}>
-                    {prevResult.matched ? `৳${prevResult.charge}` : '—'}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ════ AREA ASSIGNMENTS TAB ══════════════════════════════════════════ */}
-      {tab === 'assignments' && (
-        <div className="space-y-4">
-          {/* Controls */}
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h2 className="text-base font-semibold mb-4">Delivery Area Assignment</h2>
-            {groups.length === 0 ? (
-              <p className="text-sm text-muted-foreground">First create rate groups in the "৳ Rate Groups" tab.</p>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Store Location</label>
-                    <select value={assignStore2} onChange={e => setAssignStore2(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                      {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Division / Region</label>
-                    <select value={assignDiv2} onChange={e => { setAssignDiv2(e.target.value); setAssignDist2(''); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                      <option value="">All Divisions</option>
-                      {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">City / District</label>
-                    <select value={assignDist2} onChange={e => setAssignDist2(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                      <option value="">All Districts</option>
-                      {(assignDiv2 ? BD_DISTRICTS[assignDiv2] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Rate Group *</label>
-                    <select value={assignGroup2} onChange={e => setAssignGroup2(e.target.value)} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                      <option value="">Select Rate Group</option>
-                      {groups.map(g => <option key={g.id} value={g.id}>{g.name} (৳{g.base})</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Area checkbox list */}
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border flex-wrap gap-2">
-                    <span className="text-sm font-medium">Saved Delivery Areas ({assignFilteredAreas.length})</span>
-                    <div className="flex gap-2 flex-wrap">
-                      <div className="relative"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" /><Input className="pl-8 h-7 text-xs w-48" placeholder="Search areas…" value={assignSearch2} onChange={e => setAssignSearch2(e.target.value)} /></div>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { if (!assignGroup2) return toast.error('Select a Rate Group first'); assignFilteredAreas.forEach(item => { if (!isAreaAssigned(item.key)) toggleAreaAssign(item); }); }}>Select All</Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { assignFilteredAreas.forEach(item => { if (isAreaAssigned(item.key)) toggleAreaAssign(item); }); }}>Clear</Button>
+      <div style={{ overflowX: 'auto', padding: '0 28px 8px' }}>
+        <table className="dm-table">
+          <thead>
+            <tr>
+              <th>Area</th><th>District</th><th>Division</th><th>Type</th><th style={{ textAlign: 'right' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageEntries.map(e => {
+              const enabled = statusFor(statuses, e.key) === 'Enable';
+              return (
+                <tr key={e.key}>
+                  <td style={{ fontWeight: 500 }}>{e.area}</td>
+                  <td style={{ color: C.mutedFg }}>{e.district}</td>
+                  <td style={{ color: C.mutedFg }}>{e.division}</td>
+                  <td>
+                    {e.isCustom
+                      ? <span className="dm-badge dm-badge-purple">Custom</span>
+                      : <span className="dm-badge dm-badge-gray">Standard</span>}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: enabled ? '#0a6128' : C.mutedFg }}>{enabled ? 'Enabled' : 'Disabled'}</span>
+                      <Switch checked={enabled} onCheckedChange={() => toggleStatus(e.key)} />
+                      {e.isCustom && (
+                        <button className="dm-btn-danger" style={{ padding: '4px 8px' }} onClick={() => onDeleteCustom(e.key)}>
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {assignFilteredAreas.length === 0 ? (
-                      <p className="text-center py-6 text-sm text-muted-foreground">No areas match the current filters.</p>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                        {assignFilteredAreas.map(item => (
-                          <label key={item.key} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 cursor-pointer border-b border-border/30 last:border-0">
-                            <input type="checkbox" checked={isAreaAssigned(item.key)} onChange={() => toggleAreaAssign(item)} className="w-4 h-4 rounded" />
-                            <span className="text-sm">{item.area}</span>
-                            <span className="text-xs text-muted-foreground ml-auto">{item.dist}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-sm text-muted-foreground">{assignments.filter(a => a.store === assignStore2 && a.groupId === assignGroup2).length} areas assigned to this group</span>
-                  <Button size="sm" onClick={saveAssignments} disabled={assignSaving}><Save className="w-4 h-4 mr-1" />{assignSaving ? 'Saving…' : 'Save Assignments'}</Button>
-                </div>
-              </>
+                  </td>
+                </tr>
+              );
+            })}
+            {pageEntries.length === 0 && (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>No areas found</td></tr>
             )}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 28px', borderTop: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: 12, color: C.mutedFg }}>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
+            <span style={{ fontSize: 12, alignSelf: 'center', color: C.fg }}>Page {page} / {totalPages}</span>
+            <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* ════ DELIVERY AREAS TAB ════════════════════════════════════════════ */}
-      {tab === 'areas' && (
-        <div className="space-y-4">
-          {/* Top stats cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {([
-              { label: 'Divisions',       val: BD_DIVISIONS.length,                                                             Icon: Globe,    color: 'text-primary',  bg: 'bg-primary/10' },
-              { label: 'Districts',       val: Object.values(BD_DISTRICTS).reduce((s, d) => s + d.length, 0),                   Icon: MapPin,   color: 'text-chart-4',  bg: 'bg-chart-4/10' },
-              { label: 'Delivery Areas',  val: allBdAreas.length,                                                               Icon: MapPin,   color: 'text-warning',  bg: 'bg-warning/10' },
-              { label: 'Rate Groups',     val: groups.length,                                                                   Icon: Package,  color: 'text-success',  bg: 'bg-success/10' },
-            ] as const).map(({ label, val, Icon, color, bg }) => (
-              <Card key={label} className="glass-card border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="text-2xl font-bold">{val}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+// ── Groups Section ─────────────────────────────────────────────────────────────
+function GroupsSection({ groups, updateGroups, onAdd, onEdit, onDelete }: {
+  groups: RateGroup[]; updateGroups: (g: RateGroup[]) => void;
+  onAdd: () => void; onEdit: (g: RateGroup) => void; onDelete: (id: string) => void;
+}) {
+  return (
+    <div>
+      <div className="dm-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div className="dm-section-title">Rate Groups</div>
+          <div className="dm-section-desc">{groups.length} / {MAX_RATE_GROUPS} groups configured</div>
+        </div>
+        <button className="dm-btn-primary" onClick={onAdd} disabled={groups.length >= MAX_RATE_GROUPS}>
+          <Plus size={14} /> New Rate Group
+        </button>
+      </div>
+      <div style={{ padding: '20px 28px' }}>
+        {groups.length === 0 ? (
+          <div className="dm-card" style={{ padding: 40, textAlign: 'center', color: C.mutedFg }}>
+            <Activity size={36} style={{ margin: '0 auto 12px', opacity: .3 }} />
+            <p style={{ fontSize: 14 }}>No rate groups yet. Create your first one.</p>
           </div>
-
-          {/* Assignment Coverage */}
-          {(() => {
-            const totalAreas   = allBdAreas.length;
-            const assignedCount = allBdAreas.filter(a => assignedAreaKeys.has(a.key)).length;
-            const disabledCount = Object.values(areaStatuses).filter(s => s === 'Disable').length;
-            const pct = totalAreas ? (assignedCount / totalAreas * 100).toFixed(1) : '0.0';
-            return (
-              <Card className="border-border">
-                <CardHeader className="pb-3 flex flex-row items-start justify-between gap-3">
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {groups.map(g => (
+              <div key={g.id} className="dm-card" style={{ padding: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div>
-                    <CardTitle className="text-base">Assignment Coverage</CardTitle>
-                    <p className="text-sm text-muted-foreground">Current delivery-area assignment status across all stores and rate groups.</p>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
+                    <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 2 }}>ID: {g.id}</div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => { setAreasShowUnassigned(v => !v); setAreasPage(1); }}>
-                    {areasShowUnassigned ? '← Show All Areas' : 'Unassigned Areas → View List'}
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    {([
-                      { label: 'Assigned Areas',      val: `${assignedCount} / ${totalAreas}` },
-                      { label: 'Unassigned Areas',     val: totalAreas - assignedCount },
-                      { label: 'Enabled Areas',        val: totalAreas - disabledCount },
-                      { label: 'Disabled Areas',       val: disabledCount },
-                      { label: 'Assignment Coverage',  val: `${pct}%` },
-                    ] as const).map(({ label, val }) => (
-                      <div key={label} className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
-                        <p className="text-xs text-orange-600/70 dark:text-orange-400/70">{label}</p>
-                        <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{val}</p>
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="dm-btn-ghost" style={{ padding: '5px 8px' }} onClick={() => onEdit(g)}><Pencil size={13} /></button>
+                    <button className="dm-btn-danger" style={{ padding: '5px 8px' }} onClick={() => onDelete(g.id)}><Trash2 size={13} /></button>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })()}
-
-          {/* Add area inline form */}
-          {bdAreaFormOpen && (
-            <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Division / Region</label>
-                  <select value={bdAreaForm.division} onChange={e => setBdAreaForm(f => ({ ...f, division: e.target.value, district: '' }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                    {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">City / District</label>
-                  <select value={bdAreaForm.district} onChange={e => setBdAreaForm(f => ({ ...f, district: e.target.value }))} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background mb-1" disabled={!!bdAreaForm.editKey && bdAreaForm.mode === 'area'}>
-                    <option value="">Select existing…</option>
-                    {(BD_DISTRICTS[bdAreaForm.division] || []).map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  {!(bdAreaForm.editKey && bdAreaForm.mode === 'area') && (
-                    <Input value={bdAreaForm.districtNew} onChange={e => setBdAreaForm(f => ({ ...f, districtNew: e.target.value }))} placeholder="…or enter new district" className="text-sm h-8" />
-                  )}
-                </div>
-                {bdAreaForm.mode !== 'district' && (
+                <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Zone / Area</label>
-                    <Input value={bdAreaForm.area} onChange={e => setBdAreaForm(f => ({ ...f, area: e.target.value }))} placeholder="Enter delivery area" />
+                    <div style={{ color: C.mutedFg, fontSize: 11 }}>Base charge</div>
+                    <div style={{ fontWeight: 600, color: C.primary }}>৳{g.base}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: C.mutedFg, fontSize: 11 }}>Extra/kg</div>
+                    <div style={{ fontWeight: 600, color: C.primary }}>৳{g.additional}</div>
+                  </div>
+                </div>
+                {g.weightSlabs && (
+                  <div style={{ marginTop: 10, padding: '6px 10px', background: C.secondary, borderRadius: 6, fontSize: 11, color: C.secondaryFg }}>
+                    Slabs: {slabText(parseSlabs(g.weightSlabs)).slice(0, 60)}
                   </div>
                 )}
-                <div className="flex items-end gap-2">
-                  <Button onClick={saveCustomArea} className="flex-1">{bdAreaForm.mode === 'district' ? 'Rename District' : 'Save to DB'}</Button>
-                  <Button variant="outline" onClick={() => setBdAreaFormOpen(false)}>Cancel</Button>
-                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {bdAreaForm.mode === 'district' ? 'Edit the district name and click Rename District.' : 'For a new Delivery Area, choose an existing City / District or enter a new one.'}
-              </p>
-            </div>
-          )}
-
-          {/* Delivery Areas card */}
-          <Card className="border-border">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between flex-wrap gap-3">
-                <div>
-                  <CardTitle className="text-base">Delivery Areas</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">{allBdAreas.length} saved Bangladesh delivery areas plus any custom saved areas. Custom districts are also supported.</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={saveAreaStatuses} disabled={areaStatusesSaving}>
-                    <Save className="w-3.5 h-3.5 mr-1" />{areaStatusesSaving ? 'Saving…' : 'Save Statuses'}
-                  </Button>
-                  <Button onClick={() => { setBdAreaForm({ division: 'Dhaka', district: '', districtNew: '', area: '', editKey: '', mode: 'area' }); setBdAreaFormOpen(v => !v); }}>
-                    <Plus className="w-4 h-4 mr-2" />+ Add Delivery Area
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {/* Filters inline */}
-              <div className="flex flex-wrap gap-3 mb-4">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Search district or area..." className="pl-9" value={areasSearch} onChange={e => { setAreasSearch(e.target.value); setAreasPage(1); }} />
-                </div>
-                <select value={areasFilterDiv} onChange={e => { setAreasFilterDiv(e.target.value); setAreasFilterDist(''); setAreasPage(1); }} className="border border-border rounded-lg px-3 py-2 text-sm bg-background min-w-[150px]">
-                  <option value="">All Divisions</option>
-                  {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <select value={areasFilterDist} onChange={e => { setAreasFilterDist(e.target.value); setAreasPage(1); }} className="border border-border rounded-lg px-3 py-2 text-sm bg-background min-w-[150px]">
-                  <option value="">All Districts</option>
-                  {(areasFilterDiv ? BD_DISTRICTS[areasFilterDiv] || [] : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-
-              {/* Bulk toolbar */}
-              <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-                <span className="text-sm font-medium text-muted-foreground">{selBdAreas.size} selected</span>
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set(pagedBdAreas.map(a => a.key)))}>Select All</Button>
-                  <Button size="sm" variant="outline" onClick={() => setSelBdAreas(new Set())}>Clear</Button>
-                  <Button size="sm" onClick={() => bulkSetStatus('Enable')} disabled={selBdAreas.size === 0}>Enable Selected</Button>
-                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => bulkSetStatus('Disable')} disabled={selBdAreas.size === 0}>Disable Selected</Button>
-                  <Button size="sm" variant="outline" onClick={exportAreasCsv}>Export CSV</Button>
-                </div>
-              </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto rounded-md border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <input type="checkbox" checked={selBdAreas.size === pagedBdAreas.length && pagedBdAreas.length > 0} onChange={e => e.target.checked ? setSelBdAreas(new Set(pagedBdAreas.map(a => a.key))) : setSelBdAreas(new Set())} />
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Region / Division ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">City / District ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Zone / Area ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Status ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Assignments ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedBdAreas.map(a => {
-                      const status = areaStatuses[a.key] || 'Enable';
-                      const assignCount = assignments.filter(x => x.key === a.key).length;
-                      return (
-                        <TableRow key={a.key}>
-                          <TableCell><input type="checkbox" checked={selBdAreas.has(a.key)} onChange={() => toggleBdArea(a.key)} /></TableCell>
-                          <TableCell className="text-sm">{a.div}</TableCell>
-                          <TableCell className="text-sm">{a.dist}</TableCell>
-                          <TableCell className="text-sm font-medium">
-                            {a.area}
-                            {a.isCustom && <Badge variant="outline" className="ml-2 text-xs">Custom</Badge>}
-                          </TableCell>
-                          <TableCell>
-                            <select value={status} onChange={e => { const v = e.target.value as 'Enable' | 'Disable'; setAreaStatuses(prev => ({ ...prev, [a.key]: v })); }} className={`border rounded px-2 py-1 text-xs bg-background ${status === 'Enable' ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'}`}>
-                              <option value="Enable">Enable</option>
-                              <option value="Disable">Disable</option>
-                            </select>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-xs text-primary font-medium cursor-pointer hover:underline" onClick={() => setTab('assignments')}>
-                              Assignments: {assignCount}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: '', area: a.area, editKey: a.key, mode: 'area' }); setBdAreaFormOpen(true); }}>Edit Area</Button>
-                              {!a.isCustom && (
-                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setBdAreaForm({ division: a.div, district: a.dist, districtNew: a.dist, area: '', editKey: '', mode: 'district' }); setBdAreaFormOpen(true); }}>Edit District</Button>
-                              )}
-                              {a.isCustom && (
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={() => deleteCustomArea(a.key)}>
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {pagedBdAreas.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No areas match the current filters.</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between flex-wrap gap-3 mt-4">
-                <span className="text-sm text-muted-foreground">Showing page {areasPage} of {areasTotalPages} · {filteredBdAreas.length} records</span>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm text-muted-foreground flex items-center gap-2">Per page
-                    <select value={areasPageSize} onChange={e => { setAreasPageSize(Number(e.target.value)); setAreasPage(1); }} className="border border-border rounded px-2 py-1 text-sm bg-background ml-1">
-                      <option value={25}>25</option><option value={50}>50</option><option value={100}>100</option>
-                    </select>
-                  </label>
-                  <Button size="sm" variant="outline" disabled={areasPage === 1} onClick={() => setAreasPage(p => p - 1)}>‹</Button>
-                  <Button size="sm" variant="outline" disabled={areasPage >= areasTotalPages} onClick={() => setAreasPage(p => p + 1)}>›</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ════ ASSIGNED ZONE RATES TAB ═══════════════════════════════════════ */}
-      {tab === 'assigned-rates' && (
-        <div className="space-y-4">
-          <Card className="border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Assigned Zone Rates</CardTitle>
-              <p className="text-sm text-muted-foreground">Base, 2 KG and 3 KG charges are calculated automatically. Use Edit Rates to update the Rate Group charges.</p>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-4">
-              {/* Filters row 1 */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Store Location Filter</label>
-                  <select value={arStore} onChange={e => { setArStore(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                    <option value="">All Store Locations</option>
-                    {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Division Filter</label>
-                  <select value={arDiv} onChange={e => { setArDiv(e.target.value); setArDist(''); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                    <option value="">All Divisions</option>
-                    {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">District Filter</label>
-                  <select value={arDist} onChange={e => { setArDist(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                    <option value="">All Districts</option>
-                    {(arDiv ? (BD_DISTRICTS[arDiv] || []) : Object.values(BD_DISTRICTS).flat()).map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-              </div>
-              {/* Filters row 2 */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Rate Group Filter</label>
-                  <select value={arGroup} onChange={e => { setArGroup(e.target.value); setArPage(1); }} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background">
-                    <option value="">All Rate Groups</option>
-                    {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Search</label>
-                  <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search store, group, district, area..." className="pl-9" value={arSearch} onChange={e => { setArSearch(e.target.value); setArPage(1); }} /></div>
-                </div>
-              </div>
-
-              {/* Bulk toolbar */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="text-sm text-muted-foreground">{arSelKeys.size} selected</span>
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set(pagedAssignments.map(a => a.key)))}>Select All</Button>
-                  <Button size="sm" variant="outline" onClick={() => setArSelKeys(new Set())}>Clear</Button>
-                  <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" disabled={arSelKeys.size === 0} onClick={() => { const updated = assignments.filter(a => !arSelKeys.has(a.key)); setAssignments(updated); setArSelKeys(new Set()); saveAssignments(updated); }}>Remove Selected</Button>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    const headers = ['Store Location','Rate Group','Region','City / District','Zone / Area','Base Charge (1KG)','Charge (2KG)','Charge (3KG)'];
-                    const rows = filteredAssignments.map(a => { const g = groups.find(x => x.id === a.groupId); return [a.store, a.groupName || a.groupId, a.division || '', a.district, a.area || '', g ? calcCharge(g,1) : 0, g ? calcCharge(g,2) : 0, g ? calcCharge(g,3) : 0]; });
-                    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-                    const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'zone-rates.csv'; a.click();
-                  }}>Export CSV</Button>
-                </div>
-              </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-8"><input type="checkbox" checked={arSelKeys.size === pagedAssignments.length && pagedAssignments.length > 0} onChange={e => e.target.checked ? setArSelKeys(new Set(pagedAssignments.map(a => a.key))) : setArSelKeys(new Set())} /></TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Store Location ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Rate Group ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Region ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">City / District ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Zone / Area ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Base Charge (1KG) ↑</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Charge (2KG)</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Charge (3KG)</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wide">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedAssignments.map(a => {
-                      const group = groups.find(g => g.id === a.groupId);
-                      const c1 = calcZoneCharge(a, group, 1);
-                      const c2 = calcZoneCharge(a, group, 2);
-                      const c3 = calcZoneCharge(a, group, 3);
-                      const hasOverride = a.baseOverride != null;
-                      return (
-                        <TableRow key={a.key}>
-                          <TableCell><input type="checkbox" checked={arSelKeys.has(a.key)} onChange={() => setArSelKeys(prev => { const n = new Set(prev); n.has(a.key) ? n.delete(a.key) : n.add(a.key); return n; })} /></TableCell>
-                          <TableCell className="text-sm">{a.store}</TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{a.groupName || a.groupId}</span>
-                            {hasOverride && <span className="ml-1 text-xs text-orange-500 font-medium">★</span>}
-                          </TableCell>
-                          <TableCell className="text-sm">{a.division || '—'}</TableCell>
-                          <TableCell className="text-sm">{a.district}</TableCell>
-                          <TableCell className="text-sm font-medium">{a.area || <span className="italic text-muted-foreground text-xs">All areas</span>}</TableCell>
-                          <TableCell className="font-mono text-sm">৳{c1}</TableCell>
-                          <TableCell className="font-mono text-sm">৳{c2}</TableCell>
-                          <TableCell className="font-mono text-sm">৳{c3}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {arEditingRateKey === a.key ? (
-                                <div className="flex flex-col gap-1 p-2 border border-border rounded-lg bg-background min-w-[200px]">
-                                  <div className="flex gap-1">
-                                    <Input type="number" min="0" className="h-7 text-xs w-20" placeholder="Base ৳" value={arRateForm.base} onChange={e => setArRateForm(f => ({ ...f, base: e.target.value }))} />
-                                    <Input type="number" min="0" className="h-7 text-xs w-20" placeholder="Add/kg ৳" value={arRateForm.additional} onChange={e => setArRateForm(f => ({ ...f, additional: e.target.value }))} />
-                                  </div>
-                                  <Input className="h-7 text-xs font-mono" placeholder="Slabs: 1:60,2:80" value={arRateForm.slabs} onChange={e => setArRateForm(f => ({ ...f, slabs: e.target.value }))} />
-                                  <div className="flex gap-1">
-                                    <Button size="sm" className="h-6 text-xs flex-1" onClick={() => saveZoneRateOverride(a.key)} disabled={arRateSaving}>Save</Button>
-                                    {hasOverride && <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => resetZoneRateOverride(a.key)}>Reset</Button>}
-                                    <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setArEditingRateKey(null)}>✕</Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <Button size="sm" variant={hasOverride ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => { setArEditingRateKey(a.key); setArRateForm({ base: String(a.baseOverride ?? ''), additional: String(a.additionalOverride ?? ''), slabs: a.weightSlabsOverride ?? '' }); }}>
-                                  {hasOverride ? '★ Custom' : 'Edit Rates'}
-                                </Button>
-                              )}
-                              {arChangingGroup === a.key ? (
-                                <select
-                                  className="border border-border rounded px-2 py-1 text-xs bg-background h-7"
-                                  value={a.groupId}
-                                  autoFocus
-                                  onChange={e => {
-                                    const newGroupId = e.target.value;
-                                    const newGroup = groups.find(g => g.id === newGroupId);
-                                    const updated = assignments.map(x => x.key === a.key ? { ...x, groupId: newGroupId, groupName: newGroup?.name } : x);
-                                    setAssignments(updated);
-                                    setArChangingGroup(null);
-                                    saveAssignments(updated);
-                                  }}
-                                  onBlur={() => setArChangingGroup(null)}
-                                >
-                                  {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                                </select>
-                              ) : (
-                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setArChangingGroup(a.key)}>Change Group</Button>
-                              )}
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { const updated = assignments.filter(x => x.key !== a.key); setAssignments(updated); saveAssignments(updated); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {pagedAssignments.length === 0 && (
-                      <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">No assigned Zone Rates yet.</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <span className="text-sm text-muted-foreground">Showing page {arPage} of {arTotalPages} · {filteredAssignments.length} records</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Per page</span>
-                  <select value={arPerPage} onChange={e => { setArPerPage(Number(e.target.value)); setArPage(1); }} className="border border-border rounded px-2 py-1 text-sm bg-background">
-                    {[10,25,50,100].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={arPage === 1} onClick={() => setArPage(p => p - 1)}>‹</Button>
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={arPage >= arTotalPages} onClick={() => setArPage(p => p + 1)}>›</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ════ SHIPPING METHODS TAB ══════════════════════════════════════════ */}
-      {tab === 'methods' && (
-        <Card className="glass-card border-border">
-          <CardHeader><div className="flex items-center justify-between"><CardTitle>{t('shippingMethods')}</CardTitle><Button onClick={() => { setEditingMethod(null); setMethodForm({ name: '', type: 'flat', baseCharge: 0, freeThreshold: 0, isActive: true }); setMethodDialogOpen(true); }}><Plus className="w-4 h-4 mr-2" />{t('addMethod')}</Button></div></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>{t('name')}</TableHead><TableHead>{t('type')}</TableHead><TableHead>{t('baseCharge')}</TableHead><TableHead>{t('freeAbove')}</TableHead><TableHead>{t('status')}</TableHead><TableHead>{t('actions')}</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {methods.map(m => (
-                  <TableRow key={m._id}>
-                    <TableCell className="font-medium">{m.name}</TableCell>
-                    <TableCell className="capitalize">{m.type}</TableCell>
-                    <TableCell>৳{m.baseCharge}</TableCell>
-                    <TableCell>{m.freeThreshold ? `৳${m.freeThreshold}` : '—'}</TableCell>
-                    <TableCell><Badge className={m.isActive ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}>{m.isActive ? t('active') : t('inactive')}</Badge></TableCell>
-                    <TableCell><div className="flex gap-1"><Button variant="ghost" size="icon" onClick={() => openEditMethod(m)}><Pencil className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => deleteMethod(m._id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></div></TableCell>
-                  </TableRow>
-                ))}
-                {methods.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t('noShippingMethods')}</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ════ GROCERY COVERAGE TAB ══════════════════════════════════════════ */}
-      {tab === 'grocery' && (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Grocery delivery is limited to specific districts and areas. Toggle to enable/disable.</p>
-          {loading ? <p className="text-center py-8 text-muted-foreground">Loading…</p> : groceryDistricts.map(district => (
-            <Card key={district._id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{district.name}</CardTitle>
-                  <Button size="sm" onClick={() => { setGEditArea(null); setGAreaForm({ district_id: String(district._id), name: '', name_bn: '' }); setGAreaDialogOpen(true); }}>
-                    <Plus className="w-3 h-3 mr-1" />{t('addArea')}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {district.areas.map(area => (
-                    <div key={area._id} className="flex items-center justify-between p-2 border rounded-lg">
-                      <span className="text-sm truncate mr-2">{area.name}</span>
-                      <Switch checked={area.isActive} onCheckedChange={() => toggleGroceryArea(area)} />
-                    </div>
-                  ))}
-                  {district.areas.length === 0 && <p className="text-sm text-muted-foreground col-span-4">No areas added yet.</p>}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {groceryDistricts.length === 0 && !loading && <div className="text-center py-12 text-muted-foreground">No grocery districts found.</div>}
-        </div>
-      )}
-
-      {/* ════ SHIPPING POLICIES TAB ═════════════════════════════════════════ */}
-      {tab === 'policies' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">Weight-based shipping policies for different zones.</p>
-            <Button onClick={() => { setEditPolicy(null); setPolicyForm({ area_name: '', is_inside_city: false, base_weight_kg: '1', base_charge: '100', extra_charge_per_kg: '30', estimated_days_min: '1', estimated_days_max: '3', free_delivery_threshold: '' }); setPolicyDialogOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Policy</Button>
+            ))}
           </div>
-          <Card>
-            <CardContent className="pt-6">
-              <Table>
-                <TableHeader><TableRow><TableHead>Zone / Area</TableHead><TableHead>Type</TableHead><TableHead>Base Charge</TableHead><TableHead>Extra/kg</TableHead><TableHead>ETA</TableHead><TableHead>Free Above</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {policies.map(p => (
-                    <TableRow key={p._id}>
-                      <TableCell className="font-medium">{p.areaName || `District #${p.districtId}` || 'Default'}</TableCell>
-                      <TableCell><Badge className={p.isInsideCity ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}>{p.isInsideCity ? 'Inside City' : 'Nationwide'}</Badge></TableCell>
-                      <TableCell>৳{p.baseCharge} / {p.baseWeightKg}kg</TableCell>
-                      <TableCell>৳{p.extraChargePerKg}</TableCell>
-                      <TableCell>{p.estimatedDaysMin}–{p.estimatedDaysMax} days</TableCell>
-                      <TableCell>{p.freeDeliveryThreshold ? `৳${p.freeDeliveryThreshold}` : '—'}</TableCell>
-                      <TableCell><Button size="sm" variant="outline" onClick={() => openEditPolicy(p)}><Edit className="w-3 h-3" /></Button></TableCell>
-                    </TableRow>
-                  ))}
-                  {policies.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No policies found.</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ════ DIALOGS ════════════════════════════════════════════════════════ */}
-
-      {/* Area Dialog */}
-      <Dialog open={areaDialogOpen} onOpenChange={setAreaDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingArea ? t('editDeliveryArea') : t('addDeliveryArea')}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><label className="text-sm font-medium">{t('areaName')}</label><Input value={areaForm.name} onChange={e => setAreaForm({ ...areaForm, name: e.target.value })} placeholder="e.g. Dhaka Metro" /></div>
-            <div><label className="text-sm font-medium">{t('city')}</label><Input value={areaForm.city} onChange={e => setAreaForm({ ...areaForm, city: e.target.value })} placeholder="e.g. Dhaka" /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-sm font-medium">{t('deliveryCharge')} (৳)</label><Input type="number" value={areaForm.deliveryCharge} onChange={e => setAreaForm({ ...areaForm, deliveryCharge: Number(e.target.value) })} /></div>
-              <div><label className="text-sm font-medium">{t('freeDeliveryAbove')}</label><Input type="number" value={areaForm.freeDeliveryThreshold} onChange={e => setAreaForm({ ...areaForm, freeDeliveryThreshold: Number(e.target.value) })} /></div>
-            </div>
-            <div><label className="text-sm font-medium">{t('estDeliveryDays')}</label><Input type="number" value={areaForm.estimatedDeliveryDays} onChange={e => setAreaForm({ ...areaForm, estimatedDeliveryDays: Number(e.target.value) })} /></div>
-            <div><label className="text-sm font-medium">{t('postalCodes')}</label><Input value={areaForm.postalCodes} onChange={e => setAreaForm({ ...areaForm, postalCodes: e.target.value })} placeholder="1200, 1205" /></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setAreaDialogOpen(false)}>Cancel</Button><Button onClick={saveArea}>{editingArea ? 'Update' : 'Create'}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Method Dialog */}
-      <Dialog open={methodDialogOpen} onOpenChange={setMethodDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editingMethod ? t('editShippingMethod') : t('addShippingMethod')}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><label className="text-sm font-medium">{t('name')}</label><Input value={methodForm.name} onChange={e => setMethodForm({ ...methodForm, name: e.target.value })} placeholder="Standard Delivery" /></div>
-            <div><label className="text-sm font-medium">{t('type')}</label>
-              <select className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm mt-1" value={methodForm.type} onChange={e => setMethodForm({ ...methodForm, type: e.target.value as ShippingMethod['type'] })}>
-                <option value="flat">Flat Rate</option><option value="weight">Weight Based</option><option value="free">Free Shipping</option><option value="cod">Cash on Delivery</option><option value="express">Express</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-sm font-medium">{t('baseCharge')} (৳)</label><Input type="number" value={methodForm.baseCharge} onChange={e => setMethodForm({ ...methodForm, baseCharge: Number(e.target.value) })} /></div>
-              <div><label className="text-sm font-medium">{t('freeThreshold')} (৳)</label><Input type="number" value={methodForm.freeThreshold} onChange={e => setMethodForm({ ...methodForm, freeThreshold: Number(e.target.value) })} /></div>
-            </div>
-            <div className="flex items-center gap-2"><input type="checkbox" checked={methodForm.isActive} onChange={e => setMethodForm({ ...methodForm, isActive: e.target.checked })} /><label className="text-sm">{t('active')}</label></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setMethodDialogOpen(false)}>Cancel</Button><Button onClick={saveMethod}>{editingMethod ? 'Update' : 'Create'}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Shipment Dialog */}
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Shipment Details — {viewShipment?.shipmentNumber}</DialogTitle></DialogHeader>
-          {viewShipment && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Order:</span> <span className="font-medium">#{viewShipment.orderId}</span></div>
-                <div><span className="text-muted-foreground">Status:</span> <Badge className={SHIPMENT_STATUS[viewShipment.status]?.className}>{SHIPMENT_STATUS[viewShipment.status]?.label}</Badge></div>
-                <div><span className="text-muted-foreground">Courier:</span> <span>{viewShipment.courierName || '—'}</span></div>
-                <div><span className="text-muted-foreground">Tracking:</span> <span className="font-mono">{viewShipment.trackingNumber || '—'}</span></div>
-                <div><span className="text-muted-foreground">Weight:</span> <span>{viewShipment.totalWeightKg ? `${viewShipment.totalWeightKg} kg` : '—'}</span></div>
-                <div><span className="text-muted-foreground">Charge:</span> <span>৳{viewShipment.deliveryCharge}</span></div>
-                <div><span className="text-muted-foreground">ETA:</span> <span>{viewShipment.estimatedDaysMin}–{viewShipment.estimatedDaysMax} days</span></div>
-              </div>
-              {viewShipment.items && viewShipment.items.length > 0 && (
-                <div><p className="font-medium mb-2">Items ({viewShipment.items.length})</p>
-                  <div className="space-y-1">{viewShipment.items.map((item: any, i: number) => <div key={i} className="flex justify-between text-sm py-1 border-b"><span>{item.product_name || `Product #${item.product_id}`}</span><span>x{item.quantity}</span></div>)}</div>
-                </div>
-              )}
-              {viewShipment.trackingEvents && viewShipment.trackingEvents.length > 0 && (
-                <div><p className="font-medium mb-2">Tracking History</p>
-                  <div className="space-y-2">{viewShipment.trackingEvents.map((ev: any, i: number) => <div key={i} className="flex gap-3 text-sm"><span className="text-muted-foreground whitespace-nowrap">{new Date(ev.created_at).toLocaleDateString()}</span><Badge className={SHIPMENT_STATUS[ev.status]?.className || 'bg-muted text-muted-foreground'} variant="outline">{SHIPMENT_STATUS[ev.status]?.label || ev.status}</Badge>{ev.description && <span className="text-muted-foreground">{ev.description}</span>}</div>)}</div>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Update Shipment Dialog */}
-      <Dialog open={updateOpen} onOpenChange={setUpdateOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Update Shipment — {updateShipment?.shipmentNumber}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Status *</label>
-              <Select value={updateForm.status} onValueChange={v => setUpdateForm(p => ({ ...p, status: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.keys(SHIPMENT_STATUS).map(s => <SelectItem key={s} value={s}>{SHIPMENT_STATUS[s].label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><label className="text-sm font-medium mb-1 block">Courier</label>
-              <Select value={updateForm.courier_id} onValueChange={v => { const c = couriers.find(c => c._id === v); setUpdateForm(p => ({ ...p, courier_id: v, courier_name: c?.name || '' })); }}>
-                <SelectTrigger><SelectValue placeholder="Select Courier" /></SelectTrigger>
-                <SelectContent>{couriers.map(c => <SelectItem key={c._id} value={String(c._id)}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><label className="text-sm font-medium mb-1 block">Tracking Number</label><Input value={updateForm.tracking_number} onChange={e => setUpdateForm(p => ({ ...p, tracking_number: e.target.value }))} /></div>
-            <div><label className="text-sm font-medium mb-1 block">Note</label><Input value={updateForm.description} onChange={e => setUpdateForm(p => ({ ...p, description: e.target.value }))} /></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setUpdateOpen(false)}>Cancel</Button><Button onClick={submitShipmentUpdate}>Update</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Grocery Area Dialog */}
-      <Dialog open={gAreaDialogOpen} onOpenChange={setGAreaDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{gEditArea ? 'Edit Area' : 'Add Grocery Area'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Area Name (English)</label><Input value={gAreaForm.name} onChange={e => setGAreaForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><label className="text-sm font-medium mb-1 block">Area Name (Bengali)</label><Input value={gAreaForm.name_bn} onChange={e => setGAreaForm(p => ({ ...p, name_bn: e.target.value }))} /></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setGAreaDialogOpen(false)}>Cancel</Button><Button onClick={saveGroceryArea}>{gEditArea ? 'Update' : 'Add'}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Shipping Policy Dialog */}
-      <Dialog open={policyDialogOpen} onOpenChange={setPolicyDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editPolicy ? 'Edit Shipping Policy' : 'Add Shipping Policy'}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="text-sm font-medium mb-1 block">Zone / Area Name</label><Input value={policyForm.area_name} onChange={e => setPolicyForm(p => ({ ...p, area_name: e.target.value }))} placeholder="e.g. Dhaka City" /></div>
-            <div className="col-span-2 flex items-center gap-3"><Switch checked={policyForm.is_inside_city} onCheckedChange={v => setPolicyForm(p => ({ ...p, is_inside_city: v }))} /><label className="text-sm">Inside City (faster delivery)</label></div>
-            <div><label className="text-sm font-medium mb-1 block">Base Weight (kg)</label><Input type="number" value={policyForm.base_weight_kg} onChange={e => setPolicyForm(p => ({ ...p, base_weight_kg: e.target.value }))} /></div>
-            <div><label className="text-sm font-medium mb-1 block">Base Charge (৳)</label><Input type="number" value={policyForm.base_charge} onChange={e => setPolicyForm(p => ({ ...p, base_charge: e.target.value }))} /></div>
-            <div><label className="text-sm font-medium mb-1 block">Extra/kg (৳)</label><Input type="number" value={policyForm.extra_charge_per_kg} onChange={e => setPolicyForm(p => ({ ...p, extra_charge_per_kg: e.target.value }))} /></div>
-            <div><label className="text-sm font-medium mb-1 block">Free Threshold (৳)</label><Input type="number" value={policyForm.free_delivery_threshold} onChange={e => setPolicyForm(p => ({ ...p, free_delivery_threshold: e.target.value }))} placeholder="Optional" /></div>
-            <div><label className="text-sm font-medium mb-1 block">ETA Min (days)</label><Input type="number" value={policyForm.estimated_days_min} onChange={e => setPolicyForm(p => ({ ...p, estimated_days_min: e.target.value }))} /></div>
-            <div><label className="text-sm font-medium mb-1 block">ETA Max (days)</label><Input type="number" value={policyForm.estimated_days_max} onChange={e => setPolicyForm(p => ({ ...p, estimated_days_max: e.target.value }))} /></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setPolicyDialogOpen(false)}>Cancel</Button><Button onClick={savePolicy}>{editPolicy ? 'Update' : 'Create'}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
     </div>
+  );
+}
+
+// ── Assign Section ─────────────────────────────────────────────────────────────
+function AssignSection({ allEntries, groups, assignments, statuses, updateAssignments, onSwitchGroup }: {
+  allEntries: AreaEntry[]; groups: RateGroup[]; assignments: Assignment[];
+  statuses: AreaStatus[];
+  updateAssignments: (a: Assignment[]) => void;
+  onSwitchGroup: (a: Assignment) => void;
+}) {
+  const [filterDiv, setFilterDiv] = useState('');
+  const [filterGroup, setFilterGroup] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [mode, setMode] = useState<'assigned' | 'unassigned'>('unassigned');
+
+  const assignedKeys = useMemo(() => new Set(assignments.map(a => a.key)), [assignments]);
+
+  const baseList = useMemo(() => {
+    return allEntries.filter(e =>
+      (!filterDiv || e.division === filterDiv) &&
+      (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [allEntries, filterDiv, search]);
+
+  const unassignedList = useMemo(() => baseList.filter(e => !assignedKeys.has(e.key)), [baseList, assignedKeys]);
+  const assignedList = useMemo(() => {
+    return assignments.filter(a =>
+      (!filterDiv || a.division === filterDiv) &&
+      (!filterGroup || a.groupId === filterGroup) &&
+      (!search || a.area.toLowerCase().includes(search.toLowerCase()) || a.district.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [assignments, filterDiv, filterGroup, search]);
+
+  const totalPages = Math.max(1, Math.ceil((mode === 'unassigned' ? unassignedList.length : assignedList.length) / PAGE_SIZE));
+  const displayList = mode === 'unassigned'
+    ? unassignedList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    : assignedList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const assignArea = (entry: AreaEntry, groupId: string) => {
+    const grp = groups.find(g => g.id === groupId);
+    if (!grp) return;
+    const newAss: Assignment = { key: entry.key, division: entry.division, district: entry.district, area: entry.area, groupId, groupName: grp.name };
+    updateAssignments([...assignments, newAss]);
+  };
+
+  const unassignArea = (key: string) => {
+    updateAssignments(assignments.filter(a => a.key !== key));
+  };
+
+  return (
+    <div>
+      <div className="dm-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div className="dm-section-title">Area Assignment</div>
+          <div className="dm-section-desc">{assignments.length} assigned · {allEntries.length - assignments.length} unassigned</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className={`dm-btn-${mode === 'unassigned' ? 'primary' : 'outline'}`} onClick={() => { setMode('unassigned'); setPage(1); }}>Unassigned</button>
+          <button className={`dm-btn-${mode === 'assigned' ? 'primary' : 'outline'}`} onClick={() => { setMode('assigned'); setPage(1); }}>Assigned</button>
+        </div>
+      </div>
+      <div style={{ padding: '12px 28px', display: 'flex', gap: 10, flexWrap: 'wrap', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
+          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+        </div>
+        <select className="dm-input" style={{ width: 160 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setPage(1); }}>
+          <option value="">All Divisions</option>
+          {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        {mode === 'assigned' && (
+          <select className="dm-input" style={{ width: 160 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); }}>
+            <option value="">All Groups</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        )}
+      </div>
+      <div style={{ overflowX: 'auto', padding: '0 28px 8px' }}>
+        {mode === 'unassigned' ? (
+          <table className="dm-table">
+            <thead><tr><th>Area</th><th>District</th><th>Division</th><th>Assign To</th></tr></thead>
+            <tbody>
+              {displayList.map(e => (
+                <UnassignedRow key={e.key} entry={e} groups={groups} onAssign={assignArea} />
+              ))}
+              {displayList.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>{unassignedList.length === 0 ? 'All areas assigned!' : 'No matching areas'}</td></tr>}
+            </tbody>
+          </table>
+        ) : (
+          <table className="dm-table">
+            <thead><tr><th>Area</th><th>District</th><th>Division</th><th>Rate Group</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+            <tbody>
+              {displayList.map((a: any) => {
+                const grp = groups.find(g => g.id === a.groupId);
+                return (
+                  <tr key={a.key}>
+                    <td style={{ fontWeight: 500 }}>{a.area}</td>
+                    <td style={{ color: C.mutedFg }}>{a.district}</td>
+                    <td style={{ color: C.mutedFg }}>{a.division}</td>
+                    <td>
+                      {grp ? <span className="dm-badge dm-badge-purple">{grp.name}</span> : <span className="dm-badge dm-badge-gray">{a.groupId}</span>}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                        <button className="dm-btn-ghost" onClick={() => onSwitchGroup(a)}>Switch</button>
+                        <button className="dm-btn-danger" style={{ padding: '5px 8px' }} onClick={() => unassignArea(a.key)}><X size={12} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {displayList.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>No assigned areas</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 28px', borderTop: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: 12, color: C.mutedFg }}>Page {page} / {totalPages}</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
+            <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UnassignedRow({ entry, groups, onAssign }: { entry: AreaEntry; groups: RateGroup[]; onAssign: (e: AreaEntry, gId: string) => void; }) {
+  const [sel, setSel] = useState('');
+  return (
+    <tr>
+      <td style={{ fontWeight: 500 }}>{entry.area}</td>
+      <td style={{ color: C.mutedFg }}>{entry.district}</td>
+      <td style={{ color: C.mutedFg }}>{entry.division}</td>
+      <td>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <select className="dm-input" style={{ width: 160 }} value={sel} onChange={e => setSel(e.target.value)}>
+            <option value="">Select group…</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <button className="dm-btn-primary" style={{ padding: '6px 12px' }} disabled={!sel} onClick={() => { if (sel) onAssign(entry, sel); }}>
+            <Check size={12} /> Assign
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ── Rates Section ──────────────────────────────────────────────────────────────
+function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
+  assignments: Assignment[]; groups: RateGroup[];
+  onOverride: (a: Assignment) => void;
+  onRemoveOverride: (key: string) => void;
+}) {
+  const [filterGroup, setFilterGroup] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  const filtered = useMemo(() => assignments.filter(a =>
+    (!filterGroup || a.groupId === filterGroup) &&
+    (!search || a.area.toLowerCase().includes(search.toLowerCase()) || a.district.toLowerCase().includes(search.toLowerCase()))
+  ), [assignments, filterGroup, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const display = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return (
+    <div>
+      <div className="dm-section-header">
+        <div className="dm-section-title">Zone Rates</div>
+        <div className="dm-section-desc">{assignments.length} assigned zones · {assignments.filter(a => a.baseOverride != null).length} with overrides</div>
+      </div>
+      <div style={{ padding: '12px 28px', display: 'flex', gap: 10, flexWrap: 'wrap', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
+          <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search areas…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+        </div>
+        <select className="dm-input" style={{ width: 180 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); }}>
+          <option value="">All Rate Groups</option>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+      </div>
+      <div style={{ overflowX: 'auto', padding: '0 28px 8px' }}>
+        <table className="dm-table">
+          <thead>
+            <tr>
+              <th>Area</th><th>District</th><th>Rate Group</th><th>Base (৳)</th><th>Extra/kg (৳)</th><th style={{ textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {display.map(a => {
+              const grp = groups.find(g => g.id === a.groupId);
+              const hasOverride = a.baseOverride != null || a.additionalOverride != null;
+              const base = a.baseOverride ?? grp?.base ?? '—';
+              const add = a.additionalOverride ?? grp?.additional ?? '—';
+              return (
+                <tr key={a.key}>
+                  <td style={{ fontWeight: 500 }}>{a.area}</td>
+                  <td style={{ color: C.mutedFg }}>{a.district}</td>
+                  <td><span className="dm-badge dm-badge-purple">{grp?.name || a.groupId}</span></td>
+                  <td>
+                    <span style={{ fontWeight: hasOverride ? 700 : 400, color: hasOverride ? C.primary : C.fg }}>৳{base}</span>
+                    {hasOverride && <span style={{ marginLeft: 4, fontSize: 10, color: C.mutedFg }}>(override)</span>}
+                  </td>
+                  <td><span style={{ fontWeight: hasOverride ? 700 : 400, color: hasOverride ? C.primary : C.fg }}>৳{add}</span></td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                      <button className="dm-btn-ghost" onClick={() => onOverride(a)}><Pencil size={13} /> Override</button>
+                      {hasOverride && <button className="dm-btn-danger" style={{ padding: '5px 8px' }} onClick={() => onRemoveOverride(a.key)}><X size={12} /></button>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {display.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: C.mutedFg, padding: 32 }}>No zones found</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 28px', borderTop: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: 12, color: C.mutedFg }}>Page {page} / {totalPages}</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="dm-btn-ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={14} /></button>
+            <button className="dm-btn-ghost" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={14} /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Backup Section ─────────────────────────────────────────────────────────────
+function BackupSection({ groups, assignments, statuses, customAreas, onImport }: {
+  groups: RateGroup[]; assignments: Assignment[]; statuses: AreaStatus[]; customAreas: CustomArea[];
+  onImport: (data: any) => void;
+}) {
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        onImport(data);
+      } catch { toast.error('Invalid JSON file'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const exportJson = () => {
+    const data = { groups, assignments, statuses, customAreas, exportedAt: new Date().toISOString() };
+    downloadText(JSON.stringify(data, null, 2), `delivery-backup-${Date.now()}.json`);
+  };
+
+  const exportCsv = () => {
+    const rows: string[][] = [['Key','Area','District','Division','GroupId','GroupName','BaseOverride','AdditionalOverride']];
+    for (const a of assignments) {
+      rows.push([a.key, a.area, a.district, a.division, a.groupId, a.groupName || '', String(a.baseOverride ?? ''), String(a.additionalOverride ?? '')]);
+    }
+    downloadCsv(rows, `delivery-assignments-${Date.now()}.csv`);
+  };
+
+  return (
+    <div>
+      <div className="dm-section-header">
+        <div className="dm-section-title">Data Backup & Restore</div>
+        <div className="dm-section-desc">Export or import your delivery configuration</div>
+      </div>
+      <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+        {[
+          { title: 'Export Full Backup', desc: 'Download all groups, assignments, statuses, and custom areas as JSON.', action: exportJson, label: 'Export JSON', Icon: Download },
+          { title: 'Export Assignments CSV', desc: 'Download area-to-group assignments as a spreadsheet.', action: exportCsv, label: 'Export CSV', Icon: Download },
+          { title: 'Import Backup', desc: 'Restore from a previously exported JSON backup file.', action: null, label: 'Import JSON', Icon: Upload },
+        ].map(card => (
+          <div key={card.title} className="dm-card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: C.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <card.Icon size={16} color={C.primary} />
+              </div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{card.title}</div>
+            </div>
+            <p style={{ fontSize: 13, color: C.mutedFg, marginBottom: 16, lineHeight: 1.5 }}>{card.desc}</p>
+            {card.action ? (
+              <button className="dm-btn-primary" onClick={card.action}><card.Icon size={13} /> {card.label}</button>
+            ) : (
+              <label className="dm-btn-primary" style={{ cursor: 'pointer' }}>
+                <Upload size={13} /> {card.label}
+                <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+              </label>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '0 28px 28px' }}>
+        <div className="dm-card" style={{ padding: 20 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>Current State</div>
+          <div style={{ display: 'flex', gap: 24, fontSize: 13, color: C.mutedFg, flexWrap: 'wrap' }}>
+            <span><strong style={{ color: C.fg }}>{groups.length}</strong> Rate Groups</span>
+            <span><strong style={{ color: C.fg }}>{assignments.length}</strong> Assignments</span>
+            <span><strong style={{ color: C.fg }}>{statuses.length}</strong> Status Overrides</span>
+            <span><strong style={{ color: C.fg }}>{customAreas.length}</strong> Custom Areas</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modals ─────────────────────────────────────────────────────────────────────
+function DialogFrame({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode; }) {
+  return (
+    <div className="dm-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dm-modal">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div className="dm-modal-title" style={{ marginBottom: 0 }}>{title}</div>
+          <button className="dm-btn-ghost" style={{ padding: '4px 6px' }} onClick={onClose}><X size={16} /></button>
+        </div>
+        {children}
+        {footer && <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function AreaModal({ mode, initial, onClose, onSave }: {
+  mode: 'add' | 'edit'; initial?: CustomArea;
+  onClose: () => void;
+  onSave: (div: string, dist: string, area: string) => void;
+}) {
+  const [div, setDiv] = useState(initial?.division || '');
+  const [dist, setDist] = useState(initial?.district || '');
+  const [area, setArea] = useState(initial?.area || '');
+  const availDists = div ? (BD_DISTRICTS[div] || []) : [];
+  return (
+    <DialogFrame title={mode === 'add' ? 'Add Custom Area' : 'Edit Area'} onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (div && dist && area.trim()) onSave(div, dist, area.trim()); }}>Save</button></>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <label className="dm-label">Division *</label>
+          <select className="dm-input" value={div} onChange={e => { setDiv(e.target.value); setDist(''); }}>
+            <option value="">Select division…</option>
+            {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="dm-label">District *</label>
+          <select className="dm-input" value={dist} onChange={e => setDist(e.target.value)} disabled={!div}>
+            <option value="">Select district…</option>
+            {availDists.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="dm-label">Area Name *</label>
+          <input className="dm-input" value={area} onChange={e => setArea(e.target.value)} placeholder="Enter area name" />
+        </div>
+      </div>
+    </DialogFrame>
+  );
+}
+
+function GroupModal({ mode, initial, onClose, onSave }: {
+  mode: 'add' | 'edit'; initial?: RateGroup;
+  onClose: () => void; onSave: (g: RateGroup) => void;
+}) {
+  const [name, setName] = useState(initial?.name || '');
+  const [base, setBase] = useState(String(initial?.base ?? ''));
+  const [additional, setAdditional] = useState(String(initial?.additional ?? ''));
+  const [slabs, setSlabs] = useState(initial?.weightSlabs || '');
+
+  const handleSave = () => {
+    if (!name.trim() || isNaN(+base) || isNaN(+additional)) { toast.error('Fill all required fields'); return; }
+    onSave({ id: initial?.id || createId(), name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined });
+  };
+
+  return (
+    <DialogFrame title={mode === 'add' ? 'New Rate Group' : 'Edit Rate Group'} onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={handleSave}>Save</button></>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <label className="dm-label">Group Name *</label>
+          <input className="dm-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dhaka City" />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label className="dm-label">Base Charge (৳) *</label>
+            <input className="dm-input" type="number" value={base} onChange={e => setBase(e.target.value)} placeholder="60" />
+          </div>
+          <div>
+            <label className="dm-label">Extra per kg (৳) *</label>
+            <input className="dm-input" type="number" value={additional} onChange={e => setAdditional(e.target.value)} placeholder="20" />
+          </div>
+        </div>
+        <div>
+          <label className="dm-label">Weight Slabs (optional)</label>
+          <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="e.g. 1:60,3:100,5:150" />
+          <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 4 }}>Format: weight:charge, comma-separated</div>
+        </div>
+      </div>
+    </DialogFrame>
+  );
+}
+
+function OverrideModal({ assignment, groups, onClose, onSave }: {
+  assignment: Assignment; groups: RateGroup[];
+  onClose: () => void; onSave: (data: { key: string; base: number; additional: number; slabs?: string }) => void;
+}) {
+  const grp = groups.find(g => g.id === assignment.groupId);
+  const [base, setBase] = useState(String(assignment.baseOverride ?? grp?.base ?? ''));
+  const [additional, setAdditional] = useState(String(assignment.additionalOverride ?? grp?.additional ?? ''));
+  const [slabs, setSlabs] = useState(assignment.weightSlabsOverride || '');
+
+  const handleSave = () => {
+    if (isNaN(+base) || isNaN(+additional)) { toast.error('Enter valid numbers'); return; }
+    onSave({ key: assignment.key, base: +base, additional: +additional, slabs: slabs.trim() || undefined });
+  };
+
+  return (
+    <DialogFrame title={`Override Rate — ${assignment.area}`} onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={handleSave}>Save Override</button></>}>
+      <div style={{ marginBottom: 16, padding: '10px 12px', background: C.secondary, borderRadius: 8, fontSize: 12, color: C.secondaryFg }}>
+        Group: <strong>{grp?.name || assignment.groupId}</strong> · Default: ৳{grp?.base}/{grp?.additional}/kg
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label className="dm-label">Override Base (৳)</label>
+            <input className="dm-input" type="number" value={base} onChange={e => setBase(e.target.value)} />
+          </div>
+          <div>
+            <label className="dm-label">Override Extra/kg (৳)</label>
+            <input className="dm-input" type="number" value={additional} onChange={e => setAdditional(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className="dm-label">Override Slabs (optional)</label>
+          <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="e.g. 1:60,3:100" />
+        </div>
+      </div>
+    </DialogFrame>
+  );
+}
+
+function SwitchGroupModal({ assignment, groups, onClose, onSave }: {
+  assignment: Assignment; groups: RateGroup[];
+  onClose: () => void; onSave: (newGroupId: string) => void;
+}) {
+  const [sel, setSel] = useState(assignment.groupId);
+  return (
+    <DialogFrame title={`Switch Group — ${assignment.area}`} onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (sel) onSave(sel); }}>Switch</button></>}>
+      <div>
+        <label className="dm-label">Select Rate Group</label>
+        <select className="dm-input" value={sel} onChange={e => setSel(e.target.value)}>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name} — ৳{g.base} base, ৳{g.additional}/kg</option>)}
+        </select>
+      </div>
+    </DialogFrame>
   );
 }
