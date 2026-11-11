@@ -1703,23 +1703,20 @@ function DistrictModal({ division, district, onClose, onSave }: {
   division: string; district: string;
   onClose: () => void; onSave: (newDistrict: string) => void;
 }) {
-  const [newDist, setNewDist] = useState(district);
+  const [distName, setDistName] = useState(district);
   return (
-    <DialogFrame title="Rename District" onClose={onClose}
-      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (newDist.trim() && newDist.trim() !== district) onSave(newDist.trim()); }}>Rename</button></>}>
+    <DialogFrame title="Edit District" onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (distName.trim()) onSave(distName.trim()); }}>Save</button></>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
-          <label className="dm-label">Division</label>
-          <input className="dm-input" value={division} disabled style={{ background: '#f5f5f5', color: '#888' }} />
+          <label className="dm-label">Division *</label>
+          <select className="dm-input" value={division} disabled>
+            {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
         </div>
         <div>
-          <label className="dm-label">Current district name</label>
-          <input className="dm-input" value={district} disabled style={{ background: '#f5f5f5', color: '#888' }} />
-        </div>
-        <div>
-          <label className="dm-label">New district name *</label>
-          <input className="dm-input" value={newDist} onChange={e => setNewDist(e.target.value)} placeholder="Enter new name" autoFocus />
-          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Renames the district across all delivery areas and assignments.</div>
+          <label className="dm-label">District *</label>
+          <input className="dm-input" value={distName} onChange={e => setDistName(e.target.value)} placeholder="Enter district name" autoFocus />
         </div>
       </div>
     </DialogFrame>
