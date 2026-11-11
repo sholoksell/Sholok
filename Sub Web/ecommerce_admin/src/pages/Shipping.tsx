@@ -868,14 +868,12 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
           <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
           <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search district or area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
-        <select className="dm-input" style={{ width: 160 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setPage(1); setSelected(new Set()); }}>
-          <option value="">All divisions</option>
-          {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="dm-input" style={{ width: 160 }} value={filterDist} onChange={e => { setFilterDist(e.target.value); setPage(1); setSelected(new Set()); }} disabled={!filterDiv}>
-          <option value="">All districts</option>
-          {(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
+        <CustomSelect style={{ width: 160 }} value={filterDiv} placeholder="All divisions"
+          options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
+          onChange={v => { setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
+        <CustomSelect style={{ width: 160 }} value={filterDist} placeholder="All districts"
+          options={(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => ({ value: d, label: d }))}
+          onChange={v => { setFilterDist(v); setPage(1); setSelected(new Set()); }} />
         <button className="dm-btn-outline" onClick={exportCsv}><Download size={13} /> Export CSV</button>
       </div>
 
@@ -1180,29 +1178,24 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 24px 16px' }}>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Store location</div>
-          <select className="dm-input" value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setChecked(new Set()); }}>
-            <option value="">Select a store</option>
-            {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <CustomSelect value={filterDiv} placeholder="Select a store"
+            options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
+            onChange={v => { setFilterDiv(v); setFilterDist(''); setChecked(new Set()); }} />
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>City / district</div>
-          <select className="dm-input" value={filterDist} onChange={e => { setFilterDist(e.target.value); setChecked(new Set()); }}>
-            <option value="">All districts</option>
-            {filterDiv
-              ? (BD_DISTRICTS[filterDiv] || []).map(d => <option key={d} value={d}>{d}</option>)
-              : Object.entries(BD_DISTRICTS).flatMap(([div, dists]) =>
-                  dists.map(d => <option key={`${div}-${d}`} value={d}>{d} · {div}</option>)
-                )
+          <CustomSelect value={filterDist} placeholder="All districts"
+            options={filterDiv
+              ? (BD_DISTRICTS[filterDiv] || []).map(d => ({ value: d, label: d }))
+              : Object.entries(BD_DISTRICTS).flatMap(([div, dists]) => dists.map(d => ({ value: d, label: `${d} · ${div}` })))
             }
-          </select>
+            onChange={v => { setFilterDist(v); setChecked(new Set()); }} />
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Rate group</div>
-          <select className="dm-input" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)}>
-            <option value="">Select a rate group</option>
-            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
+          <CustomSelect value={selectedGroupId} placeholder="Select a rate group"
+            options={groups.map(g => ({ value: g.id, label: g.name }))}
+            onChange={v => setSelectedGroupId(v)} />
         </div>
       </div>
 
@@ -1385,22 +1378,18 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
           <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
           <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search store, group, district, area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
-        <select className="dm-input" style={{ flex: 1, minWidth: 140 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); setSelected(new Set()); }}>
-          <option value="">All store locations</option>
-          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>
-        <select className="dm-input" style={{ flex: 1, minWidth: 130 }} value={filterDiv} onChange={e => { setFilterDiv(e.target.value); setFilterDist(''); setPage(1); setSelected(new Set()); }}>
-          <option value="">All divisions</option>
-          {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="dm-input" style={{ flex: 1, minWidth: 130 }} value={filterDist} onChange={e => { setFilterDist(e.target.value); setPage(1); setSelected(new Set()); }} disabled={!filterDiv}>
-          <option value="">All districts</option>
-          {(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="dm-input" style={{ flex: 1, minWidth: 130 }} value={filterGroup} onChange={e => { setFilterGroup(e.target.value); setPage(1); setSelected(new Set()); }}>
-          <option value="">All rate groups</option>
-          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>
+        <CustomSelect style={{ flex: 1, minWidth: 140 }} value={filterGroup} placeholder="All store locations"
+          options={groups.map(g => ({ value: g.id, label: g.name }))}
+          onChange={v => { setFilterGroup(v); setPage(1); setSelected(new Set()); }} />
+        <CustomSelect style={{ flex: 1, minWidth: 130 }} value={filterDiv} placeholder="All divisions"
+          options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
+          onChange={v => { setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
+        <CustomSelect style={{ flex: 1, minWidth: 130 }} value={filterDist} placeholder="All districts"
+          options={(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => ({ value: d, label: d }))}
+          onChange={v => { setFilterDist(v); setPage(1); setSelected(new Set()); }} />
+        <CustomSelect style={{ flex: 1, minWidth: 130 }} value={filterGroup} placeholder="All rate groups"
+          options={groups.map(g => ({ value: g.id, label: g.name }))}
+          onChange={v => { setFilterGroup(v); setPage(1); setSelected(new Set()); }} />
         <button className="dm-btn-outline" style={{ fontSize: 12, whiteSpace: 'nowrap' }} onClick={exportCsv}><Download size={13} /> Export CSV</button>
       </div>
 
@@ -1657,6 +1646,63 @@ function DialogFrame({ title, onClose, children, footer }: { title: string; onCl
         {children}
         {footer && <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>{footer}</div>}
       </div>
+    </div>
+  );
+}
+
+function CustomSelect({ value, onChange, options, placeholder, style }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  style?: React.CSSProperties;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  const selectedLabel = value ? (options.find(o => o.value === value)?.label || value) : placeholder;
+  return (
+    <div ref={ref} style={{ position: 'relative', ...style }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '7px 10px', border: `1px solid ${C.border}`, borderRadius: 6,
+        background: '#fff', cursor: 'pointer', fontSize: 13,
+        color: value ? C.fg : C.mutedFg, gap: 6, outline: 'none',
+      }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLabel}</span>
+        <ChevronDown size={14} style={{ flexShrink: 0, color: C.mutedFg, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200,
+          background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.13)', overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
+        }}>
+          <CsOption label={placeholder} selected={value === ''} onClick={() => { onChange(''); setOpen(false); }} />
+          {options.map(o => (
+            <CsOption key={o.value} label={o.label} selected={value === o.value} onClick={() => { onChange(o.value); setOpen(false); }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function CsOption({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        padding: '8px 12px', cursor: 'pointer', fontSize: 13,
+        background: selected ? C.primary : hov ? '#f3e8ff' : '#fff',
+        color: selected ? '#fff' : C.fg, transition: 'background 0.1s',
+      }}>
+      {label}
     </div>
   );
 }
