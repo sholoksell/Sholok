@@ -928,56 +928,114 @@ function GroupsSection({ groups, updateGroups, onAdd, onEdit, onDelete }: {
   groups: RateGroup[]; updateGroups: (g: RateGroup[]) => void;
   onAdd: () => void; onEdit: (g: RateGroup) => void; onDelete: (id: string) => void;
 }) {
+  const pct = Math.round((groups.length / MAX_RATE_GROUPS) * 100);
+  const remaining = MAX_RATE_GROUPS - groups.length;
+
   return (
     <div>
+      {/* Header */}
       <div className="dm-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div className="dm-section-title">Rate Groups</div>
-          <div className="dm-section-desc">{groups.length} / {MAX_RATE_GROUPS} groups configured</div>
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>STORE PRICING</div>
+          <div className="dm-section-title">Rate groups</div>
+          <div className="dm-section-desc">Create reusable delivery charges for each store location. Groups are never created automatically.</div>
         </div>
-        <button className="dm-btn-primary" onClick={onAdd} disabled={groups.length >= MAX_RATE_GROUPS}>
-          <Plus size={14} /> New Rate Group
+        <button className="dm-btn-primary" onClick={onAdd} disabled={groups.length >= MAX_RATE_GROUPS}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative', paddingRight: 42 }}>
+          <Plus size={14} /> New rate group
+          <span style={{ position: 'absolute', right: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 7px', letterSpacing: '0.03em' }}>
+            {groups.length}/{MAX_RATE_GROUPS}
+          </span>
         </button>
       </div>
-      <div style={{ padding: '20px 28px' }}>
+
+      {/* Progress bar */}
+      <div style={{ margin: '0 24px 20px', border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, color: C.mutedFg, fontWeight: 500 }}>Rate groups created</span>
+          <span style={{ fontSize: 12, color: C.mutedFg }}>{remaining} remaining</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: C.fg, minWidth: 24 }}>{groups.length}</span>
+          <span style={{ fontSize: 14, color: C.mutedFg }}>/ {MAX_RATE_GROUPS}</span>
+          <div style={{ flex: 1, height: 4, background: C.border, borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: C.primary, borderRadius: 2, transition: 'width .3s' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '0 24px 24px' }}>
         {groups.length === 0 ? (
-          <div className="dm-card" style={{ padding: 40, textAlign: 'center', color: C.mutedFg }}>
-            <Activity size={36} style={{ margin: '0 auto 12px', opacity: .3 }} />
-            <p style={{ fontSize: 14 }}>No rate groups yet. Create your first one.</p>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', background: C.secondary }}>
+              <Activity size={22} style={{ color: C.primary }} />
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: C.fg, marginBottom: 6 }}>No rate groups yet</div>
+            <div style={{ fontSize: 13, color: C.mutedFg, marginBottom: 20 }}>
+              Rate groups are created by your team and{' '}
+              <span style={{ color: '#e07020', textDecoration: 'underline', cursor: 'default' }}>tied to a store location</span>.
+            </div>
+            <button className="dm-btn-primary" onClick={onAdd}><Plus size={14} /> Create your first group</button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {groups.map(g => (
-              <div key={g.id} className="dm-card" style={{ padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
-                    <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 2 }}>ID: {g.id}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {groups.map(g => {
+              const slabs = g.weightSlabs ? parseSlabs(g.weightSlabs) : [];
+              return (
+                <div key={g.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 18, background: C.bg }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
+                      <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 2 }}>ID: {g.id}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="dm-btn-ghost" style={{ padding: '5px 8px' }} title="Edit" onClick={() => onEdit(g)}><Pencil size={13} /></button>
+                      <button className="dm-btn-ghost" style={{ padding: '5px 8px', color: '#c0392b' }} title="Delete" onClick={() => onDelete(g.id)}><Trash2 size={13} /></button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="dm-btn-ghost" style={{ padding: '5px 8px' }} onClick={() => onEdit(g)}><Pencil size={13} /></button>
-                    <button className="dm-btn-danger" style={{ padding: '5px 8px' }} onClick={() => onDelete(g.id)}><Trash2 size={13} /></button>
+                  {/* Rate formula summary */}
+                  <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Base rate</div>
+                      <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.base}</div>
+                    </div>
+                    <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>+</div>
+                    <div>
+                      <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Per kg</div>
+                      <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.additional}</div>
+                    </div>
+                    <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>×</div>
+                    <div style={{ alignSelf: 'flex-end', fontSize: 12, color: C.mutedFg, paddingBottom: 2 }}>(weight − 1)</div>
                   </div>
+                  {/* Weight slabs */}
+                  {slabs.length > 0 && (
+                    <div style={{ background: C.secondary, borderRadius: 6, padding: '8px 12px', fontSize: 11 }}>
+                      <div style={{ color: C.mutedFg, fontWeight: 500, marginBottom: 4 }}>Weight slabs override</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 10px' }}>
+                        {slabs.map((sl, i) => (
+                          <span key={i} style={{ color: C.fg }}>≤{sl.maxKg}kg → ৳{sl.rate}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
-                  <div>
-                    <div style={{ color: C.mutedFg, fontSize: 11 }}>Base charge</div>
-                    <div style={{ fontWeight: 600, color: C.primary }}>৳{g.base}</div>
-                  </div>
-                  <div>
-                    <div style={{ color: C.mutedFg, fontSize: 11 }}>Extra/kg</div>
-                    <div style={{ fontWeight: 600, color: C.primary }}>৳{g.additional}</div>
-                  </div>
-                </div>
-                {g.weightSlabs && (
-                  <div style={{ marginTop: 10, padding: '6px 10px', background: C.secondary, borderRadius: 6, fontSize: 11, color: C.secondaryFg }}>
-                    Slabs: {slabText(parseSlabs(g.weightSlabs)).slice(0, 60)}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+      </div>
+
+      {/* Formula info */}
+      <div style={{ margin: '0 24px 24px', border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <span style={{ fontSize: 18, flexShrink: 0, color: '#c0392b', fontWeight: 700 }}>৳</span>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 13, color: C.fg, marginBottom: 2 }}>How delivery charges are calculated</div>
+          <div style={{ fontSize: 12, color: C.mutedFg }}>
+            Base rate + Additional per KG × (weight − 1).{' '}
+            <span style={{ color: '#e07020' }}>A matching weight slab takes precedence over the formula.</span>
+          </div>
+        </div>
       </div>
     </div>
   );
