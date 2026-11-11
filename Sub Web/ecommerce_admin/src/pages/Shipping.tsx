@@ -98,6 +98,7 @@ type Section = 'dashboard' | 'areas' | 'groups' | 'assign' | 'rates' | 'backup';
 
 interface RateGroup {
   id: string;
+  store?: string;
   name: string;
   base: number;
   additional: number;
@@ -106,6 +107,8 @@ interface RateGroup {
 
 interface Assignment {
   key: string;
+  store?: string;
+  areaId?: string;
   division: string;
   district: string;
   area: string;
@@ -272,9 +275,9 @@ export default function Shipping() {
         ]);
         setGroups(Array.isArray(gRes.data) ? gRes.data : []);
         setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
-        const ovData = oRes.data || {};
-        setStatuses(Array.isArray(ovData.statuses) ? ovData.statuses : []);
-        setCustomAreas(Array.isArray(ovData.customAreas) ? ovData.customAreas : []);
+        const overrides: Array<{ key: string; division?: string; district?: string; area?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
+        setStatuses(overrides.filter(r => !r.isCustom && r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
+        setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })));
       } catch {
         toast.error('Failed to load delivery data');
       } finally {
@@ -286,7 +289,8 @@ export default function Shipping() {
   const syncGroups = useCallback((data: RateGroup[]) => {
     clearTimeout(syncGRef.current);
     syncGRef.current = setTimeout(() => {
-      api.post('/delivery-rates/rate-groups/sync', data).catch(() => toast.error('Failed to save rate groups'));
+      const payload = data.map(g => ({ ...g, store: g.store || 'Default' }));
+      api.post('/delivery-rates/rate-groups/sync', payload).catch(() => toast.error('Failed to save rate groups'));
     }, 1000);
   }, []);
 
@@ -300,7 +304,9 @@ export default function Shipping() {
   const syncStatuses = useCallback((data: AreaStatus[]) => {
     clearTimeout(syncSRef.current);
     syncSRef.current = setTimeout(() => {
-      api.post('/delivery-rates/area-statuses/sync', data).catch(() => toast.error('Failed to save area statuses'));
+      const statusMap: Record<string, string> = {};
+      data.forEach(s => { statusMap[s.key] = s.status; });
+      api.post('/delivery-rates/area-statuses/sync', statusMap).catch(() => toast.error('Failed to save area statuses'));
     }, 1000);
   }, []);
 
@@ -1015,7 +1021,7 @@ function GroupsSection({ groups, updateGroups, onAdd, onEdit, onDelete }: {
                       <div style={{ color: C.mutedFg, fontWeight: 500, marginBottom: 4 }}>Weight slabs override</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 10px' }}>
                         {slabs.map((sl, i) => (
-                          <span key={i} style={{ color: C.fg }}>≤{sl.maxKg}kg → ৳{sl.rate}</span>
+                          <span key={i} style={{ color: C.fg }}>≤{sl.upTo}kg → ৳{sl.charge}</span>
                         ))}
                       </div>
                     </div>
@@ -1091,10 +1097,10 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
       const e = allEntries.find(a => a.key === key);
       if (!e) continue;
       if (!assignedMap[key]) {
-        toAdd.push({ key, division: e.division, district: e.district, area: e.area, groupId: grp.id, groupName: grp.name });
+        toAdd.push({ key, store: grp.store || 'Default', division: e.division, district: e.district, area: e.area, areaId: e.key, groupId: grp.id, groupName: grp.name });
       } else if (assignedMap[key].groupId !== grp.id) {
         // re-assign: replace existing
-        toAdd.push({ key, division: e.division, district: e.district, area: e.area, groupId: grp.id, groupName: grp.name });
+        toAdd.push({ key, store: grp.store || 'Default', division: e.division, district: e.district, area: e.area, areaId: e.key, groupId: grp.id, groupName: grp.name });
       }
     }
     if (toAdd.length === 0) { clearSel(); return; }
@@ -1662,7 +1668,7 @@ function GroupModal({ mode, initial, onClose, onSave }: {
 
   const handleSave = () => {
     if (!name.trim() || isNaN(+base) || isNaN(+additional)) { toast.error('Fill all required fields'); return; }
-    onSave({ id: initial?.id || createId(), name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined });
+    onSave({ id: initial?.id || createId(), store: initial?.store || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined });
   };
 
   return (
