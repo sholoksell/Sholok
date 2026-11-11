@@ -496,7 +496,7 @@ export default function Shipping() {
               setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
               setDistrictModal(null);
               toast.success(`District renamed to "${newDistrict}"`);
-            } catch { toast.error('Failed to rename district'); }
+            } catch (err: any) { toast.error(err?.response?.data?.message || 'Failed to rename district'); }
           }}
         />
       )}
@@ -919,13 +919,11 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
                   </td>
                   <td style={{ color: C.mutedFg }}>{e.division}</td>
                   <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ color: C.primary, fontWeight: 400 }}>{e.district}</span>
-                      <button className="dm-btn-ghost" style={{ padding: '1px 4px' }} title="Rename district"
-                        onClick={ev => { ev.stopPropagation(); onEditDistrict(e.division, e.district); }}>
-                        <Pencil size={10} style={{ color: C.mutedFg }} />
-                      </button>
-                    </span>
+                    <button style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      title="Edit district" onClick={() => onEditDistrict(e.division, e.district)}>
+                      <span style={{ color: C.primary, fontWeight: 400, fontSize: 13 }}>{e.district}</span>
+                      <Pencil size={12} style={{ color: C.mutedFg }} />
+                    </button>
                   </td>
                   <td style={{ fontWeight: 600 }}>{e.area}</td>
                   <td>
