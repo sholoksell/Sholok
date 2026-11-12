@@ -393,6 +393,7 @@ export default function Shipping() {
         {section === 'groups' && (
           <GroupsSection
             groups={groups} updateGroups={updateGroups}
+            assignments={assignments}
             onAdd={() => setGroupModal({ mode: 'add' })}
             onEdit={(g) => setGroupModal({ mode: 'edit', group: g })}
             onDelete={(id) => {
@@ -400,6 +401,7 @@ export default function Shipping() {
               updateGroups(next);
               toast.success('Rate group deleted');
             }}
+            onViewAssignments={() => setSection('assign')}
           />
         )}
         {section === 'assign' && (
@@ -974,9 +976,11 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
 }
 
 // ── Groups Section ─────────────────────────────────────────────────────────────
-function GroupsSection({ groups, updateGroups, onAdd, onEdit, onDelete }: {
+function GroupsSection({ groups, updateGroups, assignments, onAdd, onEdit, onDelete, onViewAssignments }: {
   groups: RateGroup[]; updateGroups: (g: RateGroup[]) => void;
+  assignments: Assignment[];
   onAdd: () => void; onEdit: (g: RateGroup) => void; onDelete: (id: string) => void;
+  onViewAssignments: () => void;
 }) {
   const pct = Math.round((groups.length / MAX_RATE_GROUPS) * 100);
   const remaining = MAX_RATE_GROUPS - groups.length;
@@ -1032,8 +1036,10 @@ function GroupsSection({ groups, updateGroups, onAdd, onEdit, onDelete }: {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {groups.map(g => {
               const slabs = g.weightSlabs ? parseSlabs(g.weightSlabs) : [];
+              const assignedCount = assignments.filter(a => a.groupId === g.id).length;
               return (
-                <div key={g.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 18, background: C.bg }}>
+                <div key={g.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 18, background: C.bg, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
@@ -1044,31 +1050,43 @@ function GroupsSection({ groups, updateGroups, onAdd, onEdit, onDelete }: {
                       <button className="dm-btn-ghost" style={{ padding: '5px 8px', color: '#c0392b' }} title="Delete" onClick={() => onDelete(g.id)}><Trash2 size={13} /></button>
                     </div>
                   </div>
-                  {/* Rate formula summary */}
-                  <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Base rate</div>
-                      <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.base}</div>
-                    </div>
-                    <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>+</div>
-                    <div>
-                      <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Per kg</div>
-                      <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.additional}</div>
-                    </div>
-                    <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>×</div>
-                    <div style={{ alignSelf: 'flex-end', fontSize: 12, color: C.mutedFg, paddingBottom: 2 }}>(weight − 1)</div>
-                  </div>
-                  {/* Weight slabs */}
-                  {slabs.length > 0 && (
-                    <div style={{ background: C.secondary, borderRadius: 6, padding: '8px 12px', fontSize: 11 }}>
-                      <div style={{ color: C.mutedFg, fontWeight: 500, marginBottom: 4 }}>Weight slabs override</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 10px' }}>
-                        {slabs.map((sl, i) => (
-                          <span key={i} style={{ color: C.fg }}>≤{sl.upTo}kg → ৳{sl.charge}</span>
-                        ))}
+                  {/* Weight slabs table */}
+                  {slabs.length > 0 ? (
+                    <div style={{ background: C.secondary, borderRadius: 6, padding: '10px 14px', marginBottom: 12 }}>
+                      {slabs.map((sl, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: i < slabs.length - 1 ? 6 : 0, marginBottom: i < slabs.length - 1 ? 6 : 0, borderBottom: i < slabs.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                          <span style={{ fontSize: 12, color: C.mutedFg, fontWeight: 500 }}>{sl.upTo} KG</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>৳{sl.charge}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 12, color: C.mutedFg, fontWeight: 500 }}>Additional / KG</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>৳{g.additional}</span>
                       </div>
                     </div>
+                  ) : (
+                    /* Rate formula summary */
+                    <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Base rate</div>
+                        <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.base}</div>
+                      </div>
+                      <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>+</div>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Per kg</div>
+                        <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.additional}</div>
+                      </div>
+                      <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>×</div>
+                      <div style={{ alignSelf: 'flex-end', fontSize: 12, color: C.mutedFg, paddingBottom: 2 }}>(weight − 1)</div>
+                    </div>
                   )}
+                  {/* Assigned areas footer */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: `1px solid ${C.border}`, marginTop: 'auto' }}>
+                    <span style={{ fontSize: 12, color: C.mutedFg }}>{assignedCount} assigned area{assignedCount !== 1 ? 's' : ''}</span>
+                    <button className="dm-btn-ghost" style={{ fontSize: 12, padding: '3px 8px', color: C.primary, fontWeight: 500 }} onClick={onViewAssignments}>
+                      View assignments →
+                    </button>
+                  </div>
                 </div>
               );
             })}
