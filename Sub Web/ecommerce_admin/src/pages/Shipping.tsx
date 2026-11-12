@@ -183,7 +183,9 @@ function areaKey(div: string, dist: string, area: string) {
 }
 
 function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
-  const customKeySet = new Set(customAreas.map(ca => ca.key));
+  // Map original-key → custom override (for in-place replacement at same row position)
+  const overrideMap = new Map(customAreas.map(ca => [ca.key, ca]));
+  const standardKeys = new Set<string>();
   const entries: AreaEntry[] = [];
   for (const div of BD_DIVISIONS) {
     const districts = BD_DISTRICTS[div] || [];
@@ -191,22 +193,23 @@ function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
       const areas = BD_AREAS[dist] || [];
       for (const area of areas) {
         const key = areaKey(div, dist, area);
-        if (!customKeySet.has(key)) {
+        standardKeys.add(key);
+        const ov = overrideMap.get(key);
+        if (ov) {
+          // Show override data at the standard area's original row position
+          entries.push({ division: ov.division, district: ov.district, area: ov.area, key, isCustom: true });
+        } else {
           entries.push({ division: div, district: dist, area, key, isCustom: false });
         }
       }
     }
   }
+  // Truly new custom areas (no matching standard key) → append at end
   for (const ca of customAreas) {
-    entries.push({ division: ca.division, district: ca.district, area: ca.area, key: ca.key, isCustom: true });
+    if (!standardKeys.has(ca.key)) {
+      entries.push({ division: ca.division, district: ca.district, area: ca.area, key: ca.key, isCustom: true });
+    }
   }
-  entries.sort((a, b) => {
-    const d = a.division.localeCompare(b.division);
-    if (d !== 0) return d;
-    const di = a.district.localeCompare(b.district);
-    if (di !== 0) return di;
-    return a.area.localeCompare(b.area);
-  });
   return entries;
 }
 
@@ -453,20 +456,17 @@ export default function Shipping() {
           initial={areaModal.area}
           onClose={() => setAreaModal(null)}
           onSave={async (div, dist, area) => {
-            const key = areaKey(div, dist, area);
             const oldKey = areaModal.area?.key;
-            const isCustomEdit = areaModal.area?.isCustom;
             if (areaModal.mode === 'edit' && oldKey) {
               try {
-                if (isCustomEdit) {
-                  await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(oldKey)}`);
-                  await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
-                  setCustomAreas(prev => prev.map(a => a.key === oldKey ? { key, division: div, district: dist, area } : a));
-                } else {
-                  await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
-                  setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
-                  updateStatuses([...statuses.filter(s => s.key !== oldKey), { key: oldKey, status: 'Disable' }]);
-                }
+                // Always use original key — only update display data, never change key
+                await api.post('/delivery-rates/area-overrides/custom', { key: oldKey, division: div, district: dist, area });
+                setCustomAreas(prev => {
+                  const exists = prev.some(a => a.key === oldKey);
+                  return exists
+                    ? prev.map(a => a.key === oldKey ? { key: oldKey, division: div, district: dist, area } : a)
+                    : [...prev, { key: oldKey, division: div, district: dist, area }];
+                });
                 setAreaModal(null);
                 toast.success('Area updated');
               } catch { toast.error('Failed to update area'); }

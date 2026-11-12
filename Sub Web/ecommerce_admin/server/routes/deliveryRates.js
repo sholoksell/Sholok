@@ -235,7 +235,7 @@ router.post('/area-overrides/custom', auth, async (req, res) => {
     await pool.query(
       `INSERT INTO delivery_area_overrides (area_key, division, district, area, status, is_custom)
        VALUES (?, ?, ?, ?, 'Enable', 1)
-       ON DUPLICATE KEY UPDATE division = VALUES(division), district = VALUES(district), area = VALUES(area)`,
+       ON DUPLICATE KEY UPDATE division = VALUES(division), district = VALUES(district), area = VALUES(area), status = 'Enable', is_custom = 1`,
       [key, division, district, area]
     );
     res.json({ ok: true });
