@@ -456,6 +456,7 @@ export default function Shipping() {
                 } else {
                   await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
                   setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
+                  updateStatuses([...statuses.filter(s => s.key !== oldKey), { key: oldKey, status: 'Disable' }]);
                 }
                 setAreaModal(null);
                 toast.success('Area updated');
@@ -779,6 +780,7 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
 
   const filtered = useMemo(() => {
     const list = allEntries.filter(e =>
+      statusFor(statuses, e.key) !== 'Disable' &&
       (!filterDiv || e.division === filterDiv) &&
       (!filterDist || e.district === filterDist) &&
       (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()) || e.division.toLowerCase().includes(search.toLowerCase()))
