@@ -1130,17 +1130,17 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
   }, [assignments]);
 
   // Show enabled areas only (status = 'Enable' or no entry = enabled by default)
+  // filterDiv = Store location: does NOT filter areas geographically — only filters Rate Group options
   const viewList = useMemo(() => {
     return allEntries.filter(e => {
       const enabled = !(statuses.find(s => s.key === e.key)?.status === 'Disable');
       return enabled &&
-        (!filterDiv || e.division === filterDiv) &&
         (!filterGeoDivision || e.division === filterGeoDivision) &&
         (!filterDist || e.district === filterDist) &&
         (!search || e.area.toLowerCase().includes(search.toLowerCase()) ||
           e.district.toLowerCase().includes(search.toLowerCase()));
     });
-  }, [allEntries, statuses, filterDiv, filterGeoDivision, filterDist, search]);
+  }, [allEntries, statuses, filterGeoDivision, filterDist, search]);
 
   // "unassigned" = not in any group at all
   const unassignedInView = viewList.filter(e => !assignedMap[e.key]);
@@ -1311,6 +1311,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   onOverride: (a: Assignment) => void;
   onRemoveOverride: (key: string) => void;
 }) {
+  const [filterStore, setFilterStore] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
   const [filterDiv, setFilterDiv] = useState('');
   const [filterDist, setFilterDist] = useState('');
@@ -1325,6 +1326,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const list = assignments.filter(a =>
+      (!filterStore || a.division === filterStore) &&
       (!filterGroup || a.groupId === filterGroup) &&
       (!filterDiv || a.division === filterDiv) &&
       (!filterDist || a.district === filterDist) &&
@@ -1407,12 +1409,9 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
           <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
           <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search store, group, district, area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
-        <CustomSelect style={{ flex: 1, minWidth: 140 }} value={filterGroup} placeholder="All store locations"
-          options={groups.map(g => ({ value: g.id, label: g.name }))}
-          onChange={v => { setFilterGroup(v); setPage(1); setSelected(new Set()); }} />
-        <CustomSelect style={{ flex: 1, minWidth: 130 }} value={filterDiv} placeholder="All divisions"
+        <CustomSelect style={{ flex: 1, minWidth: 140 }} value={filterStore} placeholder="All store locations"
           options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
-          onChange={v => { setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
+          onChange={v => { setFilterStore(v); setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
         <CustomSelect style={{ flex: 1, minWidth: 130 }} value={filterDist} placeholder="All districts"
           options={(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => ({ value: d, label: d }))}
           onChange={v => { setFilterDist(v); setPage(1); setSelected(new Set()); }} />
