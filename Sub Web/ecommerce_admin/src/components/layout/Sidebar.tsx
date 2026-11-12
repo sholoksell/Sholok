@@ -45,6 +45,7 @@ export default function Sidebar() {
     { icon: ShoppingCart,    labelKey: 'orders',           path: '/orders' },
     { icon: CreditCard,      labelKey: 'payments',         path: '/payments' },
     { icon: Truck,           labelKey: 'shipping',         path: '/shipping' },
+    { icon: Package,         labelKey: 'shipments',        path: '/shipments' },
     { icon: Store,           labelKey: 'vendors',          path: '/vendors' },
     { icon: LayoutDashboard, labelKey: 'vendorDashboard',  path: '/vendor-dashboard' },
     { icon: Warehouse,       labelKey: 'warehouses',       path: '/warehouses' },

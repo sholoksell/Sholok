@@ -91,7 +91,7 @@ const App = () => (
                   <Route path="/delivery-coverage" element={<Navigate to="/shipping" replace />} />
                   <Route path="/checkout-settings" element={<Navigate to="/shipping" replace />} />
                   <Route path="/grocery-settings" element={<GrocerySettings />} />
-                  <Route path="/shipments" element={<Navigate to="/shipping" replace />} />
+                  <Route path="/shipments" element={<Shipments />} />
                   <Route path="/cod-settlement" element={<CodSettlement />} />
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/returns" element={<Returns />} />
