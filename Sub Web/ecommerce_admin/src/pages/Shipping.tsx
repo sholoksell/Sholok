@@ -454,10 +454,8 @@ export default function Shipping() {
                   await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
                   setCustomAreas(prev => prev.map(a => a.key === oldKey ? { key, division: div, district: dist, area } : a));
                 } else {
-                  // Standard area: add custom entry with new name, disable original
                   await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
                   setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
-                  updateStatuses([...statuses.filter(s => s.key !== oldKey), { key: oldKey, status: 'Disable' }]);
                 }
                 setAreaModal(null);
                 toast.success('Area updated');
