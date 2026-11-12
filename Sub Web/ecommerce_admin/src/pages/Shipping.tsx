@@ -369,6 +369,7 @@ export default function Shipping() {
             groupCount={groups.length} enabledCount={enabledCount}
             disabledCount={totalAreas - enabledCount}
             setSection={setSection}
+            allEntries={allEntries}
           />
         )}
         {section === 'areas' && (
@@ -605,15 +606,16 @@ function MetricCard({ iconEl, label, value, sub }: { iconEl: React.ReactNode; la
   );
 }
 
-function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount, disabledCount, setSection }: {
+function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount, disabledCount, setSection, allEntries }: {
   totalAreas: number; assignedCount: number; groupCount: number; enabledCount: number; disabledCount: number;
   setSection: (s: Section) => void;
+  allEntries: AreaEntry[];
 }) {
-  const divisionCounts = useMemo(() => BD_DIVISIONS.map((div, i) => ({
-    name: div,
-    num: i + 1,
-    count: (BD_DISTRICTS[div] || []).reduce((s, d) => s + (BD_AREAS[d] || []).length, 0),
-  })), []);
+  const divisionCounts = useMemo(() => {
+    const countMap: Record<string, number> = {};
+    for (const e of allEntries) countMap[e.division] = (countMap[e.division] || 0) + 1;
+    return BD_DIVISIONS.map((div, i) => ({ name: div, num: i + 1, count: countMap[div] || 0 }));
+  }, [allEntries]);
   const maxCount = Math.max(...divisionCounts.map(d => d.count), 1);
   const unassignedCount = totalAreas - assignedCount;
   const coveragePct = totalAreas > 0 ? (assignedCount / totalAreas) * 100 : 0;
