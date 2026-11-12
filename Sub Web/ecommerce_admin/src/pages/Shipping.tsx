@@ -200,6 +200,13 @@ function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
   for (const ca of customAreas) {
     entries.push({ division: ca.division, district: ca.district, area: ca.area, key: ca.key, isCustom: true });
   }
+  entries.sort((a, b) => {
+    const d = a.division.localeCompare(b.division);
+    if (d !== 0) return d;
+    const di = a.district.localeCompare(b.district);
+    if (di !== 0) return di;
+    return a.area.localeCompare(b.area);
+  });
   return entries;
 }
 
@@ -782,7 +789,7 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
 
   const filtered = useMemo(() => {
     const list = allEntries.filter(e =>
-      statusFor(statuses, e.key) !== 'Disable' &&
+      (e.isCustom || statusFor(statuses, e.key) !== 'Disable') &&
       (!filterDiv || e.division === filterDiv) &&
       (!filterDist || e.district === filterDist) &&
       (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()) || e.division.toLowerCase().includes(search.toLowerCase()))
