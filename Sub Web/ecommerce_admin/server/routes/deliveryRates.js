@@ -66,6 +66,16 @@ const auth    = require('../middleware/auth');
     for (const sql of migrations) {
       try { await pool.query(sql); } catch (e) { /* column already exists — ignore */ }
     }
+    // One-time cleanup: remove malformed custom area keys (old D- prefix format and typo names)
+    const malformedKeys = [
+      'Barishal|Barguna|Amtali1',
+      'D-Dhaka-Dhaka-Bashundhara R/A (Block A-C)',
+      'D-Dhaka-Dhaka-Bashundhara R/A (Block D-I)',
+      'D-Dhaka-Dhaka-Bashundhara R/A (Block J-N)',
+      'D-Rajshahi-Sirajganj-Chouhali',
+      'Dhaka|Tangail|Ghatail1',
+    ];
+    await pool.query('DELETE FROM delivery_area_overrides WHERE area_key IN (?)', [malformedKeys]);
   } catch (e) {
     console.error('deliveryRates table init:', e.message);
   }
