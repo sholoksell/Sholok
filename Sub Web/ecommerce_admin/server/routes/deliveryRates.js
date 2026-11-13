@@ -282,11 +282,25 @@ router.post('/district-rename', auth, async (req, res) => {
 // ── Charge Lookup ─────────────────────────────────────────────────────────────
 
 router.get('/charge', async (req, res) => {
-  const { district, area, weight = 1 } = req.query;
+  const { division, district, area, weight = 1 } = req.query;
   const kg = Math.max(1, parseFloat(weight) || 1);
   try {
+    // Check if this area is explicitly disabled in delivery_area_overrides
+    if (division && district && area) {
+      const aKey = `${division}|${district}|${area}`;
+      const [disabledRows] = await pool.query(
+        `SELECT status FROM delivery_area_overrides WHERE area_key = ? AND status = 'Disable' LIMIT 1`,
+        [aKey]
+      );
+      if (disabledRows.length) {
+        return res.json({ charge: null, groupName: null, matched: false, disabled: true });
+      }
+    }
+
     let row;
-    if (area) {
+    // 1. Precise lookup by assignment_key = "{division}|{district}|{area}"
+    if (division && district && area) {
+      const aKey = `${division}|${district}|${area}`;
       const [rows] = await pool.query(
         `SELECT g.base_rate, g.additional_per_kg, g.weight_slabs, g.name AS group_name,
                 a.district, a.division, a.area,
@@ -294,12 +308,28 @@ router.get('/charge', async (req, res) => {
          FROM delivery_area_assignments a
          JOIN delivery_rate_groups g ON g.id = a.group_id
          LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
-         WHERE a.area = ? AND a.district = ?
+         WHERE a.assignment_key = ?
          LIMIT 1`,
-        [area, district || '']
+        [aKey]
       );
       if (rows.length) row = rows[0];
     }
+    // 2. Fallback: exact area + district match (name-based, case-insensitive)
+    if (!row && area && district) {
+      const [rows] = await pool.query(
+        `SELECT g.base_rate, g.additional_per_kg, g.weight_slabs, g.name AS group_name,
+                a.district, a.division, a.area,
+                o.base_rate AS override_base, o.additional_per_kg AS override_additional, o.weight_slabs AS override_slabs
+         FROM delivery_area_assignments a
+         JOIN delivery_rate_groups g ON g.id = a.group_id
+         LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
+         WHERE LOWER(a.area) = LOWER(?) AND LOWER(a.district) = LOWER(?)
+         LIMIT 1`,
+        [area, district]
+      );
+      if (rows.length) row = rows[0];
+    }
+    // 3. District-only fallback
     if (!row && district) {
       const [rows] = await pool.query(
         `SELECT g.base_rate, g.additional_per_kg, g.weight_slabs, g.name AS group_name,
@@ -308,13 +338,13 @@ router.get('/charge', async (req, res) => {
          FROM delivery_area_assignments a
          JOIN delivery_rate_groups g ON g.id = a.group_id
          LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
-         WHERE a.district = ?
+         WHERE LOWER(a.district) = LOWER(?)
          LIMIT 1`,
         [district]
       );
       if (rows.length) row = rows[0];
     }
-    // 3. Final fallback: delivery_areas table (per-area legacy config, NO free threshold applied)
+    // 4. Final fallback: delivery_areas table (admin-managed per-area charge, NO free threshold)
     if (!row) {
       let legacyCharge = null;
       if (area && district) {

@@ -282,6 +282,7 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
       let finalDeliveryCharge = null;
       const district = shippingAddress.city || shippingAddress.district || '';
       const areaNameForRate = shippingAddress.areaName || shippingAddress.area || '';
+      const divisionForRate = shippingAddress.division || '';
       if (district) {
         try {
           let totalWeightKg = 0;
@@ -296,45 +297,105 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
             }
           }
           if (totalWeightKg === 0) totalWeightKg = 0.5;
+          const kg = totalWeightKg;
 
-          // 1. Try rate group assignment (primary)
-          const [rateRows] = await conn.query(
-            `SELECT g.base_rate, g.additional_per_kg
-             FROM delivery_area_assignments a
-             JOIN delivery_rate_groups g ON g.id = a.group_id
-             WHERE LOWER(a.district) = LOWER(?) AND (LOWER(a.area) = LOWER(?) OR a.area = '' OR a.area IS NULL)
-             ORDER BY CASE WHEN LOWER(a.area) = LOWER(?) THEN 0 ELSE 1 END
-             LIMIT 1`,
-            [district, areaNameForRate, areaNameForRate]
-          );
-          if (rateRows.length) {
-            const base = Number(rateRows[0].base_rate);
-            const extra = Number(rateRows[0].additional_per_kg);
-            finalDeliveryCharge = totalWeightKg <= 1
-              ? base
-              : base + Math.ceil(totalWeightKg - 1) * extra;
-          }
-          // 2. Fallback: delivery_areas table (NO free threshold applied — rate group pricing takes precedence)
-          if (finalDeliveryCharge === null && district) {
-            const [areaRows] = await conn.query(
-              `SELECT delivery_charge FROM delivery_areas
-               WHERE LOWER(city) = LOWER(?) AND LOWER(name) = LOWER(?) AND is_active = 1 LIMIT 1`,
-              [district, areaNameForRate]
+          // Check disabled status first
+          if (divisionForRate && district && areaNameForRate) {
+            const aKey = `${divisionForRate}|${district}|${areaNameForRate}`;
+            const [disabledRows] = await conn.query(
+              `SELECT status FROM delivery_area_overrides WHERE area_key = ? AND status = 'Disable' LIMIT 1`,
+              [aKey]
             );
-            if (areaRows.length) {
-              finalDeliveryCharge = Number(areaRows[0].delivery_charge);
-            } else {
-              // District-level fallback: use minimum configured charge for the district
-              const [distRows] = await conn.query(
-                `SELECT MIN(delivery_charge) AS min_charge FROM delivery_areas WHERE LOWER(city) = LOWER(?) AND is_active = 1`,
+            if (disabledRows.length) {
+              finalDeliveryCharge = -1; // sentinel: area disabled, order should be blocked
+            }
+          }
+
+          if (finalDeliveryCharge !== -1) {
+            let rateRow = null;
+
+            // 1. Precise assignment_key lookup (PRIMARY KEY)
+            if (divisionForRate && district && areaNameForRate) {
+              const aKey = `${divisionForRate}|${district}|${areaNameForRate}`;
+              const [rows] = await conn.query(
+                `SELECT g.base_rate, g.additional_per_kg, g.weight_slabs, g.name AS group_name,
+                        o.base_rate AS override_base, o.additional_per_kg AS override_additional, o.weight_slabs AS override_slabs
+                 FROM delivery_area_assignments a
+                 JOIN delivery_rate_groups g ON g.id = a.group_id
+                 LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
+                 WHERE a.assignment_key = ?
+                 LIMIT 1`,
+                [aKey]
+              );
+              if (rows.length) rateRow = rows[0];
+            }
+            // 2. Fallback: exact area + district name match (case-insensitive)
+            if (!rateRow && areaNameForRate && district) {
+              const [rows] = await conn.query(
+                `SELECT g.base_rate, g.additional_per_kg, g.weight_slabs, g.name AS group_name,
+                        o.base_rate AS override_base, o.additional_per_kg AS override_additional, o.weight_slabs AS override_slabs
+                 FROM delivery_area_assignments a
+                 JOIN delivery_rate_groups g ON g.id = a.group_id
+                 LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
+                 WHERE LOWER(a.area) = LOWER(?) AND LOWER(a.district) = LOWER(?)
+                 LIMIT 1`,
+                [areaNameForRate, district]
+              );
+              if (rows.length) rateRow = rows[0];
+            }
+            // 3. District-only fallback
+            if (!rateRow && district) {
+              const [rows] = await conn.query(
+                `SELECT g.base_rate, g.additional_per_kg, g.weight_slabs, g.name AS group_name,
+                        o.base_rate AS override_base, o.additional_per_kg AS override_additional, o.weight_slabs AS override_slabs
+                 FROM delivery_area_assignments a
+                 JOIN delivery_rate_groups g ON g.id = a.group_id
+                 LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
+                 WHERE LOWER(a.district) = LOWER(?)
+                 LIMIT 1`,
                 [district]
               );
-              if (distRows.length && distRows[0].min_charge !== null) {
-                finalDeliveryCharge = Number(distRows[0].min_charge);
+              if (rows.length) rateRow = rows[0];
+            }
+
+            if (rateRow) {
+              const base  = rateRow.override_base != null ? Number(rateRow.override_base) : Number(rateRow.base_rate);
+              const extra = rateRow.override_additional != null ? Number(rateRow.override_additional) : Number(rateRow.additional_per_kg);
+              const slabs = rateRow.override_slabs || rateRow.weight_slabs;
+              if (slabs) {
+                const parsed = slabs.split(',').map(s => { const [m, p] = s.trim().split(':'); return { maxKg: parseFloat(m), price: parseFloat(p) }; }).filter(s => !isNaN(s.maxKg) && !isNaN(s.price));
+                const slab = parsed.find(s => kg <= s.maxKg);
+                finalDeliveryCharge = slab ? slab.price : base + extra * Math.max(0, kg - 1);
+              } else {
+                finalDeliveryCharge = kg <= 1 ? base : base + Math.ceil(kg - 1) * extra;
+              }
+            }
+
+            // 4. Legacy delivery_areas fallback (unassigned areas)
+            if (finalDeliveryCharge === null && district) {
+              const [areaRows] = await conn.query(
+                `SELECT delivery_charge FROM delivery_areas
+                 WHERE LOWER(city) = LOWER(?) AND LOWER(name) = LOWER(?) AND is_active = 1 LIMIT 1`,
+                [district, areaNameForRate]
+              );
+              if (areaRows.length) {
+                finalDeliveryCharge = Number(areaRows[0].delivery_charge);
+              } else {
+                const [distRows] = await conn.query(
+                  `SELECT MIN(delivery_charge) AS min_charge FROM delivery_areas WHERE LOWER(city) = LOWER(?) AND is_active = 1`,
+                  [district]
+                );
+                if (distRows.length && distRows[0].min_charge !== null) {
+                  finalDeliveryCharge = Number(distRows[0].min_charge);
+                }
               }
             }
           }
         } catch { /* tables may not exist yet */ }
+      }
+      // If area is disabled, block the order
+      if (finalDeliveryCharge === -1) {
+        return res.status(400).json({ message: 'Delivery is not available for the selected area. Please choose a different delivery address.' });
       }
       if (finalDeliveryCharge == null) finalDeliveryCharge = deliveryCharge != null ? Number(deliveryCharge) : (shippingCost || 0);
 

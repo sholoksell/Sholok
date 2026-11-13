@@ -17,12 +17,12 @@ const API_BASE = '/api';
 
 const BD_GEO = {
   'Dhaka':      ['Dhaka','Gazipur','Narsingdi','Manikganj','Munshiganj','Narayanganj','Tangail','Faridpur','Gopalganj','Kishoreganj','Madaripur','Rajbari','Shariatpur'],
-  'Chattogram': ['Chattogram',"Cox's Bazar",'Rangamati','Bandarban','Khagrachari','Feni','Lakshmipur','Noakhali','Cumilla','Chandpur','Brahmanbaria'],
+  'Chattogram': ['Chattogram',"Cox's Bazar",'Rangamati','Bandarban','Khagrachhari','Feni','Lakshmipur','Noakhali','Cumilla','Chandpur','Brahmanbaria'],
   'Sylhet':     ['Sylhet','Moulvibazar','Habiganj','Sunamganj'],
-  'Rajshahi':   ['Rajshahi','Bogura','Chapai Nawabganj','Naogaon','Natore','Pabna','Sirajganj','Joypurhat'],
+  'Rajshahi':   ['Rajshahi','Bogra','Chapainawabganj','Naogaon','Natore','Pabna','Sirajganj','Joypurhat'],
   'Khulna':     ['Khulna','Bagerhat','Satkhira','Jashore','Magura','Jhenaidah','Narail','Chuadanga','Kushtia','Meherpur'],
   'Barishal':   ['Barishal','Bhola','Jhalokathi','Patuakhali','Pirojpur','Barguna'],
-  'Rangpur':    ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Lalmonirhat','Panchgarh','Thakurgaon'],
+  'Rangpur':    ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Lalmonirhat','Panchagarh','Thakurgaon'],
   'Mymensingh': ['Mymensingh','Jamalpur','Netrokona','Sherpur'],
 };
 
@@ -149,6 +149,7 @@ const CheckoutPage = () => {
   const [selectedAreaObj, setSelectedAreaObj] = useState(null);
   const [shippingCost, setShippingCost] = useState(null);
   const [rateGroupName, setRateGroupName] = useState(null);
+  const [areaDisabled, setAreaDisabled] = useState(false);
 
   const [division, setDivision] = useState('');
   const [district, setDistrict] = useState('');
@@ -210,21 +211,24 @@ const CheckoutPage = () => {
     if (!district) { setShippingCost(null); setRateGroupName(null); return; }
     setShippingLoading(true);
     const ctrl = new AbortController();
-    fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(areaName || '')}`, { signal: ctrl.signal })
+    const divParam = division ? `&division=${encodeURIComponent(division)}` : '';
+    fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(areaName || '')}${divParam}`, { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (!d) { setShippingCost(null); setRateGroupName(null); return; }
+        if (!d) { setShippingCost(null); setRateGroupName(null); setAreaDisabled(false); return; }
+        if (d.disabled) {
+          setShippingCost(null); setRateGroupName(null); setAreaDisabled(true); return;
+        }
+        setAreaDisabled(false);
         if (d.matched) {
-          // Backend resolved a charge (rate group or delivery_areas table) — use it directly, no threshold logic
           setShippingCost(Number(d.charge));
           setRateGroupName(d.groupName || null);
         } else {
-          // No delivery configuration found for this area
           setShippingCost(null);
           setRateGroupName(null);
         }
       })
-      .catch(err => { if (err.name !== 'AbortError') { setShippingCost(null); setRateGroupName(null); } })
+      .catch(err => { if (err.name !== 'AbortError') { setShippingCost(null); setRateGroupName(null); setAreaDisabled(false); } })
       .finally(() => setShippingLoading(false));
     return () => ctrl.abort();
   }, [district, areaName]);
@@ -245,8 +249,8 @@ const CheckoutPage = () => {
   const bundleSavings = bundleOffers.reduce((s, o) => s + (o.discount_amount || 0), 0);
   const total = Math.max(0, subtotal + effectiveShipping - couponDiscount - bundleSavings);
 
-  const handleDivisionChange = (v) => { setDivision(v); setDistrict(''); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); };
-  const handleDistrictChange = (v) => { setDistrict(v); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); if (v && !division) setDivision(getDivision(v)); };
+  const handleDivisionChange = (v) => { setDivision(v); setDistrict(''); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); };
+  const handleDistrictChange = (v) => { setDistrict(v); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); if (v && !division) setDivision(getDivision(v)); };
 
   const availableDistricts = division ? (BD_GEO[division] || []).filter(d => (areasByDistrict[d] || []).length > 0) : [];
   const availableAreas = district ? (areasByDistrict[district] || []) : [];
@@ -296,7 +300,7 @@ const CheckoutPage = () => {
     if (!validate()) { toast.error('Please fill in all required fields'); return; }
     if (!selectedItems.length) { toast.error('Please select at least one item'); return; }
     if (shippingLoading) { toast.error('Please wait — calculating delivery charge…'); return; }
-    if (shippingUnresolved) { toast.error('No delivery rate configured for this area. Please select a different area or contact support.'); return; }
+    if (shippingUnresolved) { toast.error(areaDisabled ? 'Delivery is not available for this area. Please select a different area.' : 'No delivery rate configured for this area. Please select a different area or contact support.'); return; }
     placeOrderLock.current = true;
     try {
       setLoading(true);
@@ -413,7 +417,7 @@ const CheckoutPage = () => {
                   error={formErrors.district} disabled={!division || areasLoading} />
 
                 {!noAreaAvailable && (
-                  <SelectField label="Area / Upazila *" value={areaName} onChange={v => setAreaName(v)}
+                  <SelectField label="Area / Upazila *" value={areaName} onChange={v => { setAreaName(v); setAreaDisabled(false); }}
                     options={availableAreas.map(a => a.name)}
                     placeholder={district ? 'Select area' : 'Select district first'}
                     error={formErrors.areaName} disabled={!district || areasLoading} />
@@ -753,7 +757,9 @@ const CheckoutPage = () => {
                 <div className="mt-3 flex items-center gap-2 text-xs rounded-lg px-3 py-2"
                   style={{ background: '#fef2f2', border: `1px solid #fecaca`, color: '#b91c1c' }}>
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  No delivery rate configured for this area. Please contact support.
+                  {areaDisabled
+                    ? 'Delivery is not available for this area. Please select a different area.'
+                    : 'No delivery rate configured for this area. Please contact support.'}
                 </div>
               )}
               {!selectedItems.length && (
