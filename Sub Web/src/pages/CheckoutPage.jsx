@@ -605,11 +605,6 @@ const CheckoutPage = () => {
                         <p className="text-xs mt-0.5" style={{ color: C.primary }}>
                           Estimated delivery: {fmtDate(deliveryByDate)} – {fmtDate(deliveryRangeEnd)}
                         </p>
-                        {freeThreshold > 0 && effectiveShipping > 0 && (
-                          <p className="text-xs" style={{ color: '#16a34a' }}>
-                            Add {fmtTaka(freeThreshold - subtotal)} more for FREE delivery
-                          </p>
-                        )}
                       </>
                     ) : (
                       <>
