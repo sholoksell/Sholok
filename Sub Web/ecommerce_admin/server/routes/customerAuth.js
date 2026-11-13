@@ -297,12 +297,13 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
           }
           if (totalWeightKg === 0) totalWeightKg = 0.5;
 
+          // 1. Try rate group assignment (primary)
           const [rateRows] = await conn.query(
             `SELECT g.base_rate, g.additional_per_kg
              FROM delivery_area_assignments a
              JOIN delivery_rate_groups g ON g.id = a.group_id
-             WHERE a.district = ? AND (a.area = ? OR a.area = '' OR a.area IS NULL)
-             ORDER BY CASE WHEN a.area = ? THEN 0 ELSE 1 END
+             WHERE LOWER(a.district) = LOWER(?) AND (LOWER(a.area) = LOWER(?) OR a.area = '' OR a.area IS NULL)
+             ORDER BY CASE WHEN LOWER(a.area) = LOWER(?) THEN 0 ELSE 1 END
              LIMIT 1`,
             [district, areaNameForRate, areaNameForRate]
           );
@@ -312,6 +313,26 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
             finalDeliveryCharge = totalWeightKg <= 1
               ? base
               : base + Math.ceil(totalWeightKg - 1) * extra;
+          }
+          // 2. Fallback: delivery_areas table (NO free threshold applied — rate group pricing takes precedence)
+          if (finalDeliveryCharge === null && district) {
+            const [areaRows] = await conn.query(
+              `SELECT delivery_charge FROM delivery_areas
+               WHERE LOWER(city) = LOWER(?) AND LOWER(name) = LOWER(?) AND is_active = 1 LIMIT 1`,
+              [district, areaNameForRate]
+            );
+            if (areaRows.length) {
+              finalDeliveryCharge = Number(areaRows[0].delivery_charge);
+            } else {
+              // District-level fallback: use minimum configured charge for the district
+              const [distRows] = await conn.query(
+                `SELECT MIN(delivery_charge) AS min_charge FROM delivery_areas WHERE LOWER(city) = LOWER(?) AND is_active = 1`,
+                [district]
+              );
+              if (distRows.length && distRows[0].min_charge !== null) {
+                finalDeliveryCharge = Number(distRows[0].min_charge);
+              }
+            }
           }
         } catch { /* tables may not exist yet */ }
       }

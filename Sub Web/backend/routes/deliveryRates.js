@@ -61,7 +61,38 @@ router.get('/charge', async (req, res) => {
       if (rows.length) row = rows[0];
     }
 
-    if (!row) return res.json({ charge: 0, groupName: null, matched: false });
+    // 4. Final fallback: delivery_areas table (per-area admin config, NO free threshold)
+    if (!row) {
+      let legacyCharge = null;
+      let legacySource = null;
+      // Try exact area + city match first
+      if (area && district) {
+        const [lr] = await pool.query(
+          `SELECT delivery_charge, name, city FROM delivery_areas
+           WHERE LOWER(name) = LOWER(?) AND LOWER(city) = LOWER(?) AND is_active = 1 LIMIT 1`,
+          [area, district]
+        );
+        if (lr.length) { legacyCharge = Number(lr[0].delivery_charge); legacySource = `${lr[0].name}, ${lr[0].city}`; }
+      }
+      // Try district-only (minimum charge across all areas in that district)
+      if (legacyCharge === null && district) {
+        const [lr] = await pool.query(
+          `SELECT MIN(delivery_charge) AS min_charge FROM delivery_areas
+           WHERE LOWER(city) = LOWER(?) AND is_active = 1`,
+          [district]
+        );
+        if (lr.length && lr[0].min_charge !== null) { legacyCharge = Number(lr[0].min_charge); legacySource = district; }
+      }
+      if (legacyCharge !== null) {
+        return res.json({
+          charge: legacyCharge, base: legacyCharge, additionalPerKg: 0,
+          groupName: 'Standard Rate', district, area, matched: true, source: 'area_table',
+          weightKg: kg,
+        });
+      }
+      // Truly no config: return unmatched so checkout can warn the user
+      return res.json({ charge: null, groupName: null, matched: false });
+    }
 
     const base  = Number(row.base_rate);
     const extra = Number(row.additional_per_kg);
@@ -80,6 +111,7 @@ router.get('/charge', async (req, res) => {
       division: row.division,
       area: row.area,
       matched: true,
+      source: 'rate_group',
       weightKg: kg,
     });
   } catch (e) { res.status(500).json({ message: e.message }); }

@@ -209,20 +209,25 @@ const CheckoutPage = () => {
   useEffect(() => {
     if (!district) { setShippingCost(null); setRateGroupName(null); return; }
     setShippingLoading(true);
-    fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(areaName || '')}`)
+    const ctrl = new AbortController();
+    fetch(`${API_BASE}/delivery-rates/charge?district=${encodeURIComponent(district)}&area=${encodeURIComponent(areaName || '')}`, { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (d && d.matched) { setShippingCost(d.charge); setRateGroupName(d.groupName || 'Rate Group'); }
-        else if (selectedAreaObj) {
-          const charge = Number(selectedAreaObj.deliveryCharge || selectedAreaObj.delivery_charge || 0);
-          const thr = Number(selectedAreaObj.freeDeliveryThreshold || selectedAreaObj.free_delivery_threshold || 0);
-          setShippingCost(thr > 0 && subtotal >= thr ? 0 : charge);
+        if (!d) { setShippingCost(null); setRateGroupName(null); return; }
+        if (d.matched) {
+          // Backend resolved a charge (rate group or delivery_areas table) — use it directly, no threshold logic
+          setShippingCost(Number(d.charge));
+          setRateGroupName(d.groupName || null);
+        } else {
+          // No delivery configuration found for this area
+          setShippingCost(null);
           setRateGroupName(null);
-        } else { setShippingCost(null); setRateGroupName(null); }
+        }
       })
-      .catch(() => { if (selectedAreaObj) setShippingCost(Number(selectedAreaObj.deliveryCharge || selectedAreaObj.delivery_charge || 0)); else setShippingCost(null); setRateGroupName(null); })
+      .catch(err => { if (err.name !== 'AbortError') { setShippingCost(null); setRateGroupName(null); } })
       .finally(() => setShippingLoading(false));
-  }, [district, areaName, selectedAreaObj, subtotal]);
+    return () => ctrl.abort();
+  }, [district, areaName]);
 
   useEffect(() => {
     if (!hasGrocery) return;
@@ -235,6 +240,7 @@ const CheckoutPage = () => {
       .then(r => r.ok ? r.json() : { applicable: [] }).then(d => setBundleOffers(d.applicable || [])).catch(() => {});
   }, [cart, selectedItemIds]);
 
+  // effectiveShipping: use 0 only when shippingCost === 0 (backend confirmed free), otherwise use the resolved cost
   const effectiveShipping = selectedItems.length > 0 && shippingCost !== null ? shippingCost : 0;
   const bundleSavings = bundleOffers.reduce((s, o) => s + (o.discount_amount || 0), 0);
   const total = Math.max(0, subtotal + effectiveShipping - couponDiscount - bundleSavings);
@@ -246,8 +252,9 @@ const CheckoutPage = () => {
   const availableAreas = district ? (areasByDistrict[district] || []) : [];
   const noAreaAvailable = district && availableAreas.length === 0 && !areasLoading;
   const needsArea = district && availableAreas.length > 0 && !areaName;
+  // shippingUnresolved: district selected but no charge returned (not covered by any delivery config)
+  const shippingUnresolved = district && !shippingLoading && shippingCost === null;
 
-  const freeThreshold = selectedAreaObj ? Number(selectedAreaObj.freeDeliveryThreshold || selectedAreaObj.free_delivery_threshold || 0) : 0;
   const deliveryDays = selectedAreaObj?.estimatedDeliveryDays || selectedAreaObj?.estimated_delivery_days || 3;
   const deliveryByDate = new Date(Date.now() + deliveryDays * 86400000);
   const deliveryRangeEnd = new Date(Date.now() + (deliveryDays + 2) * 86400000);
@@ -288,7 +295,8 @@ const CheckoutPage = () => {
     if (placeOrderLock.current) return;
     if (!validate()) { toast.error('Please fill in all required fields'); return; }
     if (!selectedItems.length) { toast.error('Please select at least one item'); return; }
-    if (availableAreas.length > 0 && !selectedAreaObj) { toast.error('Please select your area to calculate delivery fee'); return; }
+    if (shippingLoading) { toast.error('Please wait — calculating delivery charge…'); return; }
+    if (shippingUnresolved) { toast.error('No delivery rate configured for this area. Please select a different area or contact support.'); return; }
     placeOrderLock.current = true;
     try {
       setLoading(true);
@@ -738,12 +746,19 @@ const CheckoutPage = () => {
                 <span className="text-lg font-bold" style={{ color: C.primary }}>{fmtTaka(total)}</span>
               </div>
 
-              {/* CTA */}
+              {/* CTA warnings */}
               {needsArea && (
                 <div className="mt-3 flex items-center gap-2 text-xs rounded-lg px-3 py-2"
                   style={{ background: '#fffbeb', border: `1px solid #fde68a`, color: '#92400e' }}>
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   Select your area to confirm delivery fee
+                </div>
+              )}
+              {shippingUnresolved && !needsArea && (
+                <div className="mt-3 flex items-center gap-2 text-xs rounded-lg px-3 py-2"
+                  style={{ background: '#fef2f2', border: `1px solid #fecaca`, color: '#b91c1c' }}>
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  No delivery rate configured for this area. Please contact support.
                 </div>
               )}
               {!selectedItems.length && (
@@ -755,7 +770,7 @@ const CheckoutPage = () => {
               )}
 
               <button type="button" onClick={handlePlaceOrder}
-                disabled={loading || !selectedItems.length || (availableAreas.length > 0 && !selectedAreaObj)}
+                disabled={loading || !selectedItems.length || shippingLoading || shippingUnresolved || needsArea}
                 className="w-full mt-3 flex items-center justify-center gap-2 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm"
                 style={{ background: loading || !selectedItems.length ? C.muted : C.primary }}>
                 {loading
