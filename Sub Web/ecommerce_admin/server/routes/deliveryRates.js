@@ -314,7 +314,33 @@ router.get('/charge', async (req, res) => {
       );
       if (rows.length) row = rows[0];
     }
-    if (!row) return res.json({ charge: 0, groupName: null, matched: false });
+    // 3. Final fallback: delivery_areas table (per-area legacy config, NO free threshold applied)
+    if (!row) {
+      let legacyCharge = null;
+      if (area && district) {
+        const [lr] = await pool.query(
+          `SELECT delivery_charge FROM delivery_areas
+           WHERE LOWER(name) = LOWER(?) AND LOWER(city) = LOWER(?) AND is_active = 1 LIMIT 1`,
+          [area, district]
+        );
+        if (lr.length) legacyCharge = Number(lr[0].delivery_charge);
+      }
+      if (legacyCharge === null && district) {
+        const [lr] = await pool.query(
+          `SELECT MIN(delivery_charge) AS min_charge FROM delivery_areas
+           WHERE LOWER(city) = LOWER(?) AND is_active = 1`,
+          [district]
+        );
+        if (lr.length && lr[0].min_charge !== null) legacyCharge = Number(lr[0].min_charge);
+      }
+      if (legacyCharge !== null) {
+        return res.json({
+          charge: legacyCharge, base: legacyCharge, additionalPerKg: 0,
+          groupName: 'Standard Rate', district, area, matched: true, source: 'area_table',
+        });
+      }
+      return res.json({ charge: null, groupName: null, matched: false });
+    }
 
     const base  = row.override_base != null ? Number(row.override_base) : Number(row.base_rate);
     const extra = row.override_additional != null ? Number(row.override_additional) : Number(row.additional_per_kg);
@@ -333,7 +359,7 @@ router.get('/charge', async (req, res) => {
       charge, base, additionalPerKg: extra,
       groupName: row.group_name,
       district: row.district, division: row.division, area: row.area,
-      matched: true,
+      matched: true, source: 'rate_group',
     });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
