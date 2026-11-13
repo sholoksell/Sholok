@@ -392,6 +392,35 @@ router.post('/orders', customerAuthMiddleware, async (req, res) => {
         [total || 0, req.customer.id]
       );
 
+      // Auto-create shipment record so it appears in Admin > Shipments
+      try {
+        const [[{ scnt }]] = await conn.query('SELECT COUNT(*) AS scnt FROM shipments');
+        const shipmentNumber = `SHP-${String(scnt + 1).padStart(5, '0')}`;
+        const [shipResult] = await conn.query(
+          `INSERT INTO shipments
+           (shipment_number, order_id, source_type, source_id, source_label,
+            delivery_charge, total_weight_kg, status, notes, created_at, updated_at)
+           VALUES (?, ?, 'order', ?, ?, ?, ?, 'pending', ?, NOW(), NOW())`,
+          [
+            shipmentNumber, orderId, orderId, orderNumber,
+            finalDeliveryCharge || 0, 0,
+            shippingAddress.areaName
+              ? `${shippingAddress.areaName}, ${shippingAddress.city || ''}`
+              : (shippingAddress.city || ''),
+          ]
+        );
+        const shipmentId = shipResult.insertId;
+        for (const item of items) {
+          await conn.query(
+            `INSERT INTO shipment_items (shipment_id, product_id, product_name, quantity, weight_kg)
+             VALUES (?, ?, ?, ?, ?)`,
+            [shipmentId, item.productId, item.productName || item.name || '', item.quantity, 0.5]
+          ).catch(() => {});
+        }
+      } catch (shipErr) {
+        console.error('[order] shipment auto-create failed (non-fatal):', shipErr.message);
+      }
+
       await conn.commit();
 
       const [[savedOrder]] = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
