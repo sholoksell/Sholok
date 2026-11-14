@@ -72,8 +72,8 @@ const Header = () => {
         onClose={() => setIsLocationModalOpen(false)}
       />
 
-      {/* Top Bar — Purple */}
-      <div className="bg-primary text-white">
+      {/* Top Bar — Red Orange */}
+      <div className="bg-sale text-white">
         <div className="container mx-auto px-4 h-9 flex items-center text-xs">
           {/* Welcome text — centered */}
           <p className="flex-1 text-center font-semibold text-white">Welcome to Sholok Shopping!</p>
