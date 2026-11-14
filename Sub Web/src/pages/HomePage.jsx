@@ -141,6 +141,33 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* Shop by Category — horizontal strip below nav */}
+      {displayCategories.length > 0 && (
+        <div className="bg-white border-b border-gray-100 shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-2">
+              <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-widest text-primary pr-3 border-r border-gray-200 mr-1">
+                Shop by Category
+              </span>
+              {displayCategories.slice(0, 14).map((cat) => (
+                <Link
+                  key={cat._id || cat.id}
+                  to={`/category/${cat.slug || cat._id}`}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:bg-sale hover:text-white transition-colors whitespace-nowrap border border-gray-100 hover:border-sale"
+                >
+                  <CategoryIcon icon={cat.icon} image={cat.image} name={cat.name} className="w-3.5 h-3.5" />
+                  {cat.name}
+                </Link>
+              ))}
+              <Link to="/categories" className="flex-shrink-0 ml-1 px-3 py-1.5 rounded-full text-xs font-semibold text-primary border border-primary hover:bg-primary hover:text-white transition-colors whitespace-nowrap">
+                View All →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar + Hero Section Container */}
       <div className="relative">
         <div className="container mx-auto px-0 lg:px-4">
