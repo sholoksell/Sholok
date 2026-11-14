@@ -14,7 +14,6 @@ import { formatPrice } from '@/lib/utils';
 import HomeBannerCarousel from '@/components/HomeBannerCarousel';
 import PromotionalBannerGrid from '@/components/PromotionalBannerGrid';
 import FlashSaleSection from '@/components/FlashSaleSection';
-import ShopByCategorySection from '@/components/ShopByCategorySection';
 import CampaignBanner from '@/components/CampaignBanner';
 import TrendingSection from '@/components/TrendingSection';
 
@@ -376,12 +375,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Shop by Category */}
-      <div className="bg-gray-50 px-4 lg:px-6 py-4">
-        <div className="container mx-auto">
-          <ShopByCategorySection />
-        </div>
-      </div>
 
       {/* More to Love — full width */}
       <section className="bg-white px-4 lg:px-8 py-6">
