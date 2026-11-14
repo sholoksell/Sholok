@@ -134,7 +134,7 @@ const Header = () => {
               whileHover={{ scale: 1.02, y: -1 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsLocationModalOpen(true)}
-              className="hidden lg:flex items-center gap-2 border border-border hover:border-primary hover:bg-primary-soft text-gray-700 px-3 py-2 rounded-lg text-sm cursor-pointer transition-all duration-200 max-w-[240px]"
+              className="hidden lg:flex items-center gap-2 border border-border hover:border-sale hover:bg-sale-soft text-gray-700 px-3 py-2 rounded-lg text-sm cursor-pointer transition-all duration-200 max-w-[240px]"
               title={deliveryLocation?.label || ''}
             >
               <MapPin className="h-4 w-4 flex-shrink-0 text-primary" />
