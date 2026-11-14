@@ -149,7 +149,7 @@ const HomePage = () => {
             {/* Level 1: Main Sidebar (Always Visible on Desktop/Tablet) */}
             <div className="hidden md:block w-64 bg-white shadow-sm z-40 relative self-start border-r border-gray-100 rounded-br-xl">
               <div className="px-4 py-3 border-b border-gray-100">
-                <span className="text-xs font-bold uppercase tracking-widest text-primary">All Categories</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">Shop by Category</span>
               </div>
               <div className="py-1 bg-white">
                 {displayCategories.length === 0 && (
