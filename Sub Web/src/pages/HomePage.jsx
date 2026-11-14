@@ -388,7 +388,7 @@ const HomePage = () => {
               View All <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
             {sectionProducts('trending-products', trendingProducts).slice(0, 15).map((product, i) => (
               <ProductCard key={product._id || product.id || i} product={product} />
             ))}
@@ -458,7 +458,7 @@ const HomePage = () => {
               </div>
             </div>
             {s.layout === 'grid' ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
                 {s.products.map((p) => (
                   <ProductCard key={p._id} product={p} />
                 ))}
