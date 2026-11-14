@@ -76,7 +76,7 @@ const ShopByCategoryMenu = () => {
         className="flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg transition-colors border border-white/30"
       >
         <Menu className="w-5 h-5" />
-        <span className="font-semibold text-sm">All Categories</span>
+        <span className="font-semibold text-sm">Shop by Category</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

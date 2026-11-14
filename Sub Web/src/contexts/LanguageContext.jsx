@@ -15,7 +15,7 @@ export const translations = {
         item: "item",
         shopByCategory: "SHOP BY CATEGORY",
         topCategories: "Top Categories",
-        allCategories: "ALL CATEGORIES",
+        allCategories: "Shop by Category",
 
         // Product Related
         addToBag: "Add to Bag",
