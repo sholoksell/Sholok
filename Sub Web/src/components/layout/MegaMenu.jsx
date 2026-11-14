@@ -123,31 +123,35 @@ const MegaMenu = () => {
   return (
     <nav className="bg-primary">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center">
+          {/* Shop by Category — outside overflow container so dropdown is not clipped */}
           <div className="flex-shrink-0 py-2 pr-3 border-r border-white/20 mr-1 relative z-50">
             <ShopByCategoryMenu />
           </div>
-          <Link to="/flash-sales" className="px-3.5 py-3 text-sm font-semibold text-white hover:bg-sale hover:text-white transition-colors whitespace-nowrap flex items-center gap-1">
-            ⚡ Flash Sale
-          </Link>
-          <Link to="/discover" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
-            Discover
-          </Link>
-          <Link to="/offers" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
-            Offers &amp; Deals
-          </Link>
-          <Link to="/bundles" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
-            Bundle Deals
-          </Link>
-          <Link to="/summer-fest" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
-            Festivals &amp; Celebrations
-          </Link>
-          <Link to="/brands" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
-            Shop by Brand
-          </Link>
-          <Link to="/vendor/apply" className="ml-auto flex-shrink-0 px-4 py-3 text-sm font-semibold text-white hover:bg-sale hover:text-white transition-colors whitespace-nowrap border-l border-white/20">
-            🛍 Become a Seller
-          </Link>
+          {/* Scrollable nav links */}
+          <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide flex-1">
+            <Link to="/flash-sales" className="px-3.5 py-3 text-sm font-semibold text-white hover:bg-sale hover:text-white transition-colors whitespace-nowrap flex items-center gap-1">
+              ⚡ Flash Sale
+            </Link>
+            <Link to="/discover" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
+              Discover
+            </Link>
+            <Link to="/offers" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
+              Offers &amp; Deals
+            </Link>
+            <Link to="/bundles" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
+              Bundle Deals
+            </Link>
+            <Link to="/summer-fest" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
+              Festivals &amp; Celebrations
+            </Link>
+            <Link to="/brands" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-sale hover:text-white transition-colors whitespace-nowrap">
+              Shop by Brand
+            </Link>
+            <Link to="/vendor/apply" className="ml-auto flex-shrink-0 px-4 py-3 text-sm font-semibold text-white hover:bg-sale hover:text-white transition-colors whitespace-nowrap border-l border-white/20">
+              🛍 Become a Seller
+            </Link>
+          </div>
         </div>
       </div>
     </nav>
