@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, User, Menu, X, MapPin, LogOut, Settings, Phone, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCartStore } from '@/store/cartStore';
+import { useWishlistStore } from '@/store/wishlistStore';
 import { useUIStore } from '@/store/uiStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,16 @@ const Header = () => {
   const [accountDropdown, setAccountDropdown] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const dropdownRef = useRef(null);
+  const wishlistCount = useWishlistStore((s) => s.count);
+  const { load: loadWishlist, reset: resetWishlist } = useWishlistStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadWishlist();
+    } else {
+      resetWishlist();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -61,8 +72,8 @@ const Header = () => {
         onClose={() => setIsLocationModalOpen(false)}
       />
 
-      {/* Top Bar — Red-Orange */}
-      <div className="text-white" style={{ backgroundColor: '#D31710' }}>
+      {/* Top Bar — Purple */}
+      <div className="bg-primary text-white">
         <div className="container mx-auto px-4 h-9 flex items-center text-xs">
           {/* Welcome text — centered */}
           <p className="flex-1 text-center font-semibold text-white">Welcome to Sholok Shopping!</p>
@@ -220,7 +231,11 @@ const Header = () => {
               >
                 <span className="relative">
                   <Heart className="h-6 w-6" />
-                  <span className="absolute -right-2 -top-1.5 grid min-w-[18px] place-items-center rounded-full bg-sale px-1 text-[10px] font-bold leading-[18px] text-white">0</span>
+                  {wishlistCount > 0 && (
+                    <span className="absolute -right-2 -top-1.5 grid min-w-[18px] place-items-center rounded-full bg-sale px-1 text-[10px] font-bold leading-[18px] text-white">
+                      {wishlistCount}
+                    </span>
+                  )}
                 </span>
                 <span className="hidden xl:flex flex-col text-left leading-tight">
                   <span className="text-[11px] text-muted-foreground">My</span>

@@ -121,7 +121,7 @@ const MegaMenu = () => {
   };
 
   return (
-    <nav className="bg-sale">
+    <nav className="bg-primary">
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
           <div className="flex-shrink-0 py-2 pr-3 border-r border-white/20 mr-1 relative z-50">

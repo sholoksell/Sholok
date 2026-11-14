@@ -1,8 +1,9 @@
-﻿import React, { useState, memo, useCallback, useEffect } from 'react';
+﻿import React, { useState, memo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { formatPrice, getDiscountPercentage, getImageUrl } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
+import { useWishlistStore } from '@/store/wishlistStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { wishlistService } from '@/services/wishlistService';
@@ -12,17 +13,13 @@ const ProductCard = memo(({ product }) => {
   const { t, getLocalizedField } = useLanguage();
   const { customer } = useAuth();
   const addToCart = useCartStore((state) => state.addToCart);
+  const wishlistHas = useWishlistStore((s) => s.has);
+  const wishlistAdd = useWishlistStore((s) => s.add);
+  const wishlistRemove = useWishlistStore((s) => s.remove);
   const [isLoading, setIsLoading] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
 
-  useEffect(() => {
-    if (customer && product) {
-      const pid = product._id || product.id;
-      wishlistService.check(pid).then(isInWishlist => {
-        if (isInWishlist) setIsWishlisted(true);
-      }).catch(() => {});
-    }
-  }, [customer, product]);
+  const pid = product._id || product.id;
+  const isWishlisted = customer ? wishlistHas(pid) : false;
 
   const handleAddToCart = useCallback(async (e) => {
     e.preventDefault();
@@ -41,17 +38,16 @@ const ProductCard = memo(({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     if (!customer) { toast.error(t('loginToWishlist')); return; }
-    const pid = product._id || product.id;
     try {
       if (isWishlisted) {
         await wishlistService.remove(pid);
-        setIsWishlisted(false);
+        wishlistRemove(pid);
       } else {
         await wishlistService.add(pid);
-        setIsWishlisted(true);
+        wishlistAdd(pid);
       }
     } catch { toast.error(t('failedToUpdateWishlist')); }
-  }, [isWishlisted, customer, product, t]);
+  }, [isWishlisted, customer, pid, t, wishlistAdd, wishlistRemove]);
 
   const displayPrice = product.price || product.salePrice || product.regularPrice;
   const comparePrice = product.comparePrice || product.regularPrice;
@@ -71,29 +67,29 @@ const ProductCard = memo(({ product }) => {
     <Link to={`/product/${product.slug || product._id || product.id}`}>
       <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:-translate-y-0.5 hover:border-sale/40 hover:shadow-[0_4px_16px_rgba(211,23,16,0.08)]">
 
-        {/* Discount Badge - top LEFT (matches reference design) */}
+        {/* Discount Badge */}
         {takaOff > 0 && (
-          <span className="absolute left-2.5 top-2.5 z-10 rounded-md bg-sale px-2 py-0.5 text-[11px] font-bold text-white">
-            {formatPrice(takaOff)} OFF{minQty ? ` Max.${minQty}` : ''}
+          <span className="absolute left-2 top-2 z-10 rounded bg-sale px-1.5 py-0.5 text-[10px] font-bold text-white">
+            {formatPrice(takaOff)} OFF
           </span>
         )}
         {!takaOff && discount > 0 && (
-          <span className="absolute left-2.5 top-2.5 z-10 rounded-md bg-sale px-2 py-0.5 text-[11px] font-bold text-white">
+          <span className="absolute left-2 top-2 z-10 rounded bg-sale px-1.5 py-0.5 text-[10px] font-bold text-white">
             {discount}% OFF
           </span>
         )}
 
-        {/* Wishlist heart - top RIGHT */}
+        {/* Wishlist heart */}
         <button
           onClick={handleWishlist}
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          className="absolute right-2.5 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full border border-gray-200 bg-white shadow-sm transition-colors hover:border-sale hover:bg-sale-soft"
+          className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-white shadow-sm transition-colors hover:border-sale hover:bg-sale-soft"
         >
-          <Heart className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-sale text-sale' : 'text-gray-400 group-hover:text-sale'}`} />
+          <Heart className={`h-3.5 w-3.5 transition-colors ${isWishlisted ? 'fill-sale text-sale' : 'text-gray-400 group-hover:text-sale'}`} />
         </button>
 
         {/* Product Image */}
-        <div className="relative aspect-square bg-white p-3 flex items-center justify-center">
+        <div className="relative aspect-square bg-white p-1.5 flex items-center justify-center">
           {productImage ? (
             <img
               src={getImageUrl(productImage)}
@@ -118,14 +114,14 @@ const ProductCard = memo(({ product }) => {
         </div>
 
         {/* Card Body */}
-        <div className="flex flex-1 flex-col gap-1.5 border-t border-gray-100 px-3 pt-2.5 pb-3">
+        <div className="flex flex-1 flex-col gap-1 border-t border-gray-100 px-2.5 pt-2 pb-2.5">
           {/* Brand name */}
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 min-h-[14px]">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 min-h-[12px]">
             {brandName}
           </span>
 
           {/* Product Name */}
-          <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-gray-800">
+          <h3 className="line-clamp-2 min-h-8 text-[12px] font-semibold leading-4 text-gray-800">
             {productName}
           </h3>
 
@@ -148,7 +144,7 @@ const ProductCard = memo(({ product }) => {
           {/* Price */}
           <div className="mt-auto pt-1">
             <div className="flex flex-wrap items-baseline gap-x-2">
-              <span className="text-base font-bold text-primary">{formatPrice(displayPrice)}</span>
+              <span className="text-sm font-bold text-primary">{formatPrice(displayPrice)}</span>
               {comparePrice && comparePrice > displayPrice && (
                 <>
                   <span className="text-xs text-gray-400 line-through">{formatPrice(comparePrice)}</span>
@@ -163,17 +159,17 @@ const ProductCard = memo(({ product }) => {
 
           {/* Add to Cart Button */}
           <button
-            className="mt-1.5 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-sale text-sm font-semibold text-sale transition-colors hover:bg-sale hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+            className="mt-1 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-sale text-xs font-semibold text-sale transition-colors hover:bg-sale hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
             onClick={handleAddToCart}
             disabled={isLoading || product.stock === 0}
           >
             {isLoading ? (
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
             ) : (
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart className="h-3.5 w-3.5" />
             )}
             {isLoading ? t('adding') : product.stock === 0 ? t('outOfStock') : t('addToBagBtn')}
           </button>
