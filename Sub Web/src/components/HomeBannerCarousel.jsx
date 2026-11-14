@@ -126,17 +126,19 @@ export default function HomeBannerCarousel() {
           </div>
 
           {s.img && (
-            <img
-              src={s.img}
-              alt=""
-              loading={idx === 0 ? 'eager' : 'lazy'}
-              className="absolute inset-0 w-full h-full object-cover object-top md:object-right"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
+            <div className="absolute right-0 top-0 h-full w-1/2 md:w-[55%] flex items-center justify-center overflow-hidden">
+              <img
+                src={s.img}
+                alt=""
+                loading={idx === 0 ? 'eager' : 'lazy'}
+                className="h-full w-full object-contain object-center drop-shadow-xl"
+                onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+              />
+            </div>
           )}
 
           {/* Gradient scrim for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent" />
 
           <div className="relative flex h-full max-w-xl flex-col justify-center gap-4 p-6 md:p-14 lg:p-16">
             <span className="w-fit rounded-full bg-sale px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
