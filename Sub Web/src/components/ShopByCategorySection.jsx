@@ -16,7 +16,7 @@ export default function ShopByCategorySection() {
           <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
           <p className="mt-1 text-sm text-gray-500">Browse all departments</p>
         </div>
-        <Link to="/categories" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+        <Link to="/categories" className="text-sm font-semibold text-primary hover:text-sale transition-colors flex items-center gap-1">
           View All
         </Link>
       </div>

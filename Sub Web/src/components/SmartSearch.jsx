@@ -120,7 +120,7 @@ const SmartSearch = ({ className }) => {
                     <button type="submit"
                         className="
                             h-12 px-5
-                            bg-primary hover:bg-primary-deep
+                            bg-sale hover:bg-sale-deep
                             text-white font-semibold text-sm
                             flex items-center justify-center gap-2
                             transition-colors duration-200

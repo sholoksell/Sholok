@@ -55,7 +55,7 @@ export default function FlashSaleSection({ products = [] }) {
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <CountdownBlock ms={left} />
-          <Link to="/flash-sale" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          <Link to="/flash-sale" className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-sale transition-colors">
             View All <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

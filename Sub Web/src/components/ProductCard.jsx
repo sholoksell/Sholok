@@ -69,7 +69,7 @@ const ProductCard = memo(({ product }) => {
 
   return (
     <Link to={`/product/${product.slug || product._id || product.id}`}>
-      <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+      <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:-translate-y-0.5 hover:border-sale/40 hover:shadow-[0_4px_16px_rgba(211,23,16,0.08)]">
 
         {/* Discount Badge - top LEFT (matches reference design) */}
         {takaOff > 0 && (
@@ -87,9 +87,9 @@ const ProductCard = memo(({ product }) => {
         <button
           onClick={handleWishlist}
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          className="absolute right-2.5 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full border border-gray-200 bg-white shadow-sm transition-colors hover:border-sale"
+          className="absolute right-2.5 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full border border-gray-200 bg-white shadow-sm transition-colors hover:border-sale hover:bg-sale-soft"
         >
-          <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-sale text-sale' : 'text-gray-400'}`} />
+          <Heart className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-sale text-sale' : 'text-gray-400 group-hover:text-sale'}`} />
         </button>
 
         {/* Product Image */}
@@ -163,7 +163,7 @@ const ProductCard = memo(({ product }) => {
 
           {/* Add to Cart Button */}
           <button
-            className="mt-1.5 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-primary text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+            className="mt-1.5 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-sale text-sm font-semibold text-sale transition-colors hover:bg-sale hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
             onClick={handleAddToCart}
             disabled={isLoading || product.stock === 0}
           >

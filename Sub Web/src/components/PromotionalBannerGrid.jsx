@@ -55,7 +55,7 @@ export default function PromotionalBannerGrid() {
             <p className="text-xs text-gray-600">{b.copy}</p>
             <Link
               to={b.link}
-              className="mt-1 flex w-fit items-center gap-1 text-sm font-semibold text-primary hover:underline"
+              className="mt-1 flex w-fit items-center gap-1 text-sm font-semibold text-primary hover:text-sale transition-colors"
             >
               {b.cta} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>

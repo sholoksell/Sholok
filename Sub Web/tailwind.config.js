@@ -20,6 +20,7 @@ export default {
         },
         sale: {
           DEFAULT: "hsl(var(--sale))",
+          deep: "hsl(var(--sale-deep))",
           foreground: "hsl(var(--sale-foreground))",
           soft: "hsl(var(--sale-soft))",
         },

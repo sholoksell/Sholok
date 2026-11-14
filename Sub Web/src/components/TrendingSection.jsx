@@ -41,7 +41,7 @@ export default function TrendingSection({ products = [] }) {
               <p className="text-xs text-gray-500 mt-0.5">Popular picks worth discovering</p>
             </div>
           </div>
-          <Link to="/category/trending" className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          <Link to="/category/trending" className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-sale transition-colors">
             View All <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

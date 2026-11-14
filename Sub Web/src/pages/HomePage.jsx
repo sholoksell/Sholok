@@ -391,7 +391,7 @@ const HomePage = () => {
               <h2 className="text-2xl font-bold text-gray-900">New Arrivals</h2>
               <p className="mt-1 text-sm text-gray-500">Fresh additions across the store.</p>
             </div>
-            <Link to="/category/new-arrivals" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+            <Link to="/category/new-arrivals" className="text-sm font-semibold text-primary hover:text-sale transition-colors flex items-center gap-1">
               View All <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
@@ -413,7 +413,7 @@ const HomePage = () => {
               </h2>
               <p className="mt-1 text-sm text-gray-500">Popular picks worth discovering.</p>
             </div>
-            <Link to="/category/trending" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
+            <Link to="/category/trending" className="text-sm font-semibold text-primary hover:text-sale transition-colors flex items-center gap-1">
               View All <ChevronRight className="h-4 w-4" />
             </Link>
           </div>

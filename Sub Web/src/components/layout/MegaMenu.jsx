@@ -128,12 +128,12 @@ const MegaMenu = () => {
             <ShopByCategoryMenu />
           </div>
           <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide flex-1">
-            <Link to="/" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap">Home</Link>
-            <Link to="/categories" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap">Shop</Link>
-            <Link to="/flash-sales" className="px-4 py-3 text-sm font-semibold text-yellow-300 hover:text-yellow-200 hover:bg-white/10 transition-colors whitespace-nowrap">Flash Sale</Link>
-            <Link to="/category/trending" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap">Trending</Link>
-            <Link to="/category/new-arrivals" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap">New Arrivals</Link>
-            <Link to="/offers" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap">Offers</Link>
+            <Link to="/" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Home</Link>
+            <Link to="/categories" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Shop</Link>
+            <Link to="/flash-sales" className="px-4 py-3 text-sm font-semibold text-yellow-300 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Flash Sale</Link>
+            <Link to="/category/trending" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Trending</Link>
+            <Link to="/category/new-arrivals" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">New Arrivals</Link>
+            <Link to="/offers" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Offers</Link>
           </div>
           <div className="flex-shrink-0 py-2 pl-3 border-l border-white/20">
             <Link to="/vendor/apply" className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-primary transition-colors whitespace-nowrap">
