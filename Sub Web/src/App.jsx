@@ -33,6 +33,7 @@ const BundleOffersPage = lazy(() => import('./pages/BundleOffersPage'));
 const SummerFestPage = lazy(() => import('./pages/SummerFestPage'));
 const BuySavePage = lazy(() => import('./pages/BuySavePage'));
 const BrandsPage = lazy(() => import('./pages/BrandsPage'));
+const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 
 // Optimized loading component with animation
 const LoadingFallback = () => (
@@ -92,6 +93,7 @@ function App() {
                       <Route path="buy-save" element={<BuySavePage />} />
                       <Route path="brands" element={<BrandsPage />} />
                       <Route path="brands/:slug" element={<BrandsPage />} />
+                      <Route path="wishlist" element={<WishlistPage />} />
                     </Route>
                 </Routes>
               </Suspense>
