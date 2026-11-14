@@ -156,7 +156,7 @@ const Header = () => {
                     whileHover={{ scale: 1.05, y: -1 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setAccountDropdown(v => !v)}
-                    className="flex items-center gap-2 text-gray-700 hover:bg-primary-soft hover:text-primary px-2 xl:px-3 py-1.5 rounded-lg transition-all duration-200"
+                    className="flex items-center gap-2 text-gray-700 hover:bg-sale-soft hover:text-sale px-2 xl:px-3 py-1.5 rounded-lg transition-all duration-200"
                   >
                     <User className="h-5 w-5" />
                     <span className="hidden xl:flex flex-col text-left leading-tight">
@@ -202,7 +202,7 @@ const Header = () => {
                   whileHover={{ scale: 1.05, y: -1 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowAuthModal(true)}
-                  className="hidden md:flex items-center gap-2 text-gray-700 hover:bg-primary-soft hover:text-primary border border-border px-3 py-1.5 rounded-lg transition-all duration-200 text-sm"
+                  className="hidden md:flex items-center gap-2 text-gray-700 hover:bg-sale-soft hover:text-sale border border-border px-3 py-1.5 rounded-lg transition-all duration-200 text-sm"
                 >
                   <User className="h-5 w-5" />
                   <span className="flex flex-col text-left leading-tight">
@@ -215,7 +215,7 @@ const Header = () => {
               {/* Wishlist Button */}
               <Link
                 to="/wishlist"
-                className="relative hidden md:flex items-center gap-2 text-gray-700 hover:bg-primary-soft hover:text-primary p-1.5 rounded-lg transition-all duration-200"
+                className="relative hidden md:flex items-center gap-2 text-gray-700 hover:bg-sale-soft hover:text-sale p-1.5 rounded-lg transition-all duration-200"
                 aria-label="Wishlist"
               >
                 <span className="relative">
@@ -233,7 +233,7 @@ const Header = () => {
                 whileHover={{ scale: 1.05, y: -1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={openCartSidebar}
-                className="relative flex items-center gap-2 text-gray-700 hover:bg-primary-soft hover:text-primary p-1.5 rounded-lg transition-all duration-200"
+                className="relative flex items-center gap-2 text-gray-700 hover:bg-sale-soft hover:text-sale p-1.5 rounded-lg transition-all duration-200"
                 aria-label={`Cart, ${cartItemCount} items`}
               >
                 <span className="relative">

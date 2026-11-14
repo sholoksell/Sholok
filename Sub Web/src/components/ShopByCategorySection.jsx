@@ -13,7 +13,7 @@ export default function ShopByCategorySection() {
     <section className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
+          <h2 className="text-2xl font-bold text-gray-900">All Categories</h2>
           <p className="mt-1 text-sm text-gray-500">Browse all departments</p>
         </div>
         <Link to="/categories" className="text-sm font-semibold text-primary hover:text-sale transition-colors flex items-center gap-1">

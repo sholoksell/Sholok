@@ -121,25 +121,33 @@ const MegaMenu = () => {
   };
 
   return (
-    <nav className="bg-primary">
+    <nav className="bg-sale">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-0">
-          <div className="flex-shrink-0 py-2 pr-3 border-r border-white/20 mr-2 relative z-50">
+        <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
+          <div className="flex-shrink-0 py-2 pr-3 border-r border-white/20 mr-1 relative z-50">
             <ShopByCategoryMenu />
           </div>
-          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide flex-1">
-            <Link to="/" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Home</Link>
-            <Link to="/categories" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Shop</Link>
-            <Link to="/flash-sales" className="px-4 py-3 text-sm font-semibold text-yellow-300 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Flash Sale</Link>
-            <Link to="/category/trending" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Trending</Link>
-            <Link to="/category/new-arrivals" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">New Arrivals</Link>
-            <Link to="/offers" className="px-4 py-3 text-sm font-medium text-white/90 hover:text-sale hover:bg-white/10 transition-colors whitespace-nowrap">Offers</Link>
-          </div>
-          <div className="flex-shrink-0 py-2 pl-3 border-l border-white/20">
-            <Link to="/vendor/apply" className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-primary transition-colors whitespace-nowrap">
-              🛍 Become a Seller
-            </Link>
-          </div>
+          <Link to="/flash-sales" className="px-3.5 py-3 text-sm font-semibold text-white hover:bg-black/15 transition-colors whitespace-nowrap flex items-center gap-1">
+            ⚡ Flash Sale
+          </Link>
+          <Link to="/discover" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-black/15 hover:text-white transition-colors whitespace-nowrap">
+            Discover
+          </Link>
+          <Link to="/offers" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-black/15 hover:text-white transition-colors whitespace-nowrap">
+            Offers &amp; Deals
+          </Link>
+          <Link to="/bundles" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-black/15 hover:text-white transition-colors whitespace-nowrap">
+            Bundle Deals
+          </Link>
+          <Link to="/summer-fest" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-black/15 hover:text-white transition-colors whitespace-nowrap">
+            Festivals &amp; Celebrations
+          </Link>
+          <Link to="/brands" className="px-3.5 py-3 text-sm font-medium text-white/90 hover:bg-black/15 hover:text-white transition-colors whitespace-nowrap">
+            Shop by Brand
+          </Link>
+          <Link to="/vendor/apply" className="ml-auto flex-shrink-0 px-4 py-3 text-sm font-semibold text-white hover:bg-black/15 transition-colors whitespace-nowrap border-l border-white/20">
+            🛍 Become a Seller
+          </Link>
         </div>
       </div>
     </nav>

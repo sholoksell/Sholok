@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 const SLIDES = [
   {
     img: '/hero-1.jpg',
+    gradient: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 40%, #ddd6fe 100%)',
+    accentGradient: 'linear-gradient(135deg, #5D0096 0%, #7c3aed 100%)',
     eyebrow: 'New Season Edit',
     title: 'Discover Your Everyday Style',
     copy: 'Fresh silhouettes and easy favourites for every day of the week.',
@@ -14,6 +16,8 @@ const SLIDES = [
   },
   {
     img: '/hero-2.jpg',
+    gradient: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 40%, #fecdd3 100%)',
+    accentGradient: 'linear-gradient(135deg, #D31710 0%, #be123c 100%)',
     eyebrow: 'Beauty Picks',
     title: 'Style, Beauty & More — All in One Place',
     copy: 'Makeup, skincare and fragrance chosen to make you glow.',
@@ -23,6 +27,8 @@ const SLIDES = [
   },
   {
     img: '/banner-home.jpg',
+    gradient: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 40%, #a7f3d0 100%)',
+    accentGradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
     eyebrow: 'Home Refresh',
     title: 'Find Your New Favorites',
     copy: 'Thoughtful home and kitchen essentials that just work.',
@@ -50,7 +56,7 @@ export default function HomeBannerCarousel() {
 
   return (
     <section
-      className="relative overflow-hidden rounded-xl bg-primary-soft min-h-[280px] md:min-h-[600px] flex-1"
+      className="relative overflow-hidden rounded-xl min-h-[280px] md:min-h-[600px] flex-1"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
@@ -66,15 +72,23 @@ export default function HomeBannerCarousel() {
           key={s.title}
           aria-hidden={idx !== current}
           className={`absolute inset-0 transition-opacity duration-700 ${idx === current ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+          style={{ background: s.gradient }}
         >
+          {/* Decorative circle shapes for visual interest when image is absent */}
+          <div className="absolute right-0 top-0 h-full w-1/2 overflow-hidden pointer-events-none">
+            <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-20" style={{ background: s.accentGradient }} />
+            <div className="absolute right-20 bottom-10 h-56 w-56 rounded-full opacity-15" style={{ background: s.accentGradient }} />
+            <div className="absolute right-10 top-1/2 h-40 w-40 rounded-full opacity-10" style={{ background: s.accentGradient }} />
+          </div>
           <img
             src={s.img}
             alt=""
             loading={idx === 0 ? 'eager' : 'lazy'}
             className="absolute inset-0 w-full h-full object-cover object-right"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
           {/* Gradient scrim for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-transparent" />
           <div className="relative flex h-full max-w-xl flex-col justify-center gap-4 p-6 md:p-14 lg:p-16">
             <span className="w-fit rounded-full bg-sale px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
               {s.eyebrow}
