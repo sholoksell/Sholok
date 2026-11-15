@@ -1041,64 +1041,95 @@ function GroupsSection({ groups, updateGroups, assignments, onAdd, onEdit, onDel
             <button className="dm-btn-primary" onClick={onAdd}><Plus size={14} /> Create your first group</button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {groups.map(g => {
               const slabs = g.weightSlabs ? parseSlabs(g.weightSlabs) : [];
               const assignedCount = assignments.filter(a => a.groupId === g.id).length;
+              const kg2 = g.base + g.additional;
+              const kg3 = g.base + g.additional * 2;
+              const storeName = g.store && g.store !== 'Default' ? g.store : '';
               return (
-                <div key={g.id} style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 18, background: C.bg, display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  {/* Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
-                        <span className={g.isActive !== false ? 'dm-badge dm-badge-green' : 'dm-badge dm-badge-gray'} style={{ fontSize: 10 }}>
-                          {g.isActive !== false ? 'Active' : 'Inactive'}
-                        </span>
+                <div key={g.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  {/* Card header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 18px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: C.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                        <Activity size={16} color={C.primary} />
                       </div>
-                      <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 2 }}>ID: {g.id}</div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: C.fg, lineHeight: 1.2 }}>{g.name}</div>
+                        {storeName && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                            <div style={{ width: 14, height: 14, borderRadius: 3, background: C.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M1 4.5h10M3 1v2M9 1v2M2 11h8a1 1 0 001-1V4a1 1 0 00-1-1H2a1 1 0 00-1 1v6a1 1 0 001 1z" stroke={C.primary} strokeWidth="1.3" strokeLinecap="round"/></svg>
+                            </div>
+                            <span style={{ fontSize: 11, color: C.mutedFg }}>{storeName}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="dm-btn-ghost" style={{ padding: '5px 8px' }} title="Edit" onClick={() => onEdit(g)}><Pencil size={13} /></button>
-                      <button className="dm-btn-ghost" style={{ padding: '5px 8px', color: '#c0392b' }} title="Delete" onClick={() => onDelete(g.id)}><Trash2 size={13} /></button>
-                    </div>
+                    <button className="dm-btn-ghost" style={{ padding: '5px 7px', marginTop: -2 }} title="Edit" onClick={() => onEdit(g)}>
+                      <Pencil size={13} color={C.mutedFg} />
+                    </button>
                   </div>
-                  {/* Weight slabs table */}
+
+                  {/* Base delivery row — purple highlight */}
+                  <div style={{ margin: '0 14px', borderRadius: 6, background: `${C.primary}12`, border: `1px solid ${C.primary}22`, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: C.primary, fontWeight: 500 }}>Base delivery · 1 KG</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: C.destructive }}>৳{g.base}</span>
+                  </div>
+
+                  {/* KG grid */}
                   {slabs.length > 0 ? (
-                    <div style={{ background: C.secondary, borderRadius: 6, padding: '10px 14px', marginBottom: 12 }}>
+                    <div style={{ margin: '0 14px 10px', display: 'grid', gridTemplateColumns: `repeat(${Math.min(slabs.length + 1, 4)}, 1fr)`, gap: 1, border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden' }}>
                       {slabs.map((sl, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: i < slabs.length - 1 ? 6 : 0, marginBottom: i < slabs.length - 1 ? 6 : 0, borderBottom: i < slabs.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <span style={{ fontSize: 12, color: C.mutedFg, fontWeight: 500 }}>{sl.upTo} KG</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>৳{sl.charge}</span>
+                        <div key={i} style={{ padding: '8px 10px', background: C.muted, borderRight: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 3 }}>{sl.upTo} KG</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.fg }}>৳{sl.charge}</div>
                         </div>
                       ))}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 12, color: C.mutedFg, fontWeight: 500 }}>Additional / KG</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>৳{g.additional}</span>
+                      <div style={{ padding: '8px 10px', background: C.muted }}>
+                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 3 }}>Additional / KG</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.fg }}>৳{g.additional}</div>
                       </div>
                     </div>
                   ) : (
-                    /* Rate formula summary */
-                    <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Base rate</div>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.base}</div>
+                    <div style={{ margin: '0 14px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden' }}>
+                      <div style={{ padding: '8px 10px', background: C.muted, borderRight: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 3 }}>2 KG</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.fg }}>৳{kg2}</div>
                       </div>
-                      <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>+</div>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Per kg</div>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: C.primary }}>৳{g.additional}</div>
+                      <div style={{ padding: '8px 10px', background: C.muted, borderRight: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 3 }}>3 KG</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.fg }}>৳{kg3}</div>
                       </div>
-                      <div style={{ color: C.border, alignSelf: 'center', fontSize: 18 }}>×</div>
-                      <div style={{ alignSelf: 'flex-end', fontSize: 12, color: C.mutedFg, paddingBottom: 2 }}>(weight − 1)</div>
+                      <div style={{ padding: '8px 10px', background: C.muted }}>
+                        <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 3 }}>Additional / KG</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.fg }}>৳{g.additional}</div>
+                      </div>
                     </div>
                   )}
-                  {/* Assigned areas footer */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: `1px solid ${C.border}`, marginTop: 'auto' }}>
-                    <span style={{ fontSize: 12, color: C.mutedFg }}>{assignedCount} assigned area{assignedCount !== 1 ? 's' : ''}</span>
-                    <button className="dm-btn-ghost" style={{ fontSize: 12, padding: '3px 8px', color: C.primary, fontWeight: 500 }} onClick={onViewAssignments}>
-                      View assignments →
-                    </button>
+
+                  {/* Weight slabs label */}
+                  <div style={{ margin: '0 14px 12px', padding: '8px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.muted }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.mutedFg, letterSpacing: '0.08em', marginBottom: 2 }}>WEIGHT SLABS</div>
+                    <div style={{ fontSize: 12, color: C.mutedFg }}>{slabs.length > 0 ? `${slabs.length} custom slab${slabs.length !== 1 ? 's' : ''}` : 'Formula pricing'}</div>
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderTop: `1px solid ${C.border}`, marginTop: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke={C.mutedFg} strokeWidth="1.4"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke={C.mutedFg} strokeWidth="1.4" strokeLinecap="round"/></svg>
+                      <span style={{ fontSize: 12, color: C.mutedFg }}>{assignedCount} assigned area{assignedCount !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button className="dm-btn-ghost" style={{ fontSize: 12, padding: '3px 8px', color: C.primary, fontWeight: 500 }} onClick={onViewAssignments}>
+                        View assignments
+                      </button>
+                      <button className="dm-btn-ghost" style={{ padding: '4px 6px', color: C.destructive }} title="Delete" onClick={() => onDelete(g.id)}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1957,48 +1988,104 @@ function GroupModal({ mode, initial, onClose, onSave }: {
   onClose: () => void; onSave: (g: RateGroup) => void;
 }) {
   const [name, setName] = useState(initial?.name || '');
+  const [store, setStore] = useState(initial?.store && initial.store !== 'Default' ? initial.store : '');
   const [base, setBase] = useState(String(initial?.base ?? ''));
   const [additional, setAdditional] = useState(String(initial?.additional ?? ''));
   const [slabs, setSlabs] = useState(initial?.weightSlabs || '');
   const [isActive, setIsActive] = useState(initial?.isActive !== false);
 
+  const baseNum = parseFloat(base) || 0;
+  const addNum  = parseFloat(additional) || 0;
+  const kg2 = baseNum + addNum;
+  const kg3 = baseNum + addNum * 2;
+  const kg4 = baseNum + addNum * 3;
+  const kg5 = baseNum + addNum * 4;
+  const hasPreview = baseNum > 0 || addNum > 0;
+
   const handleSave = () => {
     if (!name.trim() || isNaN(+base) || isNaN(+additional)) { toast.error('Fill all required fields'); return; }
-    onSave({ id: initial?.id || createId(), store: initial?.store || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined, isActive });
+    onSave({ id: initial?.id || createId(), store: store.trim() || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined, isActive });
   };
 
   return (
-    <DialogFrame title={mode === 'add' ? 'New Rate Group' : 'Edit Rate Group'} onClose={onClose}
-      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={handleSave}>Save</button></>}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <label className="dm-label">Group Name *</label>
-          <input className="dm-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dhaka City" />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="dm-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dm-modal" style={{ minWidth: 480, maxWidth: 520 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
           <div>
-            <label className="dm-label">Base Charge (৳) *</label>
-            <input className="dm-input" type="number" value={base} onChange={e => setBase(e.target.value)} placeholder="60" />
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, letterSpacing: '0.08em', marginBottom: 4 }}>STORE PRICING</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.fg }}>{mode === 'add' ? 'New rate group' : 'Edit rate group'}</div>
           </div>
+          <button className="dm-btn-ghost" style={{ padding: '4px 6px' }} onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Name + Store row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="dm-label">Group name *</label>
+              <input className="dm-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Inside Dhaka" autoFocus />
+            </div>
+            <div>
+              <label className="dm-label">Store / location</label>
+              <input className="dm-input" value={store} onChange={e => setStore(e.target.value)} placeholder="e.g. Dhaka" />
+            </div>
+          </div>
+
+          {/* Base + Additional */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="dm-label">Base charge · 1 KG (৳) *</label>
+              <input className="dm-input" type="number" value={base} onChange={e => setBase(e.target.value)} placeholder="100" />
+            </div>
+            <div>
+              <label className="dm-label">Additional per KG (৳) *</label>
+              <input className="dm-input" type="number" value={additional} onChange={e => setAdditional(e.target.value)} placeholder="30" />
+            </div>
+          </div>
+
+          {/* Live KG preview */}
+          {hasPreview && (
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ padding: '7px 12px', background: `${C.primary}12`, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: C.primary, fontWeight: 600 }}>Base delivery · 1 KG</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.destructive }}>৳{baseNum}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', background: C.muted }}>
+                {[{ label: '2 KG', val: kg2 }, { label: '3 KG', val: kg3 }, { label: '4 KG', val: kg4 }, { label: '5 KG', val: kg5 }, { label: '+/KG', val: addNum }].map((r, i) => (
+                  <div key={i} style={{ padding: '7px 10px', borderRight: i < 4 ? `1px solid ${C.border}` : 'none' }}>
+                    <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 2 }}>{r.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.fg }}>৳{r.val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Weight slabs */}
           <div>
-            <label className="dm-label">Extra per kg (৳) *</label>
-            <input className="dm-input" type="number" value={additional} onChange={e => setAdditional(e.target.value)} placeholder="20" />
+            <label className="dm-label">Weight slabs (optional)</label>
+            <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="e.g. 1:100,3:160,5:200" />
+            <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 4 }}>Format: upToKg:charge — comma-separated. Overrides the formula above.</div>
+          </div>
+
+          {/* Active toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: C.muted, borderRadius: 8 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.fg }}>Active</div>
+              <div style={{ fontSize: 11, color: C.mutedFg }}>Inactive groups are excluded from checkout delivery charges</div>
+            </div>
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
         </div>
-        <div>
-          <label className="dm-label">Weight Slabs (optional)</label>
-          <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="e.g. 1:60,3:100,5:150" />
-          <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 4 }}>Format: weight:charge, comma-separated</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: C.muted, borderRadius: 8 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: C.fg }}>Active</div>
-            <div style={{ fontSize: 11, color: C.mutedFg }}>Inactive groups are excluded from checkout delivery charges</div>
-          </div>
-          <Switch checked={isActive} onCheckedChange={setIsActive} />
+
+        {/* Footer */}
+        <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+          <button className="dm-btn-outline" onClick={onClose}>Cancel</button>
+          <button className="dm-btn-primary" onClick={handleSave}>{mode === 'add' ? 'Create group' : 'Save changes'}</button>
         </div>
       </div>
-    </DialogFrame>
+    </div>
   );
 }
 
