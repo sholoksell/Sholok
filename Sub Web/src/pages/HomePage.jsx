@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock, Truck, Shield, CreditCard, Sparkles } from 'lucide-react';
+import { ChevronRight, Clock, Truck, Shield, CreditCard, Sparkles, LayoutGrid, Zap } from 'lucide-react';
 import OfferSlider from '@/components/OfferSlider';
 import ProductCard from '@/components/ProductCard';
 import FeaturedCarousel from '@/components/FeaturedCarousel';
@@ -31,6 +31,7 @@ const HomePage = () => {
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [gadgetProducts, setGadgetProducts] = useState([]);
+  const [newArrivalsProducts, setNewArrivalsProducts] = useState([]);
 
   // Admin-managed home sections, keyed by `key` for fast lookup
   const [homeSections, setHomeSections] = useState({});
@@ -50,6 +51,7 @@ const HomePage = () => {
           productService.getBestSellers(),                                 // 2
           homeSectionService.getAll(),                                     // 3
           productService.getByCategory('home-kitchen', 20),               // 4 gadgets/home
+          productService.getNewArrivals(),                                 // 5 new arrivals
         ]);
 
         const ok = (i) => results[i].status === 'fulfilled' ? results[i].value : null;
@@ -79,6 +81,7 @@ const HomePage = () => {
 
         const getProducts = (i) => ok(i)?.products || [];
         setGadgetProducts(getProducts(4));
+        setNewArrivalsProducts(ok(5)?.products || []);
 
       } catch (error) {
         console.error('Error fetching homepage data:', error);
@@ -373,6 +376,62 @@ const HomePage = () => {
         </div>
       </div>
 
+
+      {/* Shop by Category */}
+      {displayCategories.length > 0 && (
+        <section className="bg-white py-8 border-t border-gray-100">
+          <div className="container mx-auto px-4">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <LayoutGrid className="h-5 w-5 text-primary" /> Shop by Category
+              </h2>
+              <Link to="/categories" className="text-sm font-semibold text-primary hover:text-sale transition-colors flex items-center gap-1">
+                All Categories <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-3">
+              {displayCategories.slice(0, 12).map((cat) => (
+                <Link
+                  key={cat._id || cat.id}
+                  to={`/category/${cat.slug || cat._id || cat.id}`}
+                  className="flex flex-col items-center gap-1.5 group text-center"
+                >
+                  <div className="w-14 h-14 rounded-full bg-primary-soft flex items-center justify-center group-hover:bg-primary transition-colors">
+                    <CategoryIcon icon={cat.icon} image={cat.image} name={cat.name} className="w-6 h-6 group-hover:text-white" />
+                  </div>
+                  <span className="text-[11px] font-medium text-gray-600 group-hover:text-primary line-clamp-2 leading-tight">
+                    {getLocalizedField(cat, 'name')}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* New Arrivals */}
+      {newArrivalsProducts.length > 0 && (
+        <section className="bg-gray-50 py-8">
+          <div className="container mx-auto px-4">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" /> New Arrivals
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">Fresh picks just landed.</p>
+              </div>
+              <Link to="/category/new-arrivals" className="text-sm font-semibold text-primary hover:text-sale transition-colors flex items-center gap-1">
+                View All <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
+              {newArrivalsProducts.slice(0, 12).map((product, i) => (
+                <ProductCard key={product._id || product.id || i} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* More to Love — full width */}
       <section className="bg-white px-4 lg:px-8 py-6">
