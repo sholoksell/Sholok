@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, TrendingUp } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 
 export default function TrendingSection({ products = [] }) {
@@ -27,36 +27,31 @@ export default function TrendingSection({ products = [] }) {
   if (!products || products.length === 0) return null;
 
   return (
-    <section className="bg-primary-soft py-6">
+    <section className="bg-white py-8 border-t border-gray-100">
       <div className="container mx-auto px-4 lg:px-6">
 
         {/* Header row */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-white flex-shrink-0">
-              <TrendingUp className="w-4 h-4" />
-            </span>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 leading-tight">Trending Items</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Popular picks worth discovering</p>
-            </div>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 leading-tight">Trending Items</h2>
+            <p className="text-sm text-gray-500 mt-1">Popular picks worth discovering.</p>
           </div>
-          <Link to="/category/trending" className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-sale transition-colors">
+          <Link to="/category/trending" className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-sale transition-colors mt-1">
             View All <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
 
         {/* Category Filter Tabs */}
         {categories.length > 0 && (
-          <div className="scrollbar-hide -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist">
+          <div className="scrollbar-hide -mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist">
             <button
               role="tab"
               aria-selected={activeCategory === 'all'}
               onClick={() => setActiveCategory('all')}
-              className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors ${
                 activeCategory === 'all'
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-white text-gray-600 hover:bg-primary hover:text-white'
+                  ? 'border-primary bg-primary text-white shadow-sm'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'
               }`}
             >
               All
@@ -67,10 +62,10 @@ export default function TrendingSection({ products = [] }) {
                 role="tab"
                 aria-selected={activeCategory === cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
+                className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors ${
                   activeCategory === cat.id
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-white text-gray-600 hover:bg-primary hover:text-white'
+                    ? 'border-primary bg-primary text-white shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'
                 }`}
               >
                 {cat.name}
@@ -79,7 +74,7 @@ export default function TrendingSection({ products = [] }) {
             {activeCategory !== 'all' && (
               <button
                 onClick={() => setActiveCategory('all')}
-                className="shrink-0 rounded-full bg-white px-3.5 py-1 text-xs font-medium text-gray-400 hover:text-primary"
+                className="shrink-0 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-xs font-medium text-gray-400 hover:text-primary"
               >
                 Clear ×
               </button>
@@ -87,8 +82,8 @@ export default function TrendingSection({ products = [] }) {
           </div>
         )}
 
-        {/* Product Grid — compact cards */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:gap-3 lg:grid-cols-5 xl:grid-cols-6">
+        {/* Product Grid */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-3 lg:grid-cols-5 xl:grid-cols-6">
           {filtered.map((product, i) => (
             <ProductCard key={product._id || product.id || i} product={product} />
           ))}
