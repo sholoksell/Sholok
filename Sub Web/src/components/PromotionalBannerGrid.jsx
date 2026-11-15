@@ -45,7 +45,7 @@ export default function PromotionalBannerGrid() {
   return (
     <section aria-label="Promotions" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {BANNERS.map((b) => (
-        <Link key={b.title} to={b.link} className="group flex h-52 overflow-hidden rounded-2xl shadow-sm hover:shadow-md transition-shadow" style={{ background: b.gradient }}>
+        <Link key={b.title} to={b.link} className="group flex h-72 overflow-hidden rounded-2xl shadow-sm hover:shadow-md transition-shadow" style={{ background: b.gradient }}>
           {/* Left: text content */}
           <div className="flex flex-col justify-center gap-2 py-5 pl-5 pr-3 w-[58%] flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-sale">{b.tag}</span>
