@@ -1843,29 +1843,88 @@ function AreaModal({ mode, initial, onClose, onSave }: {
   onSave: (div: string, dist: string, area: string) => void;
 }) {
   const [div, setDiv] = useState(initial?.division || '');
-  const [dist, setDist] = useState(initial?.district || '');
+  const [distSelect, setDistSelect] = useState(initial?.district || '');
+  const [customDist, setCustomDist] = useState('');
   const [area, setArea] = useState(initial?.area || '');
+
+  const districtOptions = div ? (BD_DISTRICTS[div] || []) : [];
+  const effectiveDist = customDist.trim() || distSelect;
+
+  const handleSave = () => {
+    if (!div || !effectiveDist || !area.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    onSave(div, effectiveDist, area.trim());
+  };
+
   return (
-    <DialogFrame title={mode === 'add' ? 'Add Custom Area' : 'Edit Area'} onClose={onClose}
-      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (div && dist && area.trim()) onSave(div, dist, area.trim()); }}>Save</button></>}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <label className="dm-label">Division *</label>
-          <select className="dm-input" value={div} onChange={e => { setDiv(e.target.value); setDist(''); }}>
-            <option value="">Select division…</option>
-            {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+    <div className="dm-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dm-modal" style={{ minWidth: 480, maxWidth: 540 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, letterSpacing: '0.08em', marginBottom: 6 }}>SHOLOK OPERATIONS</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.fg, marginBottom: 4 }}>
+              {mode === 'add' ? 'Add delivery area' : 'Edit delivery area'}
+            </div>
+            <div style={{ fontSize: 13, color: C.mutedFg, marginBottom: 20 }}>
+              Choose an existing district or add a custom one.
+            </div>
+          </div>
+          <button className="dm-btn-ghost" style={{ padding: '4px 6px', marginTop: 2 }} onClick={onClose}><X size={16} /></button>
         </div>
-        <div>
-          <label className="dm-label">District *</label>
-          <input className="dm-input" value={dist} onChange={e => setDist(e.target.value)} placeholder="Enter district name" />
+
+        {/* Two-column: Division + District */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div>
+            <label className="dm-label">Division / region</label>
+            <select className="dm-input" value={div} onChange={e => { setDiv(e.target.value); setDistSelect(''); setCustomDist(''); }}>
+              <option value="">Select division</option>
+              {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="dm-label">City / district</label>
+            <select className="dm-input" value={distSelect} onChange={e => { setDistSelect(e.target.value); setCustomDist(''); }} disabled={!div}>
+              <option value="">Select district</option>
+              {districtOptions.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="dm-label">Area Name *</label>
-          <input className="dm-input" value={area} onChange={e => setArea(e.target.value)} placeholder="Enter area name" />
+
+        {/* Custom district */}
+        <div style={{ marginBottom: 14 }}>
+          <label className="dm-label">Or create a new district</label>
+          <input
+            className="dm-input"
+            value={customDist}
+            onChange={e => { setCustomDist(e.target.value); if (e.target.value) setDistSelect(''); }}
+            placeholder="Enter a custom district name"
+          />
+        </div>
+
+        {/* Area name */}
+        <div style={{ marginBottom: 24 }}>
+          <label className="dm-label">Delivery area</label>
+          <input
+            className="dm-input"
+            value={area}
+            onChange={e => setArea(e.target.value)}
+            placeholder="Enter delivery area name"
+            autoFocus={mode === 'add'}
+          />
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button className="dm-btn-outline" onClick={onClose}>Cancel</button>
+          <button className="dm-btn-primary" onClick={handleSave}>
+            {mode === 'add' ? 'Add area' : 'Update area'}
+          </button>
         </div>
       </div>
-    </DialogFrame>
+    </div>
   );
 }
 
