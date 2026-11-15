@@ -62,8 +62,8 @@ const Footer = () => {
               Fashion, beauty, home and everyday essentials — discover more and love more, all in one place.
             </p>
             <div className="mt-5 space-y-2 text-sm">
-              <a href="tel:+8801000000000" className="flex items-center gap-2 opacity-85 hover:opacity-100 hover:underline">
-                <Phone className="h-4 w-4" /> +880 1XXX-XXXXXX
+              <a href="tel:+8801716509407" className="flex items-center gap-2 opacity-85 hover:opacity-100 hover:underline">
+                <Phone className="h-4 w-4" /> +8801716509407
               </a>
               <a href="mailto:support@sholok.com" className="flex items-center gap-2 opacity-85 hover:opacity-100 hover:underline">
                 <Mail className="h-4 w-4" /> support@sholok.com
