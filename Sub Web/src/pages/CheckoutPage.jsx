@@ -252,6 +252,10 @@ const CheckoutPage = () => {
   const handleDivisionChange = (v) => { setDivision(v); setDistrict(''); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); };
   const handleDistrictChange = (v) => { setDistrict(v); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); if (v && !division) setDivision(getDivision(v)); };
 
+  // Available divisions: only those that have at least one district with active delivery areas
+  const availableDivisions = Object.keys(BD_GEO).filter(
+    div => BD_GEO[div].some(d => (areasByDistrict[d] || []).length > 0)
+  );
   const availableDistricts = division ? (BD_GEO[division] || []).filter(d => (areasByDistrict[d] || []).length > 0) : [];
   const availableAreas = district ? (areasByDistrict[district] || []) : [];
   const noAreaAvailable = district && availableAreas.length === 0 && !areasLoading;
@@ -411,7 +415,7 @@ const CheckoutPage = () => {
                 </div>
 
                 <SelectField label="Division *" value={division} onChange={handleDivisionChange}
-                  options={Object.keys(BD_GEO)} placeholder="Select division" error={formErrors.division} />
+                  options={areasLoading ? [] : availableDivisions} placeholder={areasLoading ? 'Loading…' : 'Select division'} error={formErrors.division} disabled={areasLoading} />
                 <SelectField label="City / District *" value={district} onChange={handleDistrictChange}
                   options={availableDistricts} placeholder={division ? 'Select district' : 'Select division first'}
                   error={formErrors.district} disabled={!division || areasLoading} />

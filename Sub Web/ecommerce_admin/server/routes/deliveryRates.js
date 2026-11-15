@@ -718,4 +718,24 @@ router.get('/charge', async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+// GET /api/delivery-rates/geo — unique divisions/districts from configured rate assignments
+router.get('/geo', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT DISTINCT division, district FROM delivery_area_assignments WHERE division IS NOT NULL AND district IS NOT NULL ORDER BY division, district'
+    );
+    const divMap = {};
+    for (const r of rows) {
+      if (!divMap[r.division]) divMap[r.division] = [];
+      if (!divMap[r.division].includes(r.district)) divMap[r.division].push(r.district);
+    }
+    res.json({
+      divisions: Object.keys(divMap).sort(),
+      districtsByDivision: divMap,
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message, divisions: [], districtsByDivision: {} });
+  }
+});
+
 module.exports = router;
