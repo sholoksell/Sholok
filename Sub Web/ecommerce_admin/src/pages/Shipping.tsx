@@ -104,6 +104,7 @@ interface RateGroup {
   base: number;
   additional: number;
   weightSlabs?: string;
+  isActive?: boolean;
 }
 
 interface Assignment {
@@ -1049,7 +1050,12 @@ function GroupsSection({ groups, updateGroups, assignments, onAdd, onEdit, onDel
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: C.fg }}>{g.name}</div>
+                        <span className={g.isActive !== false ? 'dm-badge dm-badge-green' : 'dm-badge dm-badge-gray'} style={{ fontSize: 10 }}>
+                          {g.isActive !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                       <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 2 }}>ID: {g.id}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
@@ -1531,7 +1537,15 @@ function BackupSection({ groups, assignments, statuses, customAreas, onImport }:
 }) {
   const [importFileName, setImportFileName] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [dbBackups, setDbBackups] = useState<any[]>([]);
+  const [backupLabel, setBackupLabel] = useState('');
+  const [savingBackup, setSavingBackup] = useState(false);
+  const [restoringId, setRestoringId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.get('/delivery-rates/backups').then(r => setDbBackups(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+  }, []);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1553,6 +1567,48 @@ function BackupSection({ groups, assignments, statuses, customAreas, onImport }:
     const data = { groups, assignments, statuses, customAreas, exportedAt: new Date().toISOString() };
     downloadText(JSON.stringify(data, null, 2), `sholok-delivery-backup-${Date.now()}.json`);
     toast.success('Backup exported');
+  };
+
+  const saveToDb = async () => {
+    if (!backupLabel.trim()) { toast.error('Enter a label for this backup'); return; }
+    setSavingBackup(true);
+    try {
+      const r = await api.post('/delivery-rates/backups', { label: backupLabel.trim() });
+      toast.success('Backup saved to database');
+      setBackupLabel('');
+      const listRes = await api.get('/delivery-rates/backups');
+      setDbBackups(Array.isArray(listRes.data) ? listRes.data : []);
+    } catch { toast.error('Failed to save backup'); }
+    finally { setSavingBackup(false); }
+  };
+
+  const restoreFromDb = async (id: number) => {
+    setRestoringId(id);
+    try {
+      const r = await api.post(`/delivery-rates/backups/${id}/restore`);
+      toast.success(`Restored: ${r.data.restored?.groups} groups, ${r.data.restored?.assignments} assignments`);
+      // Reload all data
+      const [gRes, aRes, oRes] = await Promise.all([
+        api.get('/delivery-rates/rate-groups'),
+        api.get('/delivery-rates/assignments'),
+        api.get('/delivery-rates/area-overrides'),
+      ]);
+      onImport({
+        groups: Array.isArray(gRes.data) ? gRes.data : [],
+        assignments: Array.isArray(aRes.data) ? aRes.data : [],
+        statuses: (Array.isArray(oRes.data) ? oRes.data : []).filter((r: any) => !r.isCustom && r.status === 'Disable').map((r: any) => ({ key: r.key, status: 'Disable' as const })),
+        customAreas: (Array.isArray(oRes.data) ? oRes.data : []).filter((r: any) => r.isCustom).map((r: any) => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })),
+      });
+    } catch { toast.error('Failed to restore backup'); }
+    finally { setRestoringId(null); }
+  };
+
+  const deleteDbBackup = async (id: number) => {
+    try {
+      await api.delete(`/delivery-rates/backups/${id}`);
+      setDbBackups(prev => prev.filter((b: any) => b.id !== id));
+      toast.success('Backup deleted');
+    } catch { toast.error('Failed to delete backup'); }
   };
 
   const handleReset = () => {
@@ -1625,6 +1681,45 @@ function BackupSection({ groups, assignments, statuses, customAreas, onImport }:
             <AlertTriangle size={12} />
             Importing replaces the current saved settings in this browser.
           </div>
+        </div>
+      </div>
+
+      {/* Database backup card */}
+      <div style={{ padding: '0 24px 16px' }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+          <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 4 }}>SERVER BACKUP</div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: C.fg, marginBottom: 4 }}>Save to database</div>
+          <p style={{ fontSize: 13, color: C.mutedFg, marginBottom: 16, lineHeight: 1.5 }}>
+            Saves a snapshot of all rate groups, assignments, and area settings to the server database — accessible from any device.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <input className="dm-input" value={backupLabel} onChange={e => setBackupLabel(e.target.value)} placeholder="Label (e.g. Before Q2 rate update)" style={{ flex: 1 }} />
+            <button className="dm-btn-primary" onClick={saveToDb} disabled={savingBackup} style={{ whiteSpace: 'nowrap' }}>
+              {savingBackup ? 'Saving…' : <><Download size={14} /> Save backup</>}
+            </button>
+          </div>
+          {dbBackups.length > 0 && (
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ padding: '8px 14px', background: C.muted, fontSize: 11, fontWeight: 600, color: C.mutedFg, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Saved backups ({dbBackups.length})
+              </div>
+              {dbBackups.map((b: any) => (
+                <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: `1px solid ${C.border}22` }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.fg }}>{b.label}</div>
+                    <div style={{ fontSize: 11, color: C.mutedFg }}>{new Date(b.created_at).toLocaleString()} · {Math.round((b.size_bytes || 0) / 1024)} KB</div>
+                  </div>
+                  <button className="dm-btn-ghost" style={{ fontSize: 12, color: C.primary }} onClick={() => restoreFromDb(b.id)} disabled={restoringId === b.id}>
+                    {restoringId === b.id ? 'Restoring…' : 'Restore'}
+                  </button>
+                  <button className="dm-btn-ghost" style={{ padding: '5px 7px', color: '#c0392b' }} onClick={() => deleteDbBackup(b.id)}><Trash2 size={13} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          {dbBackups.length === 0 && (
+            <div style={{ fontSize: 12, color: C.mutedFg, textAlign: 'center', padding: '12px 0' }}>No server backups yet.</div>
+          )}
         </div>
       </div>
 
@@ -1806,10 +1901,11 @@ function GroupModal({ mode, initial, onClose, onSave }: {
   const [base, setBase] = useState(String(initial?.base ?? ''));
   const [additional, setAdditional] = useState(String(initial?.additional ?? ''));
   const [slabs, setSlabs] = useState(initial?.weightSlabs || '');
+  const [isActive, setIsActive] = useState(initial?.isActive !== false);
 
   const handleSave = () => {
     if (!name.trim() || isNaN(+base) || isNaN(+additional)) { toast.error('Fill all required fields'); return; }
-    onSave({ id: initial?.id || createId(), store: initial?.store || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined });
+    onSave({ id: initial?.id || createId(), store: initial?.store || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined, isActive });
   };
 
   return (
@@ -1834,6 +1930,13 @@ function GroupModal({ mode, initial, onClose, onSave }: {
           <label className="dm-label">Weight Slabs (optional)</label>
           <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="e.g. 1:60,3:100,5:150" />
           <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 4 }}>Format: weight:charge, comma-separated</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: C.muted, borderRadius: 8 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: C.fg }}>Active</div>
+            <div style={{ fontSize: 11, color: C.mutedFg }}>Inactive groups are excluded from checkout delivery charges</div>
+          </div>
+          <Switch checked={isActive} onCheckedChange={setIsActive} />
         </div>
       </div>
     </DialogFrame>
