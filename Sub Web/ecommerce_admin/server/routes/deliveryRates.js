@@ -371,14 +371,23 @@ router.post('/area-statuses/sync', auth, async (req, res) => {
   const statusMap = req.body;
   if (typeof statusMap !== 'object') return res.status(400).json({ message: 'Object expected' });
   try {
-    const disabledKeys = Object.entries(statusMap).filter(([, v]) => v === 'Disable');
+    const disabledKeys = Object.entries(statusMap).filter(([, v]) => v === 'Disable').map(([k]) => k);
+    // Sync standard (non-custom) area statuses: delete all and re-insert disabled ones
     await pool.query(`DELETE FROM delivery_area_overrides WHERE is_custom = 0`);
     if (disabledKeys.length) {
-      const vals = disabledKeys.map(([k]) => [k, 'Disable', 0]);
+      const vals = disabledKeys.map(k => [k, 'Disable', 0]);
       await pool.query(
         `INSERT INTO delivery_area_overrides (area_key, status, is_custom) VALUES ?
          ON DUPLICATE KEY UPDATE status = VALUES(status)`,
         [vals]
+      );
+    }
+    // Sync custom area statuses: reset all to Enable, then disable the ones in the list
+    await pool.query(`UPDATE delivery_area_overrides SET status = 'Enable' WHERE is_custom = 1`);
+    if (disabledKeys.length) {
+      await pool.query(
+        `UPDATE delivery_area_overrides SET status = 'Disable' WHERE is_custom = 1 AND area_key IN (?)`,
+        [disabledKeys]
       );
     }
     res.json({ ok: true });

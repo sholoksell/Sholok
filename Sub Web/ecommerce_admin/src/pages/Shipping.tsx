@@ -293,7 +293,7 @@ export default function Shipping() {
         setGroups(Array.isArray(gRes.data) ? gRes.data : []);
         setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
         const overrides: Array<{ key: string; division?: string; district?: string; area?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
-        setStatuses(overrides.filter(r => !r.isCustom && r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
+        setStatuses(overrides.filter(r => r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
         setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })));
       } catch {
         toast.error('Failed to load delivery data');
@@ -456,6 +456,15 @@ export default function Shipping() {
           mode={areaModal.mode}
           initial={areaModal.area}
           onClose={() => setAreaModal(null)}
+          onDelete={areaModal.mode === 'edit' && areaModal.area?.isCustom ? async () => {
+            const key = areaModal.area!.key;
+            try {
+              await api.delete(`/delivery-rates/area-overrides/custom/${encodeURIComponent(key)}`);
+              setCustomAreas(prev => prev.filter(a => a.key !== key));
+              setAreaModal(null);
+              toast.success('Custom area removed');
+            } catch { toast.error('Failed to remove custom area'); }
+          } : undefined}
           onSave={async (div, dist, area) => {
             const oldKey = areaModal.area?.key;
             if (areaModal.mode === 'edit' && oldKey) {
@@ -477,6 +486,7 @@ export default function Shipping() {
               try {
                 await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
                 setCustomAreas(prev => [...prev, { key, division: div, district: dist, area }]);
+                setStatuses(prev => prev.filter(s => s.key !== key));
                 setAreaModal(null);
                 toast.success('Custom area added');
               } catch { toast.error('Failed to add custom area'); }
@@ -503,7 +513,7 @@ export default function Shipping() {
                 api.get('/delivery-rates/assignments'),
               ]);
               const overrides: Array<{ key: string; division?: string; district?: string; area?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
-              setStatuses(overrides.filter(r => !r.isCustom && r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
+              setStatuses(overrides.filter(r => r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
               setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })));
               setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
               setDistrictModal(null);
@@ -951,9 +961,9 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
                       <button className="dm-btn-ghost" style={{ padding: '4px 7px' }} title="Edit area" onClick={() => onEditArea(e)}>
                         <Pencil size={13} />
                       </button>
-                      <button className="dm-btn-ghost" style={{ padding: '4px 7px', color: C.mutedFg }}
-                        title={e.isCustom ? 'Remove custom area' : (enabled ? 'Disable' : 'Enable')}
-                        onClick={() => e.isCustom ? onDeleteCustom(e.key) : toggleStatus(e.key)}>
+                      <button className="dm-btn-ghost" style={{ padding: '4px 7px', color: enabled ? C.primary : C.mutedFg }}
+                        title={enabled ? 'Disable' : 'Enable'}
+                        onClick={() => toggleStatus(e.key)}>
                         <X size={13} />
                       </button>
                     </div>
@@ -1629,7 +1639,7 @@ function BackupSection({ groups, assignments, statuses, customAreas, onImport }:
       onImport({
         groups: Array.isArray(gRes.data) ? gRes.data : [],
         assignments: Array.isArray(aRes.data) ? aRes.data : [],
-        statuses: (Array.isArray(oRes.data) ? oRes.data : []).filter((r: any) => !r.isCustom && r.status === 'Disable').map((r: any) => ({ key: r.key, status: 'Disable' as const })),
+        statuses: (Array.isArray(oRes.data) ? oRes.data : []).filter((r: any) => r.status === 'Disable').map((r: any) => ({ key: r.key, status: 'Disable' as const })),
         customAreas: (Array.isArray(oRes.data) ? oRes.data : []).filter((r: any) => r.isCustom).map((r: any) => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })),
       });
     } catch { toast.error('Failed to restore backup'); }
@@ -1870,10 +1880,11 @@ function CsOption({ label, selected, onClick }: { label: string; selected: boole
   );
 }
 
-function AreaModal({ mode, initial, onClose, onSave }: {
+function AreaModal({ mode, initial, onClose, onSave, onDelete }: {
   mode: 'add' | 'edit'; initial?: AreaEntry;
   onClose: () => void;
   onSave: (div: string, dist: string, area: string) => void;
+  onDelete?: () => void;
 }) {
   const [div, setDiv] = useState(initial?.division || '');
   const [distSelect, setDistSelect] = useState(initial?.district || '');
@@ -1950,7 +1961,13 @@ function AreaModal({ mode, initial, onClose, onSave }: {
         </div>
 
         {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, alignItems: 'center' }}>
+          {onDelete && (
+            <button className="dm-btn-ghost" style={{ marginRight: 'auto', color: '#D31710', display: 'flex', alignItems: 'center', gap: 5 }}
+              onClick={onDelete} title="Remove this custom area permanently">
+              <Trash2 size={13} /> Remove area
+            </button>
+          )}
           <button className="dm-btn-outline" onClick={onClose}>Cancel</button>
           <button className="dm-btn-primary" onClick={handleSave}>
             {mode === 'add' ? 'Add area' : 'Update area'}
