@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 
 const SLIDE_META = [
   {
+    img: '/uploads/supreme-digital-lawn-vol-01.jpg',
     eyebrow: 'New Season Edit',
     title: 'Discover Your Everyday Style',
     copy: 'Fresh silhouettes and easy favourites for every day of the week.',
@@ -14,6 +15,7 @@ const SLIDE_META = [
     accentGradient: 'linear-gradient(135deg, #5D0096 0%, #7c3aed 100%)',
   },
   {
+    img: '/uploads/supreme-digital-lawn-vol-01-3.jpg',
     eyebrow: 'Top Picks',
     title: 'Style, Beauty & More — All in One Place',
     copy: 'Curated collections to suit every taste and occasion.',
@@ -24,6 +26,7 @@ const SLIDE_META = [
     accentGradient: 'linear-gradient(135deg, #D31710 0%, #be123c 100%)',
   },
   {
+    img: '/uploads/supreme-digital-lawn-vol-01-5.jpg',
     eyebrow: 'Trending Now',
     title: 'Find Your New Favorites',
     copy: 'Bestselling pieces loved by thousands of shoppers.',
@@ -64,26 +67,7 @@ export default function HomeBannerCarousel() {
         }
       } catch {}
 
-      // 2) Fall back to featured products
-      try {
-        const res = await fetch('/api/products/public?limit=3&featured=true');
-        const data = await res.json();
-        const products = (data.products || []).slice(0, 3);
-        if (products.length > 0) {
-          setSlides(products.map((p, i) => ({
-            img: p.thumbnail || (p.images && p.images[0]),
-            eyebrow: SLIDE_META[i].eyebrow,
-            title: SLIDE_META[i].title,
-            copy: SLIDE_META[i].copy,
-            cta: SLIDE_META[i].cta,
-            link: p.slug ? `/product/${p.slug}` : SLIDE_META[i].link,
-            secondary: SLIDE_META[i].secondary,
-            gradient: SLIDE_META[i].gradient,
-            accentGradient: SLIDE_META[i].accentGradient,
-          })));
-        }
-      } catch {}
-      // If both fail, SLIDE_META (gradient only) stays as default
+      // If banner API returns nothing, SLIDE_META with hardcoded images is used
     }
     loadImages();
   }, []);
