@@ -472,6 +472,7 @@ export default function Shipping() {
                 toast.success('Area updated');
               } catch { toast.error('Failed to update area'); }
             } else {
+              const key = areaKey(div, dist, area);
               if (customAreas.some(a => a.key === key)) { toast.error('Area already exists'); return; }
               try {
                 await api.post('/delivery-rates/area-overrides/custom', { key, division: div, district: dist, area });
