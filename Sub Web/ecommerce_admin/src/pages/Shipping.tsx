@@ -516,6 +516,7 @@ export default function Shipping() {
         <GroupModal
           mode={groupModal.mode}
           initial={groupModal.group}
+          totalGroups={groups.length}
           onClose={() => setGroupModal(null)}
           onSave={(g) => {
             if (groupModal.mode === 'add') {
@@ -1984,9 +1985,10 @@ function DistrictModal({ division, district, onClose, onSave }: {
   );
 }
 
-function GroupModal({ mode, initial, onClose, onSave }: {
+function GroupModal({ mode, initial, onClose, onSave, totalGroups }: {
   mode: 'add' | 'edit'; initial?: RateGroup;
   onClose: () => void; onSave: (g: RateGroup) => void;
+  totalGroups: number;
 }) {
   const [name, setName] = useState(initial?.name || '');
   const [store, setStore] = useState(initial?.store && initial.store !== 'Default' ? initial.store : '');
@@ -1997,93 +1999,97 @@ function GroupModal({ mode, initial, onClose, onSave }: {
 
   const baseNum = parseFloat(base) || 0;
   const addNum  = parseFloat(additional) || 0;
-  const kg2 = baseNum + addNum;
-  const kg3 = baseNum + addNum * 2;
-  const kg4 = baseNum + addNum * 3;
-  const kg5 = baseNum + addNum * 4;
   const hasPreview = baseNum > 0 || addNum > 0;
+  const remaining = MAX_RATE_GROUPS - totalGroups;
 
   const handleSave = () => {
-    if (!name.trim() || isNaN(+base) || isNaN(+additional)) { toast.error('Fill all required fields'); return; }
-    onSave({ id: initial?.id || createId(), store: store.trim() || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined, isActive });
+    if (!name.trim() || base === '' || additional === '' || isNaN(+base) || isNaN(+additional)) {
+      toast.error('Fill all required fields');
+      return;
+    }
+    onSave({ id: initial?.id || createId(), store: store || 'Default', name: name.trim(), base: +base, additional: +additional, weightSlabs: slabs.trim() || undefined, isActive });
   };
 
   return (
     <div className="dm-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="dm-modal" style={{ minWidth: 480, maxWidth: 520 }}>
+      <div className="dm-modal" style={{ minWidth: 500, maxWidth: 560 }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, letterSpacing: '0.08em', marginBottom: 4 }}>STORE PRICING</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: C.fg }}>{mode === 'add' ? 'New rate group' : 'Edit rate group'}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, letterSpacing: '0.08em', marginBottom: 6 }}>SHOLOK OPERATIONS</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.fg, marginBottom: 4 }}>
+              {mode === 'add' ? 'Create rate group' : 'Edit rate group'}
+            </div>
+            <div style={{ fontSize: 13, color: C.mutedFg, marginBottom: 20 }}>
+              Rate groups are store-specific.{' '}
+              {mode === 'add' ? `${remaining} of ${MAX_RATE_GROUPS} creation slots remain.` : 'Update the group details below.'}
+            </div>
           </div>
-          <button className="dm-btn-ghost" style={{ padding: '4px 6px' }} onClick={onClose}><X size={16} /></button>
+          <button className="dm-btn-ghost" style={{ padding: '4px 6px', marginTop: 2 }} onClick={onClose}><X size={16} /></button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Name + Store row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Store location (dropdown) + Rate group name */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
-              <label className="dm-label">Group name *</label>
-              <input className="dm-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Inside Dhaka" autoFocus />
+              <label className="dm-label">Store location</label>
+              <select className="dm-input" value={store} onChange={e => setStore(e.target.value)}>
+                <option value="">Select location</option>
+                {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
             <div>
-              <label className="dm-label">Store / location</label>
-              <input className="dm-input" value={store} onChange={e => setStore(e.target.value)} placeholder="e.g. Dhaka" />
-            </div>
-          </div>
-
-          {/* Base + Additional */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label className="dm-label">Base charge · 1 KG (৳) *</label>
-              <input className="dm-input" type="number" value={base} onChange={e => setBase(e.target.value)} placeholder="100" />
-            </div>
-            <div>
-              <label className="dm-label">Additional per KG (৳) *</label>
-              <input className="dm-input" type="number" value={additional} onChange={e => setAdditional(e.target.value)} placeholder="30" />
+              <label className="dm-label">Rate group name</label>
+              <input className="dm-input" value={name} onChange={e => setName(e.target.value)} placeholder={store ? `e.g. Inside ${store}` : 'e.g. Inside Dhaka'} autoFocus />
             </div>
           </div>
 
-          {/* Live KG preview */}
+          {/* Base rate + Additional per KG */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label className="dm-label">Base rate - first 1 KG</label>
+              <input className="dm-input" type="number" min="0" value={base} onChange={e => setBase(e.target.value)} placeholder="e.g. 100" />
+            </div>
+            <div>
+              <label className="dm-label">Additional per KG</label>
+              <input className="dm-input" type="number" min="0" value={additional} onChange={e => setAdditional(e.target.value)} placeholder="e.g. 30" />
+            </div>
+          </div>
+
+          {/* Optional weight slabs */}
+          <div>
+            <label className="dm-label">Optional weight slabs</label>
+            <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="1:60, 2:80, 3:100, 5:140" />
+            <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 4 }}>Format: weight:rate. Matching weights override the formula.</div>
+          </div>
+
+          {/* Rate Preview */}
           {hasPreview && (
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
-              <div style={{ padding: '7px 12px', background: `${C.primary}12`, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: C.primary, fontWeight: 600 }}>Base delivery · 1 KG</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.destructive }}>৳{baseNum}</span>
+              <div style={{ padding: '8px 14px', background: C.muted, borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.mutedFg, letterSpacing: '0.08em' }}>RATE PREVIEW</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', background: C.muted }}>
-                {[{ label: '2 KG', val: kg2 }, { label: '3 KG', val: kg3 }, { label: '4 KG', val: kg4 }, { label: '5 KG', val: kg5 }, { label: '+/KG', val: addNum }].map((r, i) => (
-                  <div key={i} style={{ padding: '7px 10px', borderRight: i < 4 ? `1px solid ${C.border}` : 'none' }}>
-                    <div style={{ fontSize: 10, color: C.mutedFg, fontWeight: 500, marginBottom: 2 }}>{r.label}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.fg }}>৳{r.val}</div>
-                  </div>
-                ))}
+              <div style={{ padding: '10px 14px', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {[1, 2, 3, 4, 5].map(kg => {
+                  const charge = baseNum + addNum * (kg - 1);
+                  return (
+                    <div key={kg} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 13, color: C.mutedFg }}>{kg} KG</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.fg }}>৳{charge}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
-
-          {/* Weight slabs */}
-          <div>
-            <label className="dm-label">Weight slabs (optional)</label>
-            <input className="dm-input" value={slabs} onChange={e => setSlabs(e.target.value)} placeholder="e.g. 1:100,3:160,5:200" />
-            <div style={{ fontSize: 11, color: C.mutedFg, marginTop: 4 }}>Format: upToKg:charge — comma-separated. Overrides the formula above.</div>
-          </div>
-
-          {/* Active toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: C.muted, borderRadius: 8 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.fg }}>Active</div>
-              <div style={{ fontSize: 11, color: C.mutedFg }}>Inactive groups are excluded from checkout delivery charges</div>
-            </div>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
-          </div>
         </div>
 
         {/* Footer */}
         <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
           <button className="dm-btn-outline" onClick={onClose}>Cancel</button>
-          <button className="dm-btn-primary" onClick={handleSave}>{mode === 'add' ? 'Create group' : 'Save changes'}</button>
+          <button className="dm-btn-primary" onClick={handleSave}>
+            {mode === 'add' ? 'Create rate group' : 'Save changes'}
+          </button>
         </div>
       </div>
     </div>
