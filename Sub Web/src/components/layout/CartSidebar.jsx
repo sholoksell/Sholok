@@ -76,6 +76,9 @@ const CartSidebar = () => {
   const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) * (item.quantity || 1)), 0);
   const totalItems = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
+  // Don't render anything on checkout page (sidebar + orbit cart)
+  if (isCheckoutPage) return null;
+
   return (
     <>
       {/* ── Orbit Cart floating widget — hidden on checkout page ── */}
