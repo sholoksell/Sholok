@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
@@ -13,7 +13,17 @@ const CartSidebar = () => {
   const { isCartSidebarOpen, openCartSidebar, closeCartSidebar, toggleCartSidebar } = useUIStore();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const sidebarRef = useRef(null);
+
+  const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout');
+
+  // Auto-close sidebar when navigating to checkout page
+  useEffect(() => {
+    if (isCheckoutPage && isCartSidebarOpen) {
+      closeCartSidebar();
+    }
+  }, [isCheckoutPage, isCartSidebarOpen, closeCartSidebar]);
 
   // Listen for openCart custom event (dispatched by MobileBottomNav)
   useEffect(() => {
@@ -68,8 +78,8 @@ const CartSidebar = () => {
 
   return (
     <>
-      {/* ── Orbit Cart floating widget ── */}
-      {!isCartSidebarOpen && (
+      {/* ── Orbit Cart floating widget — hidden on checkout page ── */}
+      {!isCartSidebarOpen && !isCheckoutPage && (
         <div className="orbit-cart-wrap">
           <button
             className="orbit-cart-btn"
