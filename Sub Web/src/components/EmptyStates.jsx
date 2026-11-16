@@ -16,7 +16,7 @@ export const EmptyCart = ({ onClose }) => (
     </div>
     <Button
       onClick={onClose}
-      className="bg-[#E31E24] hover:bg-[#b9151a] text-white font-semibold px-8"
+      className="bg-primary hover:bg-primary/90 text-white font-semibold px-8"
     >
       Start Shopping
     </Button>
@@ -37,7 +37,7 @@ export const EmptySearch = ({ searchQuery }) => (
       </p>
     </div>
     <Link to="/">
-      <Button className="bg-[#E31E24] hover:bg-[#b9151a] text-white font-semibold px-8">
+      <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-8">
         Browse Categories
       </Button>
     </Link>
@@ -56,7 +56,7 @@ export const EmptyOrders = () => (
       </p>
     </div>
     <Link to="/">
-      <Button className="bg-[#E31E24] hover:bg-[#b9151a] text-white font-semibold px-8">
+      <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-8">
         Start Shopping
       </Button>
     </Link>
@@ -73,7 +73,7 @@ export const LoadingSpinner = ({ size = 'md', text }) => {
   return (
     <div className="flex flex-col items-center justify-center p-8 space-y-3">
       <div
-        className={`${sizeClasses[size]} border-4 border-gray-200 border-t-[#E31E24] rounded-full animate-spin`}
+        className={`${sizeClasses[size]} border-4 border-gray-200 border-t-primary rounded-full animate-spin`}
       />
       {text && <p className="text-gray-600 text-sm">{text}</p>}
     </div>

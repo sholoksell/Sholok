@@ -8,8 +8,6 @@ import { autoDetectDeliveryLocation } from '@/hooks/useDeliveryLocation';
 
 const MainLayout = () => {
   useEffect(() => {
-    // Auto-detect delivery location (Bangladesh) on first load if user
-    // has not selected one. Silent — uses browser geolocation, falls back to IP.
     autoDetectDeliveryLocation();
   }, []);
 

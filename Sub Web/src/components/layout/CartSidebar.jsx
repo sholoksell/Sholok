@@ -1,174 +1,246 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { EmptyCart } from '@/components/EmptyStates';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const CartSidebar = () => {
-    const { cart, removeFromCart, updateCartItem } = useCartStore();
-    const { isCartSidebarOpen, closeCartSidebar } = useUIStore();
-    const { t } = useLanguage();
-    const navigate = useNavigate();
+  const { cart, removeFromCart, updateCartItem } = useCartStore();
+  const { isCartSidebarOpen, closeCartSidebar, toggleCartSidebar } = useUIStore();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const sidebarRef = useRef(null);
 
-    useEffect(() => {
-        const handleOpenCart = () => {
-            useUIStore.getState().openCartSidebar();
-        };
-        window.addEventListener('openCart', handleOpenCart);
-        return () => window.removeEventListener('openCart', handleOpenCart);
-    }, []);
+  // Listen for openCart custom event (dispatched by MobileBottomNav)
+  useEffect(() => {
+    const handleOpenCart = () => {
+      useUIStore.getState().openCartSidebar();
+    };
+    window.addEventListener('openCart', handleOpenCart);
+    return () => window.removeEventListener('openCart', handleOpenCart);
+  }, []);
 
-    const handleCheckout = () => {
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isCartSidebarOpen) {
         closeCartSidebar();
-        navigate('/checkout');
+      }
     };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isCartSidebarOpen, closeCartSidebar]);
 
-    const handleUpdateQuantity = (itemId, currentQuantity, delta) => {
-        const newQuantity = currentQuantity + delta;
-        if (newQuantity >= 1) {
-            updateCartItem(itemId, newQuantity);
-        }
-    };
+  // Lock body scroll when sidebar is open
+  useEffect(() => {
+    if (isCartSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isCartSidebarOpen]);
 
-    if (!isCartSidebarOpen) return null;
+  const handleCheckout = () => {
+    closeCartSidebar();
+    navigate('/checkout');
+  };
 
-    const items = cart?.items || [];
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const deliveryFee = items.length > 0 ? 60 : 0;
-    const total = subtotal + deliveryFee;
+  const handleViewCart = () => {
+    closeCartSidebar();
+    navigate('/checkout');
+  };
 
-    return (
+  const handleUpdateQuantity = (itemId, currentQuantity, delta) => {
+    const newQuantity = currentQuantity + delta;
+    if (newQuantity >= 1) {
+      updateCartItem(itemId, newQuantity);
+    }
+  };
+
+  const items = cart?.items || [];
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  return (
+    <AnimatePresence>
+      {isCartSidebarOpen && (
         <>
-            {/* Backdrop */}
-            <div
-                className="fixed inset-0 bg-black/60 z-50 transition-opacity animate-fade-in backdrop-blur-sm"
+          {/* Backdrop */}
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+            onClick={closeCartSidebar}
+          />
+
+          {/* Sidebar */}
+          <motion.div
+            key="sidebar"
+            ref={sidebarRef}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed inset-y-0 right-0 w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-[#5D0096] to-[#7a00c4] text-white flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-6 w-6" />
+                <div>
+                  <h2 className="font-bold text-lg">Shopping Cart</h2>
+                  <p className="text-xs text-white/80">
+                    {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                  </p>
+                </div>
+              </div>
+              <button
                 onClick={closeCartSidebar}
-            />
-
-            {/* Sidebar */}
-            <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col animate-slide-in-right">
-
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-[#E31E24] to-[#b9151a] text-white">
-                    <div className="flex items-center gap-2">
-                        <ShoppingBag className="h-6 w-6" />
-                        <div>
-                            <h2 className="font-bold text-lg">{t('shoppingCart')}</h2>
-                            <p className="text-xs text-white/80">{items.length} {items.length === 1 ? t('item') : t('items')}</p>
-                        </div>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={closeCartSidebar}
-                        className="text-white hover:bg-white/20"
-                    >
-                        <X className="h-5 w-5" />
-                    </Button>
-                </div>
-
-                {/* Cart Items */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {items.length === 0 ? (
-                        <EmptyCart onClose={closeCartSidebar} />
-                    ) : (
-                        items.map((item) => (
-                            <div
-                                key={item._id}
-                                className="flex gap-3 p-3 border rounded-lg hover:shadow-md transition-all duration-300 bg-white"
-                            >
-                                {/* Product image */}
-                                <div className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden border bg-gray-50">
-                                    {item.image ? (
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                            <ShoppingBag className="h-6 w-6" />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex-1 flex flex-col justify-between min-w-0">
-                                    <div className="flex justify-between gap-2">
-                                        <h3 className="font-semibold text-sm line-clamp-2 text-gray-800">{item.name}</h3>
-                                        <button
-                                            onClick={() => removeFromCart(item._id)}
-                                            className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
-                                            aria-label="Remove item"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                    <div className="flex items-end justify-between mt-2">
-                                        <div className="flex items-center border border-gray-300 rounded-lg bg-white h-9 shadow-sm">
-                                            <button
-                                                onClick={() => handleUpdateQuantity(item._id, item.quantity, -1)}
-                                                className="px-3 hover:bg-gray-100 disabled:opacity-50 h-full flex items-center transition-colors rounded-l-lg"
-                                                disabled={item.quantity <= 1}
-                                                aria-label="Decrease quantity"
-                                            >
-                                                <Minus className="h-3 w-3 text-gray-600" />
-                                            </button>
-                                            <div className="w-10 text-center text-sm font-semibold">{item.quantity}</div>
-                                            <button
-                                                onClick={() => handleUpdateQuantity(item._id, item.quantity, 1)}
-                                                className="px-3 hover:bg-gray-100 h-full flex items-center transition-colors rounded-r-lg"
-                                                aria-label="Increase quantity"
-                                            >
-                                                <Plus className="h-3 w-3 text-gray-600" />
-                                            </button>
-                                        </div>
-                                        <div className="font-bold text-[#E31E24]">৳{(item.price * item.quantity).toFixed(2)}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                {/* Footer */}
-                {items.length > 0 && (
-                    <div className="border-t bg-gray-50 p-4 space-y-4">
-                        {/* Price Breakdown */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">{t('subtotal')}</span>
-                                <span className="font-semibold">৳{subtotal.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">{t('deliveryFee')}</span>
-                                <span className="font-semibold">৳{deliveryFee.toFixed(2)}</span>
-                            </div>
-                            <div className="border-t pt-2 flex justify-between text-lg">
-                                <span className="font-bold">{t('total')}</span>
-                                <span className="font-bold text-[#E31E24]">৳{total.toFixed(2)}</span>
-                            </div>
-                        </div>
-
-                        {/* Checkout Button */}
-                        <Button
-                            className="w-full bg-[#E31E24] hover:bg-[#b9151a] text-white font-bold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
-                            onClick={handleCheckout}
-                        >
-                            {t('proceedToCheckout')}
-                            <ArrowRight className="ml-2 h-5 w-5" />
-                        </Button>
-
-                        {/* Continue Shopping Link */}
-                        <button
-                            onClick={closeCartSidebar}
-                            className="w-full text-center text-sm text-gray-600 hover:text-[#E31E24] transition-colors"
-                        >
-                            {t('continueShopping')}
-                        </button>
-                    </div>
-                )}
+                className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                aria-label="Close cart"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
+
+            {/* Cart Items */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {items.length === 0 ? (
+                <EmptyCart onClose={closeCartSidebar} />
+              ) : (
+                items.map((item) => (
+                  <motion.div
+                    key={item._id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: 50 }}
+                    className="flex gap-3 p-3 border rounded-xl hover:shadow-md transition-all duration-200 bg-white"
+                  >
+                    {/* Product image */}
+                    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-gray-50">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <ShoppingBag className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-between min-w-0">
+                      <div className="flex justify-between gap-2">
+                        <h3 className="font-semibold text-sm line-clamp-2 text-gray-800 leading-snug">
+                          {item.name}
+                        </h3>
+                        <button
+                          onClick={() => removeFromCart(item._id)}
+                          className="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0 p-0.5"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {item.variation && (
+                        <p className="text-xs text-gray-500 mt-0.5">{item.variation}</p>
+                      )}
+
+                      <div className="flex items-center justify-between mt-2">
+                        {/* Quantity controls */}
+                        <div className="flex items-center border border-gray-300 rounded-lg bg-white h-8 shadow-sm">
+                          <button
+                            onClick={() => handleUpdateQuantity(item._id, item.quantity, -1)}
+                            className="px-2.5 hover:bg-gray-100 disabled:opacity-40 h-full flex items-center transition-colors rounded-l-lg"
+                            disabled={item.quantity <= 1}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="h-3 w-3 text-gray-600" />
+                          </button>
+                          <div className="w-9 text-center text-sm font-semibold select-none">
+                            {item.quantity}
+                          </div>
+                          <button
+                            onClick={() => handleUpdateQuantity(item._id, item.quantity, 1)}
+                            className="px-2.5 hover:bg-gray-100 h-full flex items-center transition-colors rounded-r-lg"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="h-3 w-3 text-gray-600" />
+                          </button>
+                        </div>
+                        {/* Line subtotal */}
+                        <div className="font-bold text-[#5D0096] text-sm">
+                          ৳{(item.price * item.quantity).toFixed(2)}
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-400 mt-1">
+                        ৳{item.price.toFixed(2)} each
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            {items.length > 0 && (
+              <div className="border-t bg-gray-50 p-4 space-y-3 flex-shrink-0">
+                {/* Subtotal */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Subtotal ({totalItems} items)</span>
+                  <span className="font-bold text-gray-900 text-base">৳{subtotal.toFixed(2)}</span>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  Shipping calculated at checkout
+                </p>
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-1">
+                  <Button
+                    className="w-full bg-sale hover:bg-sale/90 text-white font-bold py-5 text-base shadow-md hover:shadow-lg transition-all"
+                    onClick={handleCheckout}
+                  >
+                    Proceed to Checkout
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+
+                  <button
+                    onClick={handleViewCart}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-[#5D0096] border border-[#5D0096] rounded-lg hover:bg-[#5D0096] hover:text-white transition-all duration-200"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    View Full Cart
+                  </button>
+
+                  <button
+                    onClick={closeCartSidebar}
+                    className="w-full text-center text-sm text-gray-500 hover:text-gray-700 transition-colors py-1"
+                  >
+                    Continue Shopping
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
         </>
-    );
+      )}
+    </AnimatePresence>
+  );
 };
 
 export default CartSidebar;
