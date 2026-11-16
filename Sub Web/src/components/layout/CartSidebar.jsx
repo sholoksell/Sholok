@@ -68,60 +68,45 @@ const CartSidebar = () => {
 
   return (
     <>
-      {/* ── Floating Cart Button (right-side sticky FAB) ── */}
+      {/* ── Orbit Cart floating widget ── */}
       {!isCartSidebarOpen && (
-        <motion.button
-          initial={{ x: 80, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 22, delay: 0.4 }}
-          whileHover={{ scale: 1.08, x: -4 }}
-          whileTap={{ scale: 0.93 }}
-          onClick={openCartSidebar}
-          aria-label={`Open cart — ${totalItems} items`}
-          className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[55] flex-col items-center gap-1 py-4 px-2.5 rounded-l-2xl shadow-2xl cursor-pointer select-none"
-          style={{ background: 'linear-gradient(180deg, #5D0096 0%, #7a00c4 100%)' }}
-        >
-          {/* Pulsing ring when cart has items */}
-          {totalItems > 0 && (
-            <motion.span
-              className="absolute inset-0 rounded-l-2xl"
-              animate={{ boxShadow: ['0 0 0 0 rgba(93,0,150,0.5)', '0 0 0 10px rgba(93,0,150,0)', '0 0 0 0 rgba(93,0,150,0)'] }}
-              transition={{ duration: 1.8, repeat: Infinity }}
-            />
-          )}
-
-          {/* Bag icon with float animation */}
-          <div className="relative">
-            <motion.div
-              animate={totalItems > 0 ? { y: [0, -4, 0] } : {}}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <ShoppingBag className="h-7 w-7 text-white" />
-            </motion.div>
-            {totalItems > 0 && (
-              <motion.span
-                key={totalItems}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-sale text-white text-[10px] font-bold flex items-center justify-center leading-none shadow"
+        <div className="orbit-cart-wrap">
+          <button
+            className="orbit-cart-btn"
+            onClick={openCartSidebar}
+            aria-label={`Open cart — ${totalItems} items`}
+          >
+            <span className="orbit-cart-face">
+              {/* ShoppingBasket icon — exact 7-path SVG from Design No. 10 */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ width: 30, height: 30 }}
+                aria-hidden="true"
               >
-                {totalItems > 9 ? '9+' : totalItems}
-              </motion.span>
-            )}
-          </div>
-
-          {/* Subtotal pill */}
-          {totalItems > 0 && (
-            <span className="text-[9px] font-bold text-white/90 leading-tight">
-              ৳{subtotal.toFixed(0)}
+                <path d="m15 11-1 9" />
+                <path d="m19 11-4-7" />
+                <path d="M2 11h20" />
+                <path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.7-7.4" />
+                <path d="M4.5 15.5h15" />
+                <path d="m5 11 4-7" />
+                <path d="m9 11 1 9" />
+              </svg>
+              <span className="orbit-cart-items">{totalItems} items</span>
+              {totalItems > 0 && (
+                <span className="orbit-cart-badge" aria-hidden="true">
+                  {totalItems > 9 ? '9+' : totalItems}
+                </span>
+              )}
             </span>
-          )}
-
-          <span className="text-[9px] font-semibold text-white/70 tracking-wide uppercase" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-            Cart
-          </span>
-        </motion.button>
+            <span className="orbit-cart-total">৳{subtotal.toFixed(0)}</span>
+          </button>
+        </div>
       )}
 
     <AnimatePresence>
