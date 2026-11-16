@@ -132,6 +132,7 @@ const CartSidebar = () => {
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed inset-y-0 right-0 w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-[#5D0096] to-[#7a00c4] text-white flex-shrink-0">
@@ -145,7 +146,8 @@ const CartSidebar = () => {
                 </div>
               </div>
               <button
-                onClick={closeCartSidebar}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); closeCartSidebar(); }}
                 className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
                 aria-label="Close cart"
               >
