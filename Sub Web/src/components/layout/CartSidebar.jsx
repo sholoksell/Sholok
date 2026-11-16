@@ -63,8 +63,8 @@ const CartSidebar = () => {
   };
 
   const items = cart?.items || [];
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) * (item.quantity || 1)), 0);
+  const totalItems = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   return (
     <>
@@ -240,12 +240,12 @@ const CartSidebar = () => {
                         </div>
                         {/* Line subtotal */}
                         <div className="font-bold text-[#5D0096] text-sm">
-                          ৳{(item.price * item.quantity).toFixed(2)}
+                          ৳{(parseFloat(item.price) * item.quantity).toFixed(2)}
                         </div>
                       </div>
 
                       <div className="text-xs text-gray-400 mt-1">
-                        ৳{item.price.toFixed(2)} each
+                        ৳{parseFloat(item.price).toFixed(2)} each
                       </div>
                     </div>
                   </motion.div>
