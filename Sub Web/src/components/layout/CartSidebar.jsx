@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 const CartSidebar = () => {
   const { cart, removeFromCart, updateCartItem } = useCartStore();
-  const { isCartSidebarOpen, closeCartSidebar, toggleCartSidebar } = useUIStore();
+  const { isCartSidebarOpen, openCartSidebar, closeCartSidebar, toggleCartSidebar } = useUIStore();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const sidebarRef = useRef(null);
@@ -67,6 +67,63 @@ const CartSidebar = () => {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
+    <>
+      {/* ── Floating Cart Button (right-side sticky FAB) ── */}
+      {!isCartSidebarOpen && (
+        <motion.button
+          initial={{ x: 80, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 22, delay: 0.4 }}
+          whileHover={{ scale: 1.08, x: -4 }}
+          whileTap={{ scale: 0.93 }}
+          onClick={openCartSidebar}
+          aria-label={`Open cart — ${totalItems} items`}
+          className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[55] flex-col items-center gap-1 py-4 px-2.5 rounded-l-2xl shadow-2xl cursor-pointer select-none"
+          style={{ background: 'linear-gradient(180deg, #5D0096 0%, #7a00c4 100%)' }}
+        >
+          {/* Pulsing ring when cart has items */}
+          {totalItems > 0 && (
+            <motion.span
+              className="absolute inset-0 rounded-l-2xl"
+              animate={{ boxShadow: ['0 0 0 0 rgba(93,0,150,0.5)', '0 0 0 10px rgba(93,0,150,0)', '0 0 0 0 rgba(93,0,150,0)'] }}
+              transition={{ duration: 1.8, repeat: Infinity }}
+            />
+          )}
+
+          {/* Bag icon with float animation */}
+          <div className="relative">
+            <motion.div
+              animate={totalItems > 0 ? { y: [0, -4, 0] } : {}}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <ShoppingBag className="h-7 w-7 text-white" />
+            </motion.div>
+            {totalItems > 0 && (
+              <motion.span
+                key={totalItems}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-sale text-white text-[10px] font-bold flex items-center justify-center leading-none shadow"
+              >
+                {totalItems > 9 ? '9+' : totalItems}
+              </motion.span>
+            )}
+          </div>
+
+          {/* Subtotal pill */}
+          {totalItems > 0 && (
+            <span className="text-[9px] font-bold text-white/90 leading-tight">
+              ৳{subtotal.toFixed(0)}
+            </span>
+          )}
+
+          <span className="text-[9px] font-semibold text-white/70 tracking-wide uppercase" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+            Cart
+          </span>
+        </motion.button>
+      )}
+
     <AnimatePresence>
       {isCartSidebarOpen && (
         <>
@@ -240,6 +297,7 @@ const CartSidebar = () => {
         </>
       )}
     </AnimatePresence>
+    </>
   );
 };
 
