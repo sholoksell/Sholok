@@ -1,16 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Youtube, MapPin, Mail, Phone } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const Footer = () => {
   const { t } = useLanguage();
-  const [email, setEmail] = useState('');
-
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    setEmail('');
-  };
 
   const cols = [
     {
@@ -106,28 +100,8 @@ const Footer = () => {
 
       {/* Bottom Bar */}
       <div className="border-t border-white/15">
-        <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <form
-            onSubmit={handleSubscribe}
-            className="flex w-full max-w-md overflow-hidden rounded-full bg-white/10"
-          >
-            <label htmlFor="newsletter-email" className="sr-only">Email for newsletter</label>
-            <input
-              id="newsletter-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your email for offers & updates"
-              className="min-w-0 flex-1 bg-transparent px-5 py-2.5 text-sm outline-none placeholder:text-white/60"
-            />
-            <button
-              type="submit"
-              className="bg-orange-500 px-5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
-            >
-              Subscribe
-            </button>
-          </form>
-          <p className="text-xs opacity-70 shrink-0">
+        <div className="container mx-auto px-4 py-6 flex items-center justify-center">
+          <p className="text-xs opacity-70">
             © {new Date().getFullYear()} Sholok Shopping. All rights reserved.
           </p>
         </div>
