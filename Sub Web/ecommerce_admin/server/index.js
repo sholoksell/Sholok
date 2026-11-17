@@ -21,6 +21,22 @@ app.use((req, res, next) => {
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Fallback: generate SVG placeholder for missing uploads
+app.get('/uploads/:filename(*)', (req, res) => {
+  const filename = req.params.filename || '';
+  const name = decodeURIComponent(filename).replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+  const letter = name.charAt(0).toUpperCase() || '?';
+  const colors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+  const color = colors[letter.charCodeAt(0) % colors.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="${color}" rx="8"/>
+  <text x="100" y="130" font-size="90" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="bold">${letter}</text>
+</svg>`;
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(svg);
+});
+
 // Initialise MySQL connection pool (logs success/error on startup)
 require('./db');
 
@@ -67,6 +83,8 @@ const questionsRouter = require('./routes/questions');
 const bundleOffersRouter = require('./routes/bundleOffers');
 const campaignsRouter = require('./routes/campaigns');
 const megamenuFeaturesRouter = require('./routes/megamenuFeatures');
+const invoiceRouter = require('./routes/invoice');
+const checkoutSettingsRouter = require('./routes/checkoutSettings');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -108,6 +126,8 @@ app.use('/api/questions', questionsRouter);
 app.use('/api/bundle-offers', bundleOffersRouter);
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/megamenu-features', megamenuFeaturesRouter);
+app.use('/api/invoice', invoiceRouter);
+app.use('/api/checkout-settings', checkoutSettingsRouter);
 
 // Health Check
 app.get('/api/health', (req, res) => {
