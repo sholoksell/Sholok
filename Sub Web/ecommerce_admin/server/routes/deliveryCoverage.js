@@ -137,8 +137,12 @@ router.get('/location/areas', async (req, res) => {
   try {
     const { district } = req.query;
     if (!district) return res.status(400).json({ message: 'district required' });
-    const [rows] = await pool.query('SELECT DISTINCT area FROM delivery_area_assignments WHERE district=? AND area IS NOT NULL ORDER BY area ASC', [district]);
-    res.json(rows.map(r => ({ id: r.area, name: r.area })));
+    // Query delivery_areas (the admin-managed table) by city=district
+    const [rows] = await pool.query(
+      'SELECT id, name FROM delivery_areas WHERE city=? AND is_active=1 ORDER BY name ASC',
+      [district]
+    );
+    res.json(rows.map(r => ({ id: String(r.id), name: r.name })));
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

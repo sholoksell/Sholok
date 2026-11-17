@@ -36,11 +36,11 @@ router.post('/', customerAuthMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'division_name and district_name are required' });
     }
 
-    // Validate: if upazila provided, check combo exists; otherwise just check division+district
+    // Validate: if upazila provided, check it exists in delivery_areas for that district
     if (upazila_name) {
       const [[row]] = await pool.query(
-        'SELECT assignment_key FROM delivery_area_assignments WHERE division=? AND district=? AND area=? LIMIT 1',
-        [division_name, district_name, upazila_name]
+        'SELECT id FROM delivery_areas WHERE name=? AND city=? LIMIT 1',
+        [upazila_name, district_name]
       );
       if (!row) return res.status(400).json({ message: 'Invalid location combination' });
     }

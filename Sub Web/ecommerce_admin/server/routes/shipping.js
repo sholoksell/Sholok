@@ -137,6 +137,23 @@ router.get('/areas', async (req, res) => {
   }
 });
 
+// GET /areas/active — fast endpoint for checkout (no postal-code N+1)
+router.get('/areas/active', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, name, city, delivery_charge, free_delivery_threshold, estimated_delivery_days FROM delivery_areas WHERE is_active=1 ORDER BY name ASC'
+    );
+    res.json(rows.map(r => ({
+      _id: r.id,
+      name: r.name,
+      city: r.city,
+      deliveryCharge: Number(r.delivery_charge),
+      freeDeliveryThreshold: Number(r.free_delivery_threshold),
+      estimatedDeliveryDays: r.estimated_delivery_days,
+    })));
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 // GET /areas/:id
 router.get('/areas/:id', async (req, res) => {
   try {
