@@ -3,7 +3,7 @@ import { X, MapPin, ChevronDown, Loader2, CheckCircle } from 'lucide-react';
 import { useDeliveryLocation } from '@/hooks/useDeliveryLocation';
 import { useAuth } from '@/contexts/AuthContext';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 export default function DeliveryLocationModal({ isOpen, onClose }) {
   const { setLocation } = useDeliveryLocation();
