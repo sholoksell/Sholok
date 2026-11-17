@@ -96,6 +96,33 @@ router.get('/nationwide/upazilas', async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+/* ── Delivery location cascade (delivery_area_assignments) ── */
+
+router.get('/location/divisions', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT DISTINCT division FROM delivery_area_assignments WHERE division IS NOT NULL ORDER BY division ASC');
+    res.json(rows.map(r => ({ id: r.division, name: r.division })));
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.get('/location/districts', async (req, res) => {
+  try {
+    const { division } = req.query;
+    if (!division) return res.status(400).json({ message: 'division required' });
+    const [rows] = await pool.query('SELECT DISTINCT district FROM delivery_area_assignments WHERE division=? AND district IS NOT NULL ORDER BY district ASC', [division]);
+    res.json(rows.map(r => ({ id: r.district, name: r.district })));
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+router.get('/location/areas', async (req, res) => {
+  try {
+    const { district } = req.query;
+    if (!district) return res.status(400).json({ message: 'district required' });
+    const [rows] = await pool.query('SELECT DISTINCT area FROM delivery_area_assignments WHERE district=? AND area IS NOT NULL ORDER BY area ASC', [district]);
+    res.json(rows.map(r => ({ id: r.area, name: r.area })));
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 /* ── Shipping policies ── */
 
 router.get('/shipping-policies', authMiddleware, async (req, res) => {

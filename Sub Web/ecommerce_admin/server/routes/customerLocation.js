@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const customerAuthMiddleware = require('../middleware/customerAuth');
 
-// GET /api/customer-location — get logged-in customer's saved delivery location
+// GET /api/customer-location
 router.get('/', customerAuthMiddleware, async (req, res) => {
   try {
     const customerId = req.customer.id;
@@ -26,32 +26,22 @@ router.get('/', customerAuthMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/customer-location — save/update delivery location
+// POST /api/customer-location
 router.post('/', customerAuthMiddleware, async (req, res) => {
   try {
     const customerId = req.customer.id;
-    const { division_id, district_id, upazila_id } = req.body;
+    const { division_name, district_name, upazila_name } = req.body;
 
-    if (!division_id || !district_id || !upazila_id) {
-      return res.status(400).json({ message: 'division_id, district_id and upazila_id are required' });
+    if (!division_name || !district_name || !upazila_name) {
+      return res.status(400).json({ message: 'division_name, district_name and upazila_name are required' });
     }
 
-    const [[div]] = await pool.query(
-      'SELECT id, name FROM delivery_divisions WHERE id = ? AND is_active = 1', [division_id]
+    // Validate the combination exists in delivery_area_assignments
+    const [[row]] = await pool.query(
+      'SELECT assignment_key FROM delivery_area_assignments WHERE division=? AND district=? AND area=? LIMIT 1',
+      [division_name, district_name, upazila_name]
     );
-    if (!div) return res.status(400).json({ message: 'Invalid division' });
-
-    const [[dist]] = await pool.query(
-      'SELECT id, name FROM delivery_districts WHERE id = ? AND division_id = ? AND is_active = 1',
-      [district_id, division_id]
-    );
-    if (!dist) return res.status(400).json({ message: 'Invalid district for this division' });
-
-    const [[upz]] = await pool.query(
-      'SELECT id, name FROM delivery_upazilas WHERE id = ? AND district_id = ? AND is_active = 1',
-      [upazila_id, district_id]
-    );
-    if (!upz) return res.status(400).json({ message: 'Invalid upazila for this district' });
+    if (!row) return res.status(400).json({ message: 'Invalid location combination' });
 
     await pool.query(
       `INSERT INTO customer_delivery_locations
@@ -65,17 +55,10 @@ router.post('/', customerAuthMiddleware, async (req, res) => {
         upazila_id = VALUES(upazila_id),
         upazila_name = VALUES(upazila_name),
         updated_at = CURRENT_TIMESTAMP`,
-      [customerId, div.id, div.name, dist.id, dist.name, upz.id, upz.name]
+      [customerId, division_name, division_name, district_name, district_name, upazila_name, upazila_name]
     );
 
-    res.json({
-      divisionId: div.id,
-      divisionName: div.name,
-      districtId: dist.id,
-      districtName: dist.name,
-      upazilaId: upz.id,
-      upazilaName: upz.name,
-    });
+    res.json({ divisionName: division_name, districtName: district_name, upazilaName: upazila_name });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

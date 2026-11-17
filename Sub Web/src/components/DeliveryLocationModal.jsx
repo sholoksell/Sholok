@@ -30,7 +30,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
     setSaved(false);
     setError('');
     setLoadingDiv(true);
-    fetch(`${API_BASE}/delivery-coverage/nationwide/divisions`)
+    fetch(`${API_BASE}/delivery-coverage/location/divisions`)
       .then(r => r.json())
       .then(data => setDivisions(Array.isArray(data) ? data : data.divisions || []))
       .catch(() => setError('Failed to load divisions'))
@@ -48,9 +48,9 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
-        setSelDivision({ id: data.divisionId, name: data.divisionName });
-        setSelDistrict({ id: data.districtId, name: data.districtName });
-        setSelUpazila({ id: data.upazilaId, name: data.upazilaName });
+        setSelDivision({ id: data.divisionName, name: data.divisionName });
+        setSelDistrict({ id: data.districtName, name: data.districtName });
+        setSelUpazila({ id: data.upazilaName, name: data.upazilaName });
       })
       .catch(() => {});
   }, [isOpen, isAuthenticated]);
@@ -62,7 +62,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
     setSelDistrict(null);
     setUpazilas([]);
     setSelUpazila(null);
-    fetch(`${API_BASE}/delivery-coverage/nationwide/districts?division_id=${selDivision.id}`)
+    fetch(`${API_BASE}/delivery-coverage/location/districts?division=${encodeURIComponent(selDivision.name)}`)
       .then(r => r.json())
       .then(data => setDistricts(Array.isArray(data) ? data : data.districts || []))
       .catch(() => setError('Failed to load districts'))
@@ -74,7 +74,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
     if (!selDistrict) { setUpazilas([]); setSelUpazila(null); return; }
     setLoadingUpz(true);
     setSelUpazila(null);
-    fetch(`${API_BASE}/delivery-coverage/nationwide/upazilas?district_id=${selDistrict.id}`)
+    fetch(`${API_BASE}/delivery-coverage/location/areas?district=${encodeURIComponent(selDistrict.name)}`)
       .then(r => r.json())
       .then(data => setUpazilas(Array.isArray(data) ? data : data.upazilas || []))
       .catch(() => setError('Failed to load areas'))
@@ -107,9 +107,9 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            division_id: selDivision.id,
-            district_id: selDistrict.id,
-            upazila_id: selUpazila.id,
+            division_name: selDivision.name,
+            district_name: selDistrict.name,
+            upazila_name: selUpazila.name,
           }),
         });
       } catch {
