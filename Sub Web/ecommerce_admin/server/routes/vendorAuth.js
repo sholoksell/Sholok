@@ -33,8 +33,14 @@ function fmtVendor(v) {
 // POST /api/vendor-auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, business_name, email, phone, password, division, district, upazila, address, store_name } = req.body;
+    const {
+      name, business_name, email, phone, password,
+      store_name, store_description, business_type,
+      division, district, upazila, address,
+      nid_number, trade_license,
+    } = req.body;
     if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password required' });
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
 
     const [[existing]] = await pool.query('SELECT id FROM vendors WHERE email=?', [email]);
     if (existing) return res.status(409).json({ message: 'Email already registered' });
@@ -51,9 +57,14 @@ router.post('/register', async (req, res) => {
 
     const storeName = store_name || business_name || name;
     const [r] = await pool.query(
-      `INSERT INTO vendors (name, business_name, email, phone, password_hash, slug, store_name, division, district, upazila, address, status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,'pending')`,
-      [name, business_name || null, email, phone || null, passwordHash, slug, storeName, division || null, district || null, upazila || null, address || null]
+      `INSERT INTO vendors
+        (name, business_name, email, phone, password_hash, slug, store_name, store_description, business_type,
+         division, district, upazila, address, nid_number, trade_license, status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending')`,
+      [name, business_name || null, email, phone || null, passwordHash, slug, storeName,
+       store_description || null, business_type || null,
+       division || null, district || null, upazila || null, address || null,
+       nid_number || null, trade_license || null]
     );
     await pool.query('INSERT INTO vendor_wallets (vendor_id) VALUES (?)', [r.insertId]);
 
