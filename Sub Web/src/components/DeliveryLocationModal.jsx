@@ -101,8 +101,8 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
 
     // Sync to backend if logged in
     if (isAuthenticated) {
+      const token = localStorage.getItem('customerToken');
       try {
-        const token = localStorage.getItem('customerToken');
         await fetch(`${API_BASE}/customer-location`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -114,6 +114,47 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
         });
       } catch {
         // localStorage already saved — non-fatal
+      }
+
+      // Save to address book as a non-default secondary address
+      try {
+        const addrRes = await fetch(`${API_BASE}/customer-auth/addresses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (addrRes.ok) {
+          const addresses = await addrRes.json();
+          if ((addresses || []).length > 0) {
+            // Only add to address book if customer already has at least one address (avoid making delivery location the default)
+            const existing = addresses.find(a => a.label === 'Delivery Location');
+            const addrPayload = {
+              label: 'Delivery Location',
+              name: customer?.name || '',
+              phone: customer?.phone || '',
+              street: selUpazila.name,
+              city: selDistrict.name,
+              state: selDivision.name,
+              zip_code: '0000',
+              country: 'Bangladesh',
+              type: 'shipping',
+              is_default: false,
+            };
+            if (existing) {
+              await fetch(`${API_BASE}/customer-auth/addresses/${existing.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(addrPayload),
+              });
+            } else {
+              await fetch(`${API_BASE}/customer-auth/addresses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(addrPayload),
+              });
+            }
+          }
+        }
+      } catch {
+        // non-fatal
       }
     }
 

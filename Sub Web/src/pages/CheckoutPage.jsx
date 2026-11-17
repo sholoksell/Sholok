@@ -15,23 +15,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const API_BASE = '/api';
 
-const BD_GEO = {
-  'Dhaka':      ['Dhaka','Gazipur','Narsingdi','Manikganj','Munshiganj','Narayanganj','Tangail','Faridpur','Gopalganj','Kishoreganj','Madaripur','Rajbari','Shariatpur'],
-  'Chattogram': ['Chattogram',"Cox's Bazar",'Rangamati','Bandarban','Khagrachhari','Feni','Lakshmipur','Noakhali','Cumilla','Chandpur','Brahmanbaria'],
-  'Sylhet':     ['Sylhet','Moulvibazar','Habiganj','Sunamganj'],
-  'Rajshahi':   ['Rajshahi','Bogra','Chapainawabganj','Naogaon','Natore','Pabna','Sirajganj','Joypurhat'],
-  'Khulna':     ['Khulna','Bagerhat','Satkhira','Jashore','Magura','Jhenaidah','Narail','Chuadanga','Kushtia','Meherpur'],
-  'Barishal':   ['Barishal','Bhola','Jhalokathi','Patuakhali','Pirojpur','Barguna'],
-  'Rangpur':    ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Lalmonirhat','Panchagarh','Thakurgaon'],
-  'Mymensingh': ['Mymensingh','Jamalpur','Netrokona','Sherpur'],
-};
-
-const getDivision = (district) => {
-  for (const [div, dists] of Object.entries(BD_GEO)) {
-    if (dists.includes(district)) return div;
-  }
-  return '';
-};
 
 // ── Shared styles ──────────────────────────────────────────────────────────
 const C = {
@@ -151,6 +134,18 @@ const CheckoutPage = () => {
   const [rateGroupName, setRateGroupName] = useState(null);
   const [areaDisabled, setAreaDisabled] = useState(false);
 
+  // DB-driven divisions/districts
+  const [dbDivisions, setDbDivisions] = useState([]);
+  const [dbDistrictsForDiv, setDbDistrictsForDiv] = useState([]);
+  const [divisionsLoading, setDivisionsLoading] = useState(false);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
+
+  // Address selection popup
+  const [primaryAddress, setPrimaryAddress] = useState(null);
+  const [delivLocForPopup, setDelivLocForPopup] = useState(null);
+  const [showAddrPopup, setShowAddrPopup] = useState(false);
+  const locationInitRef = useRef(false);
+
   const [division, setDivision] = useState('');
   const [district, setDistrict] = useState('');
   const [areaName, setAreaName] = useState('');
@@ -182,20 +177,79 @@ const CheckoutPage = () => {
       .catch(() => {}).finally(() => setAreasLoading(false));
   }, []);
 
+  // Load divisions from DB
+  useEffect(() => {
+    setDivisionsLoading(true);
+    fetch(`${API_BASE}/delivery-coverage/location/divisions`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setDbDivisions(Array.isArray(data) ? data.map(d => d.name) : []))
+      .catch(() => {})
+      .finally(() => setDivisionsLoading(false));
+  }, []);
+
+  // Load districts when division changes
+  useEffect(() => {
+    if (!division) { setDbDistrictsForDiv([]); return; }
+    setDistrictsLoading(true);
+    fetch(`${API_BASE}/delivery-coverage/location/districts?division=${encodeURIComponent(division)}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setDbDistrictsForDiv(Array.isArray(data) ? data.map(d => d.name) : []))
+      .catch(() => setDbDistrictsForDiv([]))
+      .finally(() => setDistrictsLoading(false));
+  }, [division]);
+
+  // Pre-fill name/phone from customer
   useEffect(() => {
     if (!isAuthenticated) return;
-    try {
-      const saved = localStorage.getItem('delivery_location');
-      if (saved) {
-        const loc = JSON.parse(saved);
-        if (loc.division) setDivision(loc.division);
-        if (loc.city || loc.district) setDistrict(loc.city || loc.district);
-        if (loc.area_name) setAreaName(loc.area_name);
-      }
-    } catch {}
-    setFullName(customer?.name || '');
-    setPhone(customer?.phone || '');
+    setFullName(prev => prev || customer?.name || '');
+    setPhone(prev => prev || customer?.phone || '');
   }, [isAuthenticated, customer]);
+
+  // Location pre-fill + address selection popup (runs once after auth)
+  useEffect(() => {
+    if (!isAuthenticated || locationInitRef.current) return;
+    locationInitRef.current = true;
+
+    const getLocFromStorage = () => {
+      try {
+        const raw = localStorage.getItem('delivery_location');
+        if (!raw) return null;
+        const loc = JSON.parse(raw);
+        const divVal = loc.divisionName || loc.division || '';
+        const distVal = loc.districtName || loc.city || loc.district || '';
+        const areaVal = loc.upazilaName || loc.area_name || loc.area || '';
+        return (divVal || distVal) ? { divisionName: divVal, districtName: distVal, upazilaName: areaVal, label: loc.label || '' } : null;
+      } catch { return null; }
+    };
+
+    const prefillFromLoc = (loc) => {
+      if (loc.divisionName) setDivision(loc.divisionName);
+      if (loc.districtName) setDistrict(loc.districtName);
+      if (loc.upazilaName) setAreaName(loc.upazilaName);
+    };
+
+    const loc = getLocFromStorage();
+    const token = localStorage.getItem('customerToken');
+
+    if (!token) {
+      if (loc) prefillFromLoc(loc);
+      return;
+    }
+
+    fetch(`${API_BASE}/customer-auth/addresses`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(addresses => {
+        const primary = (addresses || []).find(a => a.is_default);
+        setPrimaryAddress(primary || null);
+        if (primary && loc) {
+          setDelivLocForPopup(loc);
+          setShowAddrPopup(true);
+        } else if (loc) {
+          prefillFromLoc(loc);
+        }
+      })
+      .catch(() => { if (loc) prefillFromLoc(loc); });
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!district || !Object.keys(areasByDistrict).length) {
@@ -250,13 +304,30 @@ const CheckoutPage = () => {
   const total = Math.max(0, subtotal + effectiveShipping - couponDiscount - bundleSavings);
 
   const handleDivisionChange = (v) => { setDivision(v); setDistrict(''); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); };
-  const handleDistrictChange = (v) => { setDistrict(v); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); if (v && !division) setDivision(getDivision(v)); };
+  const handleDistrictChange = (v) => { setDistrict(v); setAreaName(''); setSelectedAreaObj(null); setShippingCost(null); setAreaDisabled(false); };
 
-  // Available divisions: only those that have at least one district with active delivery areas
-  const availableDivisions = Object.keys(BD_GEO).filter(
-    div => BD_GEO[div].some(d => (areasByDistrict[d] || []).length > 0)
-  );
-  const availableDistricts = division ? (BD_GEO[division] || []).filter(d => (areasByDistrict[d] || []).length > 0) : [];
+  const handleSelectAddress = (type) => {
+    setShowAddrPopup(false);
+    if (type === 'primary' && primaryAddress) {
+      if (primaryAddress.name) setFullName(primaryAddress.name);
+      if (primaryAddress.phone) setPhone(primaryAddress.phone);
+      if (primaryAddress.state) { setDivision(primaryAddress.state); setDistrict(''); setAreaName(''); }
+      if (primaryAddress.city) setDistrict(primaryAddress.city);
+      if (primaryAddress.label === 'Delivery Location') {
+        setAreaName(primaryAddress.street || '');
+      } else {
+        setBuildingAddr(primaryAddress.street || '');
+      }
+    } else if (type === 'delivery' && delivLocForPopup) {
+      if (delivLocForPopup.divisionName) { setDivision(delivLocForPopup.divisionName); setDistrict(''); setAreaName(''); }
+      if (delivLocForPopup.districtName) setDistrict(delivLocForPopup.districtName);
+      if (delivLocForPopup.upazilaName) setAreaName(delivLocForPopup.upazilaName);
+    }
+  };
+
+  // Available divisions/districts from DB (filtered by active shipping areas for districts)
+  const availableDivisions = dbDivisions;
+  const availableDistricts = dbDistrictsForDiv.filter(d => (areasByDistrict[d] || []).length > 0);
   const availableAreas = district ? (areasByDistrict[district] || []) : [];
   const noAreaAvailable = district && availableAreas.length === 0 && !areasLoading;
   const needsArea = district && availableAreas.length > 0 && !areaName;
@@ -381,6 +452,66 @@ const CheckoutPage = () => {
 
   return (
     <div style={{ background: C.primaryBg }} className="min-h-screen">
+
+      {/* Address Selection Popup */}
+      {showAddrPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(135deg,#5D0096,#7A00BB)' }}>
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-full p-2"><MapPin className="text-white" size={18} /></div>
+                <div>
+                  <p className="text-white font-semibold text-base">Choose Delivery Address</p>
+                  <p className="text-white/70 text-xs">Select which address to use for this order</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <button onClick={() => handleSelectAddress('primary')}
+                className="w-full text-left border-2 rounded-xl p-4 transition-all hover:border-purple-400"
+                style={{ borderColor: C.border }}>
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full p-2 mt-0.5 flex-shrink-0" style={{ background: C.primaryBg }}>
+                    <Home size={16} style={{ color: C.primary }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm" style={{ color: C.dark }}>Saved Address</p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: C.muted }}>
+                      {[primaryAddress?.name, primaryAddress?.city, primaryAddress?.state].filter(Boolean).join(' · ')}
+                    </p>
+                    {primaryAddress?.street && primaryAddress?.label !== 'Delivery Location' && (
+                      <p className="text-xs truncate" style={{ color: C.muted }}>{primaryAddress.street}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+              <button onClick={() => handleSelectAddress('delivery')}
+                className="w-full text-left border-2 rounded-xl p-4 transition-all hover:border-purple-400"
+                style={{ borderColor: C.border }}>
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full p-2 mt-0.5 flex-shrink-0" style={{ background: C.primaryBg }}>
+                    <MapPin size={16} style={{ color: C.primary }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm" style={{ color: C.dark }}>Delivery Location</p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: C.muted }}>
+                      {[delivLocForPopup?.upazilaName, delivLocForPopup?.districtName, delivLocForPopup?.divisionName].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+            <div className="px-5 pb-5">
+              <button onClick={() => setShowAddrPopup(false)}
+                className="w-full border rounded-xl py-2.5 text-sm font-medium transition-colors hover:bg-gray-50"
+                style={{ borderColor: C.border, color: C.muted }}>
+                Enter address manually
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[960px] mx-auto px-4 py-6">
 
         {/* Page heading */}
@@ -415,10 +546,10 @@ const CheckoutPage = () => {
                 </div>
 
                 <SelectField label="Division *" value={division} onChange={handleDivisionChange}
-                  options={areasLoading ? [] : availableDivisions} placeholder={areasLoading ? 'Loading…' : 'Select division'} error={formErrors.division} disabled={areasLoading} />
+                  options={availableDivisions} placeholder={divisionsLoading || areasLoading ? 'Loading…' : 'Select division'} error={formErrors.division} disabled={divisionsLoading || areasLoading} />
                 <SelectField label="City / District *" value={district} onChange={handleDistrictChange}
-                  options={availableDistricts} placeholder={division ? 'Select district' : 'Select division first'}
-                  error={formErrors.district} disabled={!division || areasLoading} />
+                  options={availableDistricts} placeholder={division ? (districtsLoading ? 'Loading…' : 'Select district') : 'Select division first'}
+                  error={formErrors.district} disabled={!division || areasLoading || districtsLoading} />
 
                 {!noAreaAvailable && (
                   <SelectField label="Area / Upazila *" value={areaName} onChange={v => { setAreaName(v); setAreaDisabled(false); }}
