@@ -82,14 +82,14 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
   }, [selDistrict?.id]);
 
   const handleConfirm = useCallback(async () => {
-    if (!selUpazila || !selDistrict || !selDivision) return;
+    if (!selDistrict || !selDivision) return;
     setError('');
     setSaving(true);
 
     const payload = {
-      label: `${selUpazila.name}, ${selDistrict.name}`,
-      upazilaId: selUpazila.id,
-      upazilaName: selUpazila.name,
+      label: selUpazila ? `${selUpazila.name}, ${selDistrict.name}` : selDistrict.name,
+      upazilaId: selUpazila?.id || null,
+      upazilaName: selUpazila?.name || null,
       districtId: selDistrict.id,
       districtName: selDistrict.name,
       divisionId: selDivision.id,
@@ -109,7 +109,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
           body: JSON.stringify({
             division_name: selDivision.name,
             district_name: selDistrict.name,
-            upazila_name: selUpazila.name,
+            upazila_name: selUpazila?.name || null,
           }),
         });
       } catch {
@@ -130,7 +130,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
               label: 'Delivery Location',
               name: customer?.name || '',
               phone: customer?.phone || '',
-              street: selUpazila.name,
+              street: selUpazila?.name || '',
               city: selDistrict.name,
               state: selDivision.name,
               zip_code: '0000',
@@ -269,10 +269,12 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
           </div>
 
           {/* Summary pill */}
-          {selUpazila && selDistrict && selDivision && (
+          {selDistrict && selDivision && (
             <div className="flex items-center gap-2 bg-purple-50 border border-purple-100 rounded-xl px-4 py-2.5 text-sm text-purple-800">
               <MapPin size={14} className="flex-shrink-0 text-purple-500" />
-              <span className="font-medium">{selUpazila.name}, {selDistrict.name}, {selDivision.name}</span>
+              <span className="font-medium">
+                {[selUpazila?.name, selDistrict.name, selDivision.name].filter(Boolean).join(', ')}
+              </span>
             </div>
           )}
         </div>
@@ -287,7 +289,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }) {
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!selUpazila || saving || saved}
+            disabled={!selDistrict || saving || saved}
             className="flex-1 rounded-xl py-3 text-sm font-semibold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ background: saved ? '#10b981' : 'linear-gradient(135deg,#5D0096,#7A00BB)' }}
           >

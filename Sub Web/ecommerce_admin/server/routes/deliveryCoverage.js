@@ -98,10 +98,25 @@ router.get('/nationwide/upazilas', async (req, res) => {
 
 /* ── Delivery location cascade (delivery_area_assignments) ── */
 
+// Standard Bangladesh divisions and districts (fallback when admin hasn't configured all)
+const BD_STD = {
+  'Dhaka':      ['Dhaka','Gazipur','Narsingdi','Manikganj','Munshiganj','Narayanganj','Tangail','Faridpur','Gopalganj','Kishoreganj','Madaripur','Rajbari','Shariatpur'],
+  'Chattogram': ['Chattogram',"Cox's Bazar",'Rangamati','Bandarban','Khagrachhari','Feni','Lakshmipur','Noakhali','Cumilla','Chandpur','Brahmanbaria'],
+  'Sylhet':     ['Sylhet','Moulvibazar','Habiganj','Sunamganj'],
+  'Rajshahi':   ['Rajshahi','Bogra','Chapainawabganj','Naogaon','Natore','Pabna','Sirajganj','Joypurhat'],
+  'Khulna':     ['Khulna','Bagerhat','Satkhira','Jashore','Magura','Jhenaidah','Narail','Chuadanga','Kushtia','Meherpur'],
+  'Barishal':   ['Barishal','Bhola','Jhalokathi','Patuakhali','Pirojpur','Barguna'],
+  'Rangpur':    ['Rangpur','Dinajpur','Kurigram','Gaibandha','Nilphamari','Lalmonirhat','Panchagarh','Thakurgaon'],
+  'Mymensingh': ['Mymensingh','Jamalpur','Netrokona','Sherpur'],
+};
+
 router.get('/location/divisions', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT DISTINCT division FROM delivery_area_assignments WHERE division IS NOT NULL ORDER BY division ASC');
-    res.json(rows.map(r => ({ id: r.division, name: r.division })));
+    const dbSet = new Set(rows.map(r => r.division));
+    // Merge standard BD divisions with admin-configured ones (deduplicated, sorted)
+    const all = [...new Set([...Object.keys(BD_STD), ...dbSet])].sort();
+    res.json(all.map(name => ({ id: name, name })));
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -110,7 +125,11 @@ router.get('/location/districts', async (req, res) => {
     const { division } = req.query;
     if (!division) return res.status(400).json({ message: 'division required' });
     const [rows] = await pool.query('SELECT DISTINCT district FROM delivery_area_assignments WHERE division=? AND district IS NOT NULL ORDER BY district ASC', [division]);
-    res.json(rows.map(r => ({ id: r.district, name: r.district })));
+    const dbDistricts = rows.map(r => r.district);
+    const fallback = BD_STD[division] || [];
+    // Merge standard districts with admin-configured ones
+    const all = [...new Set([...fallback, ...dbDistricts])].sort();
+    res.json(all.map(name => ({ id: name, name })));
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
