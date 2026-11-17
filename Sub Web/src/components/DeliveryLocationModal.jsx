@@ -1,544 +1,268 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X, MapPin, Search, Crosshair, Loader2 } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { X, MapPin, ChevronDown, Loader2, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { setDeliveryLocation, useDeliveryLocation } from '@/hooks/useDeliveryLocation';
 import { useAuth } from '@/contexts/AuthContext';
-import { addressService } from '@/services/addressService';
+import axios from '@/lib/axios';
 import { toast } from 'sonner';
-
-// Lightweight loader for Leaflet from CDN — avoids new npm dep.
-const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-let leafletPromise = null;
-
-const loadLeaflet = () => {
-    if (typeof window === 'undefined') return Promise.resolve(null);
-    if (window.L) return Promise.resolve(window.L);
-    if (leafletPromise) return leafletPromise;
-
-    leafletPromise = new Promise((resolve, reject) => {
-        if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = LEAFLET_CSS;
-            link.crossOrigin = '';
-            document.head.appendChild(link);
-        }
-        if (window.L) return resolve(window.L);
-        const existing = document.querySelector(`script[src="${LEAFLET_JS}"]`);
-        if (existing) {
-            existing.addEventListener('load', () => resolve(window.L));
-            existing.addEventListener('error', reject);
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = LEAFLET_JS;
-        script.async = true;
-        script.crossOrigin = '';
-        script.onload = () => resolve(window.L);
-        script.onerror = (e) => reject(e);
-        document.head.appendChild(script);
-    });
-    return leafletPromise;
-};
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-// Static fallback in case the API is unavailable
-const FALLBACK_DIVISIONS = [
-    { _id: 1, name: 'Dhaka' }, { _id: 2, name: 'Chittagong' },
-    { _id: 3, name: 'Rajshahi' }, { _id: 4, name: 'Khulna' },
-    { _id: 5, name: 'Barisal' }, { _id: 6, name: 'Sylhet' },
-    { _id: 7, name: 'Rangpur' }, { _id: 8, name: 'Mymensingh' },
-];
-
-const DEFAULT_CENTER = [23.7806, 90.4054]; // Dhaka
 
 const DeliveryLocationModal = ({ isOpen, onClose }) => {
     const { t } = useLanguage();
     const { location: savedLocation } = useDeliveryLocation();
     const { isAuthenticated, customer } = useAuth();
 
-    const mapElRef = useRef(null);
-    const mapRef = useRef(null);
-    const markerRef = useRef(null);
+    const [divisions, setDivisions] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [areas, setAreas] = useState([]);
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searching, setSearching] = useState(false);
-    const [reverseLoading, setReverseLoading] = useState(false);
-    const [pinned, setPinned] = useState(null); // { lat, lng, label }
-    const [district, setDistrict] = useState('');
-    const [area, setArea] = useState('');
-    const [locating, setLocating] = useState(false);
+    const [selectedDivision, setSelectedDivision] = useState('');
+    const [selectedDistrict, setSelectedDistrict] = useState('');
+    const [selectedArea, setSelectedArea] = useState('');
 
-    // DB-driven location data
-    const [divisions, setDivisions] = useState(FALLBACK_DIVISIONS);
-    const [dbDistricts, setDbDistricts] = useState([]);
-    const [selectedDivisionId, setSelectedDivisionId] = useState('');
-    const [selectedDistrictId, setSelectedDistrictId] = useState('');
-    const [selectedDivisionName, setSelectedDivisionName] = useState('');
-    const [selectedDistrictName, setSelectedDistrictName] = useState('');
+    const [loadingDivisions, setLoadingDivisions] = useState(false);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingAreas, setLoadingAreas] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    // Load divisions on mount
+    // Load divisions on mount (once)
     useEffect(() => {
-        fetch(`${API_BASE}/delivery-coverage/nationwide/divisions`)
-            .then(r => r.ok ? r.json() : null)
-            .then(data => { if (Array.isArray(data) && data.length) setDivisions(data); })
-            .catch(() => {});
+        setLoadingDivisions(true);
+        fetch('/api/delivery-coverage/areas/divisions')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setDivisions(Array.isArray(data) ? data : []))
+            .catch(() => setDivisions([]))
+            .finally(() => setLoadingDivisions(false));
     }, []);
 
-    // Load districts when division changes
-    useEffect(() => {
-        if (!selectedDivisionId) { setDbDistricts([]); return; }
-        fetch(`${API_BASE}/delivery-coverage/nationwide/districts?division_id=${selectedDivisionId}`)
-            .then(r => r.ok ? r.json() : [])
-            .then(data => setDbDistricts(Array.isArray(data) ? data : []))
-            .catch(() => setDbDistricts([]));
-    }, [selectedDivisionId]);
-
-    // Reset / preload state on open ONLY (not when savedLocation changes mid-modal,
-    // otherwise the user's in-progress map click can be overwritten right after Done).
+    // Preload saved location when modal opens
     useEffect(() => {
         if (!isOpen) return;
-        // Read fresh from localStorage so we always reflect the latest saved value.
-        let stored = null;
         try {
             const raw = localStorage.getItem('delivery_location');
-            if (raw) stored = JSON.parse(raw);
+            if (raw) {
+                const loc = JSON.parse(raw);
+                if (loc?.division_name) setSelectedDivision(loc.division_name);
+                if (loc?.district_name || loc?.district) setSelectedDistrict(loc.district_name || loc.district);
+                if (loc?.area) setSelectedArea(loc.area);
+            }
         } catch (_) {}
-        if (stored && stored.label) {
-            setPinned(
-                stored.lat != null && stored.lng != null
-                    ? { lat: stored.lat, lng: stored.lng, label: stored.label }
-                    : null
-            );
-            setSearchQuery(stored.label || '');
-            setDistrict(stored.district || '');
-            setArea(stored.area || '');
-        } else {
-            setPinned(null);
-            setSearchQuery('');
-            setDistrict('');
-            setArea('');
-        }
     }, [isOpen]);
 
-    // Init Leaflet map
+    // Fetch districts when division changes
     useEffect(() => {
-        if (!isOpen) return;
-        let cancelled = false;
+        if (!selectedDivision) { setDistricts([]); setSelectedDistrict(''); setAreas([]); setSelectedArea(''); return; }
+        setLoadingDistricts(true);
+        setDistricts([]);
+        setSelectedDistrict('');
+        setAreas([]);
+        setSelectedArea('');
+        fetch(`/api/delivery-coverage/areas/districts?division=${encodeURIComponent(selectedDivision)}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setDistricts(Array.isArray(data) ? data : []))
+            .catch(() => setDistricts([]))
+            .finally(() => setLoadingDistricts(false));
+    }, [selectedDivision]);
 
-        loadLeaflet()
-            .then((L) => {
-                if (cancelled || !mapElRef.current || mapRef.current) return;
-
-                // Read savedLocation directly — avoids stale `pinned` state
-                // since both useEffects fire simultaneously on open.
-                let stored = null;
-                try {
-                    const raw = localStorage.getItem('delivery_location');
-                    if (raw) stored = JSON.parse(raw);
-                } catch (_) {}
-                const hasCoords = stored?.lat != null && stored?.lng != null;
-                const initial = hasCoords ? [stored.lat, stored.lng] : DEFAULT_CENTER;
-
-                const map = L.map(mapElRef.current, {
-                    center: initial,
-                    zoom: hasCoords ? 15 : 13,
-                    zoomControl: true,
-                    scrollWheelZoom: true,
-                });
-                mapRef.current = map;
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap',
-                    maxZoom: 19,
-                }).addTo(map);
-
-                const icon = L.divIcon({
-                    className: 'delivery-marker',
-                    html: `<div style="
-                        background:#E31E24;width:34px;height:34px;border-radius:50%;
-                        display:flex;align-items:center;justify-content:center;color:#fff;
-                        box-shadow:0 4px 12px rgba(0,0,0,0.25);border:3px solid #fff;
-                    "><svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'/><circle cx='12' cy='10' r='3'/></svg></div>`,
-                    iconSize: [34, 34],
-                    iconAnchor: [17, 34],
-                });
-
-                const marker = L.marker(initial, { draggable: true, icon }).addTo(map);
-                // If opening with a saved location, pre-set pinned state
-                if (hasCoords && stored?.label) {
-                    setPinned({ lat: stored.lat, lng: stored.lng, label: stored.label });
-                    setSearchQuery(stored.label);
-                }
-                markerRef.current = marker;
-
-                const updateFromLatLng = async (latlng) => {
-                    setReverseLoading(true);
-                    // User is choosing a precise spot via map — dropdowns no longer
-                    // describe this location, so clear them to avoid stale data being saved.
-                    setDistrict('');
-                    setArea('');
-                    try {
-                        const res = await fetch(
-                            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`,
-                            { headers: { 'Accept-Language': 'en' } }
-                        );
-                        const data = await res.json();
-                        const label = data?.display_name || `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
-                        setPinned({ lat: latlng.lat, lng: latlng.lng, label });
-                        setSearchQuery(label);
-                    } catch (_) {
-                        const label = `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
-                        setPinned({ lat: latlng.lat, lng: latlng.lng, label });
-                        setSearchQuery(label);
-                    } finally {
-                        setReverseLoading(false);
-                    }
-                };
-
-                map.on('click', (e) => {
-                    // Move pin to exact click point — do NOT panTo so the
-                    // pin visually jumps to where the user tapped.
-                    markerRef.current?.setLatLng(e.latlng);
-                    updateFromLatLng(e.latlng);
-                });
-                marker.on('dragend', () => {
-                    const ll = markerRef.current?.getLatLng();
-                    if (ll) updateFromLatLng(ll);
-                });
-
-                setTimeout(() => map.invalidateSize(), 200);
-            })
-            .catch(() => toast.error('Failed to load map'));
-
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen]);
-
-    // Tear down on close
+    // Fetch areas when district changes
     useEffect(() => {
-        if (isOpen) return;
-        if (mapRef.current) {
-            mapRef.current.remove();
-            mapRef.current = null;
-            markerRef.current = null;
-        }
-    }, [isOpen]);
-
-    const handleSearch = async () => {
-        const q = searchQuery.trim();
-        if (!q) return;
-        setSearching(true);
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=bd&limit=1`,
-                { headers: { 'Accept-Language': 'en' } }
-            );
-            const data = await res.json();
-            if (Array.isArray(data) && data[0]) {
-                const { lat, lon, display_name } = data[0];
-                const latlng = { lat: parseFloat(lat), lng: parseFloat(lon) };
-                if (mapRef.current && markerRef.current) {
-                    mapRef.current.setView([latlng.lat, latlng.lng], 16);
-                    markerRef.current.setLatLng([latlng.lat, latlng.lng]);
-                }
-                setPinned({ lat: latlng.lat, lng: latlng.lng, label: display_name });
-                setSearchQuery(display_name);
-                // search overrides any prior dropdown selection
-                setDistrict('');
-                setArea('');
-            } else {
-                toast.error('No matching location found');
-            }
-        } catch (_) {
-            toast.error('Search failed');
-        } finally {
-            setSearching(false);
-        }
-    };
-
-    /** Move the map + pin to a textual place query (used by dropdowns) */
-    const flyToQuery = async (query, zoom = 14) => {
-        if (!query || !mapRef.current || !markerRef.current) return;
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=bd&limit=1`,
-                { headers: { 'Accept-Language': 'en' } }
-            );
-            const data = await res.json();
-            if (Array.isArray(data) && data[0]) {
-                const { lat, lon, display_name } = data[0];
-                const latlng = [parseFloat(lat), parseFloat(lon)];
-                mapRef.current.setView(latlng, zoom, { animate: true });
-                markerRef.current.setLatLng(latlng);
-                setPinned({ lat: latlng[0], lng: latlng[1], label: display_name });
-                setSearchQuery(display_name);
-            }
-        } catch (_) {
-            /* silent — dropdown selection still saved on Done */
-        }
-    };
-
-    const handleUseMyLocation = () => {
-        if (!navigator.geolocation) {
-            toast.error('Geolocation is not supported in this browser');
-            return;
-        }
-        setLocating(true);
-        navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-                const latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                if (mapRef.current && markerRef.current) {
-                    mapRef.current.setView([latlng.lat, latlng.lng], 17);
-                    markerRef.current.setLatLng([latlng.lat, latlng.lng]);
-                    mapRef.current.invalidateSize();
-                }
-                try {
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`,
-                        { headers: { 'Accept-Language': 'en' } }
-                    );
-                    const data = await res.json();
-                    const label = data?.display_name || `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
-                    setPinned({ lat: latlng.lat, lng: latlng.lng, label });
-                    setSearchQuery(label);
-                } catch {
-                    setPinned({
-                        lat: latlng.lat,
-                        lng: latlng.lng,
-                        label: `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`,
-                    });
-                }
-                setLocating(false);
-            },
-            (err) => {
-                setLocating(false);
-                if (err.code === 1) {
-                    toast.error('Location permission denied. Please allow location access in your browser settings.');
-                } else if (err.code === 3) {
-                    toast.error('Location request timed out. Try again or search manually.');
-                } else {
-                    toast.error('Unable to retrieve your location. Try searching manually.');
-                }
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    };
+        if (!selectedDistrict) { setAreas([]); setSelectedArea(''); return; }
+        setLoadingAreas(true);
+        setAreas([]);
+        setSelectedArea('');
+        fetch(`/api/delivery-coverage/areas/areas?district=${encodeURIComponent(selectedDistrict)}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setAreas(Array.isArray(data) ? data : []))
+            .catch(() => setAreas([]))
+            .finally(() => setLoadingAreas(false));
+    }, [selectedDistrict]);
 
     const handleDone = async () => {
-        let payload = null;
-        // Priority 1: dropdown-selected division + district (has DB IDs for accurate fee calc)
-        if (selectedDistrictId) {
-            const divisionName = selectedDivisionName;
-            const districtName = selectedDistrictName;
-            const labelParts = [districtName, divisionName].filter(Boolean);
-            payload = {
-                label: labelParts.join(', '),
-                district: districtName,
-                district_id: Number(selectedDistrictId),
-                district_name: districtName,
-                division_id: Number(selectedDivisionId),
-                division_name: divisionName,
-                area: '',
-                lat: pinned?.lat ?? null,
-                lng: pinned?.lng ?? null,
-            };
-        } else if (pinned) {
-            payload = {
-                label: pinned.label,
-                lat: pinned.lat,
-                lng: pinned.lng,
-                district,
-                area,
-                district_id: null,
-            };
-        } else if (district && area) {
-            payload = { label: `${area}, ${district}`, district, area, lat: null, lng: null, district_id: null };
-        } else if (district) {
-            payload = { label: district, district, area: '', lat: null, lng: null, district_id: null };
-        } else {
-            toast.error('Please select a location');
+        if (!selectedDistrict) {
+            toast.error('Please select at least a district');
             return;
         }
 
-        // Save to localStorage (header display)
-        setDeliveryLocation(payload);
+        setSaving(true);
+        try {
+            const labelParts = [selectedArea, selectedDistrict, selectedDivision].filter(Boolean);
+            const payload = {
+                label: labelParts.join(', '),
+                division_name: selectedDivision,
+                district_name: selectedDistrict,
+                district: selectedDistrict,
+                area: selectedArea,
+                lat: null,
+                lng: null,
+            };
 
-        // Auto-sync to Address Book if logged in
-        if (isAuthenticated) {
-            try {
-                const addrLabel = payload.area
-                    ? `${payload.area}, ${payload.district || 'Bangladesh'}`
-                    : payload.district || payload.label.split(',')[0];
+            setDeliveryLocation(payload);
 
-                const newAddr = {
-                    label: 'My Location',
-                    name: customer?.name || '',
-                    phone: customer?.phone || '',
-                    street: payload.label,
-                    city: payload.area || payload.district || 'Dhaka',
-                    state: payload.district || '',
-                    zipCode: '',
-                    country: 'Bangladesh',
-                    type: 'both',
-                    isDefault: true,
-                };
-
-                const all = await addressService.getAll();
-                const existing = Array.isArray(all) && all.find(a => a.label === 'My Location');
-
-                if (existing) {
-                    await addressService.update(existing._id, newAddr);
-                    if (!existing.isDefault) await addressService.setDefault(existing._id);
-                } else {
-                    await addressService.create(newAddr);
-                }
-            } catch (_) {
-                // Silent — address sync is best-effort, don't block the user
+            if (isAuthenticated) {
+                await axios.post('/customer-auth/delivery-location', {
+                    division: selectedDivision,
+                    district: selectedDistrict,
+                    area: selectedArea || null,
+                }).catch(() => {});
             }
-        }
 
-        toast.success('Delivery location saved');
+            toast.success('Delivery location saved');
+            onClose?.();
+        } catch (_) {
+            toast.error('Failed to save location');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleClose = () => {
         onClose?.();
     };
 
     if (!isOpen) return null;
 
+    const isComplete = !!selectedDistrict;
+
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-[560px] rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[95vh] flex flex-col">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in duration-200 flex flex-col">
 
                 {/* Header */}
-                <div className="flex items-center justify-center relative py-4 border-b">
-                    <div className="flex items-center gap-2 text-xl font-bold text-gray-800">
-                        <MapPin className="h-6 w-6 text-[#E31E24]" />
-                        <span>{t('locationHeader') || 'Delivery Location'}</span>
+                <div
+                    className="flex items-center justify-between px-5 py-4 border-b"
+                    style={{ background: 'linear-gradient(135deg, #5D0096 0%, #7a00c4 100%)' }}
+                >
+                    <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-white" />
+                        <span className="text-white font-bold text-base">
+                            {t('deliveryLocation') || 'Set Delivery Location'}
+                        </span>
                     </div>
                     <button
-                        onClick={onClose}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-red-500 transition-colors"
+                        onClick={handleClose}
+                        className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
                         aria-label="Close"
                     >
-                        <X className="h-6 w-6" />
+                        <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 overflow-y-auto">
+                {/* Body */}
+                <div className="p-5 space-y-4">
+                    <p className="text-sm text-gray-500">
+                        Select your delivery area to see available products and estimated delivery.
+                    </p>
 
-                    {/* Map Area */}
-                    <div className="relative w-full rounded-lg overflow-hidden border border-gray-200 mb-4">
-                        {/* Search Overlay */}
-                        <div className="absolute top-3 left-3 right-3 z-[500] flex shadow-md">
-                            <div className="flex-1 bg-white flex items-center px-3 h-10 rounded-l-md border-r">
-                                <button
-                                    type="button"
-                                    onClick={handleSearch}
-                                    title="Search"
-                                    className="mr-2 flex-shrink-0 text-gray-400 hover:text-gray-600"
-                                >
-                                    {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                                </button>
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                    placeholder={t('searchLocation') || 'Search address (e.g. Road 6, Block C)'}
-                                    className="flex-1 text-sm outline-none text-gray-700 placeholder:text-gray-400 bg-transparent min-w-0"
-                                />
-                                {searchQuery && (
-                                    <X
-                                        className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600 flex-shrink-0"
-                                        onClick={() => setSearchQuery('')}
-                                    />
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={handleUseMyLocation}
-                                disabled={locating}
-                                title="Use my current location"
-                                className="bg-[#E31E24] hover:bg-red-700 disabled:opacity-70 text-white h-10 w-10 flex items-center justify-center rounded-r-md transition-colors"
+                    {/* Division */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                            Division
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={selectedDivision}
+                                onChange={e => setSelectedDivision(e.target.value)}
+                                disabled={loadingDivisions}
+                                className="w-full h-11 pl-4 pr-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5D0096]/30 focus:border-[#5D0096] cursor-pointer appearance-none disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-5 w-5" />}
-                            </button>
-                        </div>
-
-                        {/* The map */}
-                        <div ref={mapElRef} className="w-full h-64 bg-gray-100" />
-
-                        {reverseLoading && (
-                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[500] bg-white/95 px-3 py-1 rounded-full shadow text-xs text-gray-600 flex items-center gap-1.5">
-                                <Loader2 className="h-3 w-3 animate-spin" /> Finding address…
+                                <option value="">
+                                    {loadingDivisions ? 'Loading…' : 'Select Division'}
+                                </option>
+                                {divisions.map(d => (
+                                    <option key={d.name} value={d.name}>{d.name}</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                {loadingDivisions
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <ChevronDown className="h-4 w-4" />}
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    {/* Selected location preview */}
-                    {pinned && (
-                        <div className="flex items-start gap-2 mb-4 px-3 py-2 bg-green-50 border border-green-200 rounded-md">
-                            <MapPin className="h-4 w-4 text-green-700 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-green-800 leading-snug line-clamp-2">{pinned.label}</p>
+                    {/* District */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                            District
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={selectedDistrict}
+                                onChange={e => setSelectedDistrict(e.target.value)}
+                                disabled={!selectedDivision || loadingDistricts}
+                                className="w-full h-11 pl-4 pr-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5D0096]/30 focus:border-[#5D0096] cursor-pointer appearance-none disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <option value="">
+                                    {!selectedDivision
+                                        ? 'Select Division first'
+                                        : loadingDistricts ? 'Loading…'
+                                        : 'Select District'}
+                                </option>
+                                {districts.map(d => (
+                                    <option key={d.name} value={d.name}>{d.name}</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                {loadingDistricts
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <ChevronDown className="h-4 w-4" />}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Area / Upazila */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                            Area / Upazila
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={selectedArea}
+                                onChange={e => setSelectedArea(e.target.value)}
+                                disabled={!selectedDistrict || loadingAreas}
+                                className="w-full h-11 pl-4 pr-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5D0096]/30 focus:border-[#5D0096] cursor-pointer appearance-none disabled:bg-gray-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <option value="">
+                                    {!selectedDistrict
+                                        ? 'Select District first'
+                                        : loadingAreas ? 'Loading…'
+                                        : areas.length === 0 ? 'No areas listed'
+                                        : 'Select Area (optional)'}
+                                </option>
+                                {areas.map(a => (
+                                    <option key={a.name} value={a.name}>{a.name}</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                {loadingAreas
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <ChevronDown className="h-4 w-4" />}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    {isComplete && (
+                        <div className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 border border-purple-100 rounded-lg">
+                            <CheckCircle2 className="h-4 w-4 text-[#5D0096] flex-shrink-0" />
+                            <p className="text-sm font-medium text-[#5D0096] leading-snug">
+                                {[selectedArea, selectedDistrict, selectedDivision].filter(Boolean).join(', ')}
+                            </p>
                         </div>
                     )}
 
-                    {/* OR Divider */}
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="h-[1px] bg-gray-200 flex-1" />
-                        <div className="h-8 px-3 rounded-full border border-gray-200 flex items-center justify-center text-xs text-gray-500 bg-white">
-                            {t('or') || 'OR'}
-                        </div>
-                        <div className="h-[1px] bg-gray-200 flex-1" />
-                    </div>
-
-                    {/* Dropdowns — Division → District */}
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <select
-                            value={selectedDivisionId}
-                            onChange={(e) => {
-                                const id = e.target.value;
-                                const name = e.target.options[e.target.selectedIndex].text;
-                                setSelectedDivisionId(id);
-                                setSelectedDivisionName(id ? name : '');
-                                setSelectedDistrictId('');
-                                setSelectedDistrictName('');
-                                if (id) flyToQuery(`${name} Division, Bangladesh`, 9);
-                            }}
-                            className="w-full h-11 px-3 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:border-[#E31E24] cursor-pointer"
-                        >
-                            <option value="">Select Division</option>
-                            {divisions.map((d) => (
-                                <option key={d._id} value={d._id}>{d.name}</option>
-                            ))}
-                        </select>
-                        <select
-                            value={selectedDistrictId}
-                            onChange={(e) => {
-                                const id = e.target.value;
-                                const name = e.target.options[e.target.selectedIndex].text;
-                                setSelectedDistrictId(id);
-                                setSelectedDistrictName(id ? name : '');
-                                if (id) flyToQuery(`${name} District, Bangladesh`, 12);
-                            }}
-                            disabled={!selectedDivisionId}
-                            className="w-full h-11 px-3 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:border-[#E31E24] cursor-pointer disabled:bg-gray-50 disabled:cursor-not-allowed"
-                        >
-                            <option value="">Select District</option>
-                            {dbDistricts.map((d) => (
-                                <option key={d._id} value={d._id}>{d.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Done */}
+                    {/* Done button */}
                     <button
                         onClick={handleDone}
-                        className="w-full bg-[#fec400] hover:bg-[#eebb00] text-black font-bold py-3 rounded-md transition-colors uppercase tracking-wide text-sm shadow-sm"
+                        disabled={!isComplete || saving}
+                        className="w-full py-3 rounded-lg font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        style={{
+                            background: isComplete ? 'linear-gradient(135deg, #5D0096 0%, #7a00c4 100%)' : undefined,
+                            backgroundColor: isComplete ? undefined : '#e5e7eb',
+                            color: isComplete ? '#fff' : '#9ca3af',
+                        }}
                     >
-                        {t('done') || 'Done'}
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        {saving ? 'Saving…' : 'Confirm Location'}
                     </button>
                 </div>
             </div>
