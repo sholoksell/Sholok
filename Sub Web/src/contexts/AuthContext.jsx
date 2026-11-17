@@ -32,13 +32,21 @@ export const AuthProvider = ({ children }) => {
     setCustomer(null);
   };
 
-  // Listen for auth-logout events from axios interceptor
+  // Listen for auth events from modals/interceptor
   useEffect(() => {
-    const handleAuthLogout = () => {
-      setCustomer(null);
+    const handleAuthLogout = () => setCustomer(null);
+    const handleAuthUpdated = () => {
+      try {
+        const saved = localStorage.getItem('customer');
+        if (saved) setCustomer(JSON.parse(saved));
+      } catch {}
     };
     window.addEventListener('customer-auth-logout', handleAuthLogout);
-    return () => window.removeEventListener('customer-auth-logout', handleAuthLogout);
+    window.addEventListener('customer-auth-updated', handleAuthUpdated);
+    return () => {
+      window.removeEventListener('customer-auth-logout', handleAuthLogout);
+      window.removeEventListener('customer-auth-updated', handleAuthUpdated);
+    };
   }, []);
 
   const fetchCustomer = async () => {
