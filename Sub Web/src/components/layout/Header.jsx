@@ -171,7 +171,7 @@ const Header = () => {
                   >
                     <User className="h-5 w-5" />
                     <span className="hidden xl:flex flex-col text-left leading-tight">
-                      <span className="text-[11px] text-muted-foreground">Login</span>
+                      <span className="text-[11px] text-muted-foreground truncate max-w-[80px]">{customer?.name?.split(' ')[0] || customer?.name || 'Hi'}</span>
                       <span className="text-sm font-semibold">{t('account')}</span>
                     </span>
                   </motion.button>
