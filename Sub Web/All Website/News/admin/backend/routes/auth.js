@@ -21,13 +21,10 @@ router.post('/login', async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// POST /auth/register  (requires ADMIN_INVITE_CODE env var)
+// POST /auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, inviteCode } = req.body;
-    const CODE = process.env.ADMIN_INVITE_CODE;
-    if (!CODE) return res.status(403).json({ message: 'Registration is disabled' });
-    if (!inviteCode || inviteCode !== CODE) return res.status(403).json({ message: 'Invalid invite code' });
+    const { name, email, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password are required' });
     if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
     const [[existing]] = await pool.query('SELECT id FROM news_admin_users WHERE email=?', [email]);

@@ -32,7 +32,6 @@ export default function Login() {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirm, setRegConfirm] = useState('');
-  const [regCode, setRegCode] = useState('');
   const [showRegPw, setShowRegPw] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -45,7 +44,7 @@ export default function Login() {
   const switchMode = (m) => {
     setMode(m); setError(''); setSuccess('');
     setEmail(''); setPassword('');
-    setRegName(''); setRegEmail(''); setRegPassword(''); setRegConfirm(''); setRegCode('');
+    setRegName(''); setRegEmail(''); setRegPassword(''); setRegConfirm('');
   };
 
   const handleLogin = async (e) => {
@@ -67,7 +66,7 @@ export default function Login() {
     if (regPassword.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
-      const res = await api.register(regName, regEmail, regPassword, regCode);
+      const res = await api.register(regName, regEmail, regPassword);
       login(res.user, res.token);
       navigate('/dashboard');
     } catch (err) {
@@ -220,20 +219,6 @@ export default function Login() {
                 </div>
               ))}
 
-              <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#444', marginBottom: 6 }}>
-                  Invite Code
-                  <span style={{ fontWeight: 400, color: '#999', marginLeft: 6, fontSize: 12 }}>— provided by admin</span>
-                </label>
-                <input
-                  type="text" value={regCode} onChange={e => setRegCode(e.target.value)} required
-                  placeholder="Enter invite code"
-                  autoComplete="off"
-                  style={inputStyle(focused === 'rcode')}
-                  onFocus={() => setFocused('rcode')} onBlur={() => setFocused('')}
-                />
-              </div>
-
               <button type="submit" disabled={loading} style={{
                 width: '100%', padding: 12, background: loading ? '#b39ddb' : `linear-gradient(135deg, ${P}, #7b00c8)`,
                 color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700,
@@ -242,9 +227,6 @@ export default function Login() {
                 {loading ? 'Creating account…' : 'Create Account'}
               </button>
 
-              <p style={{ textAlign: 'center', fontSize: 12, color: '#aaa', marginTop: 16, marginBottom: 0, lineHeight: 1.6 }}>
-                An invite code is required to register.<br />Contact your administrator to get one.
-              </p>
             </form>
           )}
         </div>
