@@ -2,81 +2,135 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 import { fetchFeatured, fetchLatest } from '../utils/api';
+import { useInView } from '../hooks/useInView';
+
+function timeAgo(dateStr, isBn) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (diff < 1) return isBn ? 'এইমাত্র' : 'Just now';
+  if (diff < 60) return isBn ? `${diff} মিনিট আগে` : `${diff}m ago`;
+  const h = Math.floor(diff / 60);
+  if (h < 24) return isBn ? `${h} ঘণ্টা আগে` : `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return isBn ? `${d} দিন আগে` : `${d}d ago`;
+}
+
+function FeaturedCard({ article, isBn, t }) {
+  const [ref, inView] = useInView(0.1);
+  const title = isBn && article.title_bn ? article.title_bn : article.title_en;
+  const excerpt = isBn && article.excerpt_bn ? article.excerpt_bn : article.excerpt_en;
+
+  return (
+    <div ref={ref} className={`reveal ${inView ? 'in-view' : ''}`}>
+      <Link to={`/article/${article.slug}`} className="block group relative overflow-hidden rounded-2xl bg-gray-900 aspect-[16/10] lg:aspect-[16/9]">
+        {article.image_url ? (
+          <img
+            src={article.image_url}
+            alt={title}
+            className="absolute inset-0 w-full h-full object-cover img-hover-zoom opacity-80 group-hover:opacity-90 transition-opacity duration-500"
+          />
+        ) : (
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #5D0096 0%, #D31710 100%)' }} />
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+        {/* Content */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="badge-breaking text-xs">{t('sections.breakingNews')}</span>
+            <span className={`text-white/60 text-xs ${isBn ? 'font-bangla' : ''}`}>
+              {timeAgo(article.published_at, isBn)}
+            </span>
+          </div>
+          <h2 className={`font-editorial font-bold text-white leading-tight mb-3 group-hover:underline underline-offset-4 ${isBn ? 'font-bangla text-2xl lg:text-3xl' : 'text-2xl lg:text-4xl'}`}>
+            {title}
+          </h2>
+          {excerpt && (
+            <p className={`text-white/70 text-sm line-clamp-2 max-w-2xl ${isBn ? 'font-bangla' : ''}`}>
+              {excerpt}
+            </p>
+          )}
+          <div className="mt-4 flex items-center gap-1 text-primary-300 text-sm font-medium">
+            <span className={isBn ? 'font-bangla' : ''}>{t('common.readMore')}</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+function SecondaryCard({ article, isBn, t, index }) {
+  const [ref, inView] = useInView(0.1);
+  const title = isBn && article.title_bn ? article.title_bn : article.title_en;
+
+  return (
+    <div ref={ref} className={`reveal ${inView ? 'in-view' : ''}`} style={{ transitionDelay: `${index * 80}ms` }}>
+      <Link to={`/article/${article.slug}`} className="card-news flex gap-3 p-3 rounded-xl group">
+        {article.image_url && (
+          <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
+            <img src={article.image_url} alt={title} className="w-full h-full object-cover img-hover-zoom" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <span className="badge-category text-[10px] mb-1 inline-block">{article.category_name}</span>
+          <h3 className={`text-sm font-semibold text-gray-900 dark:text-white leading-snug line-clamp-2 group-hover:text-primary-800 dark:group-hover:text-primary-300 transition-colors ${isBn ? 'font-bangla' : ''}`}>
+            {title}
+          </h3>
+          <span className={`text-[11px] text-gray-400 mt-1 block ${isBn ? 'font-bangla' : ''}`}>
+            {timeAgo(article.published_at, isBn)}
+          </span>
+        </div>
+      </Link>
+    </div>
+  );
+}
 
 export default function HeroSection() {
   const { lang, t } = useLanguage();
   const isBn = lang === 'bn';
   const [featured, setFeatured] = useState(null);
-  const [latest, setLatest] = useState([]);
+  const [secondary, setSecondary] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchFeatured().then(r => setFeatured(r)).catch(() => {});
-    fetchLatest(3).then(r => setLatest(r || [])).catch(() => {});
+    Promise.all([fetchFeatured(), fetchLatest(6)]).then(([feat, latest]) => {
+      setFeatured(feat);
+      const latestArr = Array.isArray(latest) ? latest : (latest?.articles || []);
+      setSecondary(latestArr.filter(a => !feat || a.id !== feat.id).slice(0, 4));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
+
+  if (loading) return (
+    <section className="container-news py-6">
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 skeleton aspect-[16/9] rounded-2xl" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-20 rounded-xl" />)}
+        </div>
+      </div>
+    </section>
+  );
 
   if (!featured) return null;
 
-  const title = (a) => isBn && a.title_bn ? a.title_bn : a.title_en;
-  const summary = (a) => isBn && a.summary_bn ? a.summary_bn : a.summary_en;
-
   return (
     <section className="container-news py-6">
-      <h2 className={`section-title ${isBn ? 'font-bangla' : ''}`}>
-        {t('sections.featured')}
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Featured */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Main featured */}
         <div className="lg:col-span-2">
-          <Link to={`/article/${featured.slug}`} className="card-news group cursor-pointer block">
-            {featured.featured_image && (
-              <div className="overflow-hidden rounded-t-xl" style={{ maxHeight: 280 }}>
-                <img src={featured.featured_image} alt={title(featured)} className="w-full object-cover group-hover:scale-105 transition-transform duration-300" style={{ height: 280 }} />
-              </div>
-            )}
-            <div className="px-5 pt-4">
-              <span className={`inline-block bg-accent-700 text-white text-xs font-bold px-3 py-1 rounded ${isBn ? 'font-bangla' : ''}`}>
-                {featured.category_name}
-              </span>
-            </div>
-            <div className="p-5 pt-3">
-              <h3 className={`text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-snug mb-3 group-hover:text-primary-800 dark:group-hover:text-primary-400 transition-colors ${isBn ? 'font-bangla' : ''}`}>
-                {title(featured)}
-              </h3>
-              <p className={`text-gray-600 dark:text-gray-400 text-sm sm:text-base leading-relaxed mb-4 ${isBn ? 'font-bangla' : ''}`}>
-                {summary(featured)}
-              </p>
-              <div className={`flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 ${isBn ? 'font-bangla' : ''}`}>
-                {featured.author_name && (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    {featured.author_name}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {new Date(featured.publish_at || featured.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </Link>
+          <FeaturedCard article={featured} isBn={isBn} t={t} />
         </div>
 
-        {/* Side Latest */}
-        <div className="flex flex-col gap-4">
-          {latest.map((article) => (
-            <Link key={article.id} to={`/article/${article.slug}`} className="card-news group cursor-pointer flex flex-row lg:flex-col">
-              <div className="p-3 flex flex-col justify-center">
-                <span className={`inline-block bg-primary-800 text-white text-[10px] font-bold px-2 py-0.5 rounded w-fit mb-2 ${isBn ? 'font-bangla' : ''}`}>
-                  {article.category_name}
-                </span>
-                <h4 className={`text-sm font-bold text-gray-900 dark:text-white leading-snug group-hover:text-primary-800 dark:group-hover:text-primary-400 transition-colors line-clamp-2 ${isBn ? 'font-bangla' : ''}`}>
-                  {title(article)}
-                </h4>
-                <span className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${isBn ? 'font-bangla' : ''}`}>
-                  {new Date(article.publish_at || article.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </Link>
+        {/* Secondary sidebar */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className={`section-title text-base font-bold ${isBn ? 'font-bangla' : ''}`}>{t('sections.latest')}</h2>
+          </div>
+          {secondary.map((article, i) => (
+            <SecondaryCard key={article.id} article={article} isBn={isBn} t={t} index={i} />
           ))}
         </div>
       </div>

@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import BreakingNewsTicker from './components/BreakingNewsTicker';
 import HeroSection from './components/HeroSection';
 import LatestNewsGrid from './components/LatestNewsGrid';
+import MostReadSidebar from './components/MostReadSidebar';
 import CategorySections from './components/CategorySections';
 import Footer from './components/Footer';
 import ArticlePage from './pages/ArticlePage';
@@ -15,7 +16,7 @@ function HomePage() {
       <BreakingNewsTicker />
       <main>
         <HeroSection />
-        <LatestNewsGrid />
+        <LatestNewsGrid sidebarSlot={<MostReadSidebar />} />
         <CategorySections />
       </main>
     </>
