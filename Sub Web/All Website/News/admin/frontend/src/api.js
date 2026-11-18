@@ -23,6 +23,7 @@ export const api = {
   del: (path) => req('DELETE', path),
   postForm: (path, form) => req('POST', path, form, true),
   login: (email, password) => req('POST', '/auth/login', { email, password }),
+  register: (name, email, password, inviteCode) => req('POST', '/auth/register', { name, email, password, inviteCode }),
   me: () => req('GET', '/auth/me'),
 };
 

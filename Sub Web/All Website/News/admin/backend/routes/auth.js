@@ -21,6 +21,27 @@ router.post('/login', async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+// POST /auth/register  (requires ADMIN_INVITE_CODE env var)
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password, inviteCode } = req.body;
+    const CODE = process.env.ADMIN_INVITE_CODE;
+    if (!CODE) return res.status(403).json({ message: 'Registration is disabled' });
+    if (!inviteCode || inviteCode !== CODE) return res.status(403).json({ message: 'Invalid invite code' });
+    if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password are required' });
+    if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    const [[existing]] = await pool.query('SELECT id FROM news_admin_users WHERE email=?', [email]);
+    if (existing) return res.status(409).json({ message: 'An account with this email already exists' });
+    const hash = await bcrypt.hash(password, 10);
+    const [r] = await pool.query(
+      'INSERT INTO news_admin_users (name, email, password_hash, role, is_active) VALUES (?,?,?,?,1)',
+      [name.trim(), email.toLowerCase().trim(), hash, 'editor']
+    );
+    const token = jwt.sign({ id: r.insertId, email, role: 'editor', name }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: r.insertId, name, email, role: 'editor' } });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 // GET /auth/me
 router.get('/me', auth, async (req, res) => {
   try {
