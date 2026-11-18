@@ -105,7 +105,7 @@ export default function Login() {
         </div>
 
         <p style={{ textAlign: 'center', color: '#888', fontSize: 12, marginTop: 20 }}>
-          © 2024 Sholok News · Authorized personnel only
+          © 2026 Sholok News · Authorized personnel only
         </p>
       </div>
     </div>
