@@ -5,6 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: '/news/',
+  server: {
+    proxy: {
+      '/news-api': { target: 'http://localhost:5002', rewrite: (p) => p.replace(/^\/news-api/, '') },
+    },
+  },
   css: {
     postcss: { plugins: [] },
   },
