@@ -156,6 +156,43 @@ const Header = () => {
     );
   };
 
+  const deliveryAreaObj = DELIVERY_AREAS.find(a => a.value === deliveryArea) || DELIVERY_AREAS[0];
+
+  const DeliveryDropdown = () => (
+    <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[192px]">
+      <div className="px-3 py-2.5 border-b border-gray-100">
+        <p className="text-sm font-bold text-gray-800">
+          {isBn ? "ডেলিভারি এলাকা" : "Delivery Area"}
+        </p>
+      </div>
+      <div className="max-h-64 overflow-y-auto">
+        {DELIVERY_AREAS.map(a => (
+          <button
+            key={a.value}
+            onClick={() => {
+              setDeliveryArea(a.value);
+              try { localStorage.setItem("sholok_delivery_area", a.value); } catch {}
+              setDeliveryOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 flex items-center gap-2 ${deliveryArea === a.value ? "font-bold text-[#5D0096] bg-purple-50/50" : "text-gray-700"}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${deliveryArea === a.value ? "bg-[#5D0096]" : "bg-transparent"}`} />
+            {isBn ? a.bn : a.en}
+          </button>
+        ))}
+      </div>
+      <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
+        <button
+          onClick={() => setDeliveryOpen(false)}
+          className="w-full py-1.5 rounded text-sm font-semibold text-white transition-colors"
+          style={{ backgroundColor: NAV_PURPLE }}
+        >
+          {isBn ? "সম্পন্ন" : "Done"}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {/* ══════════════════════════════════════════
@@ -165,140 +202,178 @@ const Header = () => {
         className="sticky top-0 z-50 shadow-lg"
         style={{ backgroundColor: HEADER_BRAND }}
       >
-        <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-2 sm:gap-3">
+        {/* ── MOBILE top bar (< sm) ── */}
+        <div className="sm:hidden flex items-center px-3 py-2 gap-2">
+          {/* Hamburger */}
+          <button
+            onClick={() => setAllMenuOpen(v => !v)}
+            className="p-1.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
+            aria-label="Menu"
+          >
+            <Menu className="w-5 h-5 text-white" />
+          </button>
 
           {/* Logo */}
-          <Link to="/home" className="flex-shrink-0 select-none group mr-1">
-            <span className="font-logo text-lg sm:text-xl font-black text-white tracking-tight leading-none group-hover:text-yellow-300 transition-colors">
+          <Link to="/home" className="flex-shrink-0 select-none group">
+            <span className="font-logo text-lg font-black text-white tracking-tight leading-none group-hover:text-yellow-300 transition-colors">
               SHOLOK
             </span>
           </Link>
 
-          {/* Deliver to — sm+ only, between logo and search */}
-          {(() => {
-            const area = DELIVERY_AREAS.find(a => a.value === deliveryArea) || DELIVERY_AREAS[0];
-            const areaLabel = isBn ? area.bn : area.en;
-            return (
-              <div ref={deliveryRef} className="hidden sm:block relative flex-shrink-0">
-                <button
-                  onClick={() => setDeliveryOpen(v => !v)}
-                  className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
-                >
-                  <span className="text-[10px] text-white/50 flex items-center gap-0.5">
-                    <MapPin className="w-2.5 h-2.5" />
-                    {isBn ? "ডেলিভারি" : "Deliver to"}
-                  </span>
-                  <span className="text-xs font-bold text-white truncate max-w-[88px]">{areaLabel}</span>
-                </button>
-                {deliveryOpen && (
-                  <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[192px]">
-                    <div className="px-3 py-2.5 border-b border-gray-100">
-                      <p className="text-sm font-bold text-gray-800">
-                        {isBn ? "ডেলিভারি এলাকা" : "Delivery Area"}
-                      </p>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {DELIVERY_AREAS.map(a => (
-                        <button
-                          key={a.value}
-                          onClick={() => {
-                            setDeliveryArea(a.value);
-                            try { localStorage.setItem("sholok_delivery_area", a.value); } catch {}
-                            setDeliveryOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 flex items-center gap-2 ${deliveryArea === a.value ? "font-bold text-[#5D0096] bg-purple-50/50" : "text-gray-700"}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${deliveryArea === a.value ? "bg-[#5D0096]" : "bg-transparent"}`} />
-                          {isBn ? a.bn : a.en}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
-                      <button
-                        onClick={() => setDeliveryOpen(false)}
-                        className="w-full py-1.5 rounded text-sm font-semibold text-white transition-colors"
-                        style={{ backgroundColor: NAV_PURPLE }}
-                      >
-                        {isBn ? "সম্পন্ন" : "Done"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {/* Spacer */}
+          <div className="flex-1" />
 
-          {/* Search bar — central, flex-1 (Amazon inline compact) */}
+          {/* Sign In / Profile */}
+          {isAuthenticated ? (
+            <Link
+              to="/profile"
+              className="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/10 transition-colors"
+            >
+              <User className="w-4 h-4 text-white" />
+              <span className="text-xs font-semibold text-white leading-tight">
+                {isBn ? "প্রোফাইল" : "Profile"}
+              </span>
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/10 transition-colors"
+            >
+              <User className="w-4 h-4 text-white" />
+              <span className="text-xs font-semibold text-white leading-tight">
+                {isBn ? "সাইন ইন ›" : "Sign in ›"}
+              </span>
+            </Link>
+          )}
+
+          {/* Bell */}
+          <button className="p-1.5 relative hover:bg-white/10 rounded-full transition-colors">
+            <Bell className="w-5 h-5 text-white" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
+                {unreadCount}
+              </Badge>
+            )}
+          </button>
+
+          {/* Cart */}
+          <a
+            href="https://shopping.sholok.com"
+            className="flex items-center gap-0.5 px-1.5 py-1 rounded hover:bg-white/10 transition-colors"
+            aria-label="Shopping Cart"
+          >
+            <span className="relative">
+              <ShoppingCart className="w-5 h-5 text-white" />
+              {cartItems.length > 0 && (
+                <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
+                  {cartItems.length}
+                </Badge>
+              )}
+            </span>
+            <span className="text-xs font-bold text-yellow-300">{isBn ? "কার্ট" : "Cart"}</span>
+          </a>
+        </div>
+
+        {/* ── MOBILE search row (< sm) ── */}
+        <div className="sm:hidden px-3 pb-2">
+          <SearchBar amazon />
+        </div>
+
+        {/* ── MOBILE deliver-to row (< sm) ── */}
+        <div ref={deliveryRef} className="sm:hidden relative border-t border-white/10">
+          <button
+            onClick={() => setDeliveryOpen(v => !v)}
+            className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/10 transition-colors"
+          >
+            <MapPin className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+            <span className="text-xs text-white/70">{isBn ? "ডেলিভারি করুন" : "Deliver to"}</span>
+            <span className="text-xs font-bold text-white">{isBn ? deliveryAreaObj.bn : deliveryAreaObj.en}</span>
+            <ChevronDown className="w-3 h-3 text-white/60 ml-auto flex-shrink-0" />
+          </button>
+          {deliveryOpen && <DeliveryDropdown />}
+        </div>
+
+        {/* ── DESKTOP bar (sm+) ── */}
+        <div className="hidden sm:flex w-full max-w-screen-xl mx-auto px-4 py-2 items-center gap-3">
+
+          {/* Logo */}
+          <Link to="/home" className="flex-shrink-0 select-none group mr-1">
+            <span className="font-logo text-xl font-black text-white tracking-tight leading-none group-hover:text-yellow-300 transition-colors">
+              SHOLOK
+            </span>
+          </Link>
+
+          {/* Deliver to */}
+          <div ref={deliveryRef} className="relative flex-shrink-0">
+            <button
+              onClick={() => setDeliveryOpen(v => !v)}
+              className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
+            >
+              <span className="text-[10px] text-white/50 flex items-center gap-0.5">
+                <MapPin className="w-2.5 h-2.5" />
+                {isBn ? "ডেলিভারি" : "Deliver to"}
+              </span>
+              <span className="text-xs font-bold text-white truncate max-w-[88px]">{isBn ? deliveryAreaObj.bn : deliveryAreaObj.en}</span>
+            </button>
+            {deliveryOpen && <DeliveryDropdown />}
+          </div>
+
+          {/* Search bar */}
           <div className="flex-1 min-w-0">
             <SearchBar amazon />
           </div>
 
-          {/* Right actions */}
-          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-
-            {/* Language selector */}
-            <div ref={langRef} className="relative hidden sm:block">
-              <button
-                onClick={() => setLangOpen(v => !v)}
-                className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
-              >
-                <span className="text-[10px] text-white/50">{isBn ? "ভাষা" : "Language"}</span>
-                <span className="text-xs font-bold text-white flex items-center gap-0.5">
-                  {isBn ? "বাংলা" : "English"}
-                  <ChevronDown className="w-3 h-3 text-white/60" />
-                </span>
-              </button>
-              {langOpen && (
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[100px]">
-                  <button
-                    onClick={() => { setLanguage("BN"); setLangOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 ${language === "BN" ? "font-bold text-[#5D0096]" : "text-gray-700"}`}
-                  >বাংলা</button>
-                  <button
-                    onClick={() => { setLanguage("EN"); setLangOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 ${language === "EN" ? "font-bold text-[#5D0096]" : "text-gray-700"}`}
-                  >English</button>
-                </div>
-              )}
-            </div>
-
-            {/* Theme toggle */}
-            <div className="hidden sm:flex items-center">
-              <div className="h-6 w-px bg-white/20 mx-0.5" />
-              <div className="[&>button]:text-white [&>button]:hover:bg-white/10">
-                <ThemeToggle />
-              </div>
-              <div className="h-6 w-px bg-white/20 mx-0.5" />
-            </div>
-
-            {/* Notifications bell */}
-            <button className="p-1.5 relative hover:bg-white/10 rounded-full transition-colors">
-              <Bell className="w-5 h-5 text-white" />
-              {unreadCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
-                  {unreadCount}
-                </Badge>
-              )}
-            </button>
-
-            {/* Account — icon only on mobile; hover dropdown on sm+ */}
-            {/* Mobile icon */}
-            {isAuthenticated ? (
-              <Link to="/profile" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Profile">
-                <User className="w-5 h-5 text-white" />
-              </Link>
-            ) : (
-              <Link to="/login" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Sign In">
-                <User className="w-5 h-5 text-white" />
-              </Link>
-            )}
-
-            {/* Desktop hover dropdown */}
-            <div
-              className="hidden sm:block relative"
-              onMouseEnter={handleAccountEnter}
-              onMouseLeave={handleAccountLeave}
+          {/* Language selector */}
+          <div ref={langRef} className="relative">
+            <button
+              onClick={() => setLangOpen(v => !v)}
+              className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
             >
+              <span className="text-[10px] text-white/50">{isBn ? "ভাষা" : "Language"}</span>
+              <span className="text-xs font-bold text-white flex items-center gap-0.5">
+                {isBn ? "বাংলা" : "English"}
+                <ChevronDown className="w-3 h-3 text-white/60" />
+              </span>
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[100px]">
+                <button
+                  onClick={() => { setLanguage("BN"); setLangOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 ${language === "BN" ? "font-bold text-[#5D0096]" : "text-gray-700"}`}
+                >বাংলা</button>
+                <button
+                  onClick={() => { setLanguage("EN"); setLangOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 ${language === "EN" ? "font-bold text-[#5D0096]" : "text-gray-700"}`}
+                >English</button>
+              </div>
+            )}
+          </div>
+
+          {/* Theme toggle */}
+          <div className="flex items-center">
+            <div className="h-6 w-px bg-white/20 mx-0.5" />
+            <div className="[&>button]:text-white [&>button]:hover:bg-white/10">
+              <ThemeToggle />
+            </div>
+            <div className="h-6 w-px bg-white/20 mx-0.5" />
+          </div>
+
+          {/* Bell */}
+          <button className="p-1.5 relative hover:bg-white/10 rounded-full transition-colors">
+            <Bell className="w-5 h-5 text-white" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
+                {unreadCount}
+              </Badge>
+            )}
+          </button>
+
+          {/* Account hover dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={handleAccountEnter}
+            onMouseLeave={handleAccountLeave}
+          >
               {/* Trigger */}
               <div className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight cursor-pointer select-none">
                 <span className="text-[10px] text-white/50">{isBn ? "হ্যালো," : "Hello,"}</span>
@@ -423,7 +498,6 @@ const Header = () => {
               </span>
             </a>
           </div>
-        </div>
 
         {/* ══════════════════════════════════════════
             ROW 2 — Purple navigation bar
@@ -436,7 +510,7 @@ const Header = () => {
             {/* ☰ All button */}
             <button
               onClick={() => setAllMenuOpen(v => !v)}
-              className="flex items-center gap-1.5 px-3 h-full font-semibold text-sm text-white hover:bg-white/15 transition-colors flex-shrink-0 border-r border-white/20 mr-1"
+              className="hidden sm:flex items-center gap-1.5 px-3 h-full font-semibold text-sm text-white hover:bg-white/15 transition-colors flex-shrink-0 border-r border-white/20 mr-1"
             >
               <Menu className="w-4 h-4" />
               <span>{isBn ? "সব" : "All"}</span>
