@@ -9,7 +9,8 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
 import { Badge } from "@/components/ui/badge";
 import SearchBar from "@/components/portal/SearchBar";
 
@@ -74,13 +75,16 @@ const NAV_PURPLE   = "#5D0096";
 
 const Header = () => {
   const { language, setLanguage, t } = useLanguage();
+  const dispatch = useAppDispatch();
   const { unreadCount }   = useAppSelector((state) => state.notification);
   const { items: cartItems } = useAppSelector((state) => state.cart);
   const { isAuthenticated }  = useAppSelector((state) => state.auth);
   const location = useLocation();
   const [allMenuOpen, setAllMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const accountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deliveryArea, setDeliveryArea] = useState<string>(() => {
     try { return localStorage.getItem("sholok_delivery_area") || "BD"; } catch { return "BD"; }
   });
@@ -114,6 +118,14 @@ const Header = () => {
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
+
+  const handleAccountEnter = () => {
+    if (accountTimerRef.current) clearTimeout(accountTimerRef.current);
+    setAccountOpen(true);
+  };
+  const handleAccountLeave = () => {
+    accountTimerRef.current = setTimeout(() => setAccountOpen(false), 150);
+  };
 
   const renderServiceIcon = (service: typeof ALL_SERVICES[0], index: number) => {
     const cls = "flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-secondary/60 transition-colors no-underline group";
@@ -269,28 +281,118 @@ const Header = () => {
               )}
             </button>
 
-            {/* Account — icon only on mobile, text label on sm+ */}
+            {/* Account — icon only on mobile; hover dropdown on sm+ */}
+            {/* Mobile icon */}
             {isAuthenticated ? (
-              <>
-                <Link to="/profile" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Profile">
-                  <User className="w-5 h-5 text-white" />
-                </Link>
-                <Link to="/profile" className="hidden sm:flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight">
-                  <span className="text-[10px] text-white/50">{isBn ? "আমার" : "My"}</span>
-                  <span className="text-xs font-bold text-white">{isBn ? "প্রোফাইল" : "Profile"}</span>
-                </Link>
-              </>
+              <Link to="/profile" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Profile">
+                <User className="w-5 h-5 text-white" />
+              </Link>
             ) : (
-              <>
-                <Link to="/login" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Sign In">
-                  <User className="w-5 h-5 text-white" />
-                </Link>
-                <Link to="/login" className="hidden sm:flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight">
-                  <span className="text-[10px] text-white/50">{isBn ? "হ্যালো," : "Hello,"}</span>
-                  <span className="text-xs font-bold text-white">{isBn ? "সাইন ইন" : "Sign In"}</span>
-                </Link>
-              </>
+              <Link to="/login" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Sign In">
+                <User className="w-5 h-5 text-white" />
+              </Link>
             )}
+
+            {/* Desktop hover dropdown */}
+            <div
+              className="hidden sm:block relative"
+              onMouseEnter={handleAccountEnter}
+              onMouseLeave={handleAccountLeave}
+            >
+              {/* Trigger */}
+              <div className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight cursor-pointer select-none">
+                <span className="text-[10px] text-white/50">{isBn ? "হ্যালো," : "Hello,"}</span>
+                <span className="text-xs font-bold text-white flex items-center gap-0.5">
+                  {isAuthenticated ? (isBn ? "প্রোফাইল" : "Profile") : (isBn ? "সাইন ইন" : "Sign In")}
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </span>
+              </div>
+
+              {/* Dropdown panel */}
+              {accountOpen && (
+                <div
+                  className="absolute right-0 top-full bg-white rounded-lg shadow-2xl border border-gray-200 z-50 w-72"
+                  style={{ marginTop: "2px" }}
+                  onMouseEnter={handleAccountEnter}
+                  onMouseLeave={handleAccountLeave}
+                >
+                  <div className="p-4">
+                    {!isAuthenticated ? (
+                      <>
+                        <Link
+                          to="/login"
+                          className="block w-full py-2 text-center text-sm font-semibold rounded mb-2 text-gray-900"
+                          style={{ backgroundColor: "#f0c14b", border: "1px solid #a88734" }}
+                          onClick={() => setAccountOpen(false)}
+                        >
+                          {isBn ? "সাইন ইন" : "Sign in"}
+                        </Link>
+                        <p className="text-center text-xs text-gray-600 mb-3">
+                          {isBn ? "নতুন গ্রাহক?" : "New customer?"}{" "}
+                          <Link to="/register" className="font-medium hover:underline" style={{ color: NAV_PURPLE }} onClick={() => setAccountOpen(false)}>
+                            {isBn ? "এখানে শুরু করুন" : "Start here."}
+                          </Link>
+                        </p>
+                      </>
+                    ) : (
+                      <Link
+                        to="/profile"
+                        className="block w-full py-2 text-center text-sm font-semibold rounded mb-3 text-white"
+                        style={{ backgroundColor: NAV_PURPLE }}
+                        onClick={() => setAccountOpen(false)}
+                      >
+                        {isBn ? "আমার প্রোফাইল" : "My Profile"}
+                      </Link>
+                    )}
+
+                    <div className="border-t border-gray-200 pt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                      {/* Column 1 */}
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-2">
+                          {isBn ? "আপনার তালিকা" : "Your Lists"}
+                        </p>
+                        <div className="space-y-1.5">
+                          <Link to="/wishlist" className="block text-xs text-gray-700 hover:text-[#5D0096] hover:underline" onClick={() => setAccountOpen(false)}>
+                            {isBn ? "তালিকা তৈরি করুন" : "Create a List"}
+                          </Link>
+                          <Link to="/wishlist" className="block text-xs text-gray-700 hover:text-[#5D0096] hover:underline" onClick={() => setAccountOpen(false)}>
+                            {isBn ? "তালিকা খুঁজুন" : "Find a List or Registry"}
+                          </Link>
+                        </div>
+                      </div>
+                      {/* Column 2 */}
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 mb-2">
+                          {isBn ? "আপনার অ্যাকাউন্ট" : "Your Account"}
+                        </p>
+                        <div className="space-y-1.5">
+                          <Link to={isAuthenticated ? "/profile" : "/login"} className="block text-xs text-gray-700 hover:text-[#5D0096] hover:underline" onClick={() => setAccountOpen(false)}>
+                            {isBn ? "অ্যাকাউন্ট" : "Account"}
+                          </Link>
+                          <a href="https://shopping.sholok.com/orders" className="block text-xs text-gray-700 hover:text-[#5D0096] hover:underline" onClick={() => setAccountOpen(false)}>
+                            {isBn ? "অর্ডার" : "Orders"}
+                          </a>
+                          <Link to="/home" className="block text-xs text-gray-700 hover:text-[#5D0096] hover:underline" onClick={() => setAccountOpen(false)}>
+                            {isBn ? "সুপারিশ" : "Recommendations"}
+                          </Link>
+                          <a href="https://shopping.sholok.com" className="block text-xs text-gray-700 hover:text-[#5D0096] hover:underline" onClick={() => setAccountOpen(false)}>
+                            {isBn ? "শপিং কার্ট" : "Shopping Cart"}
+                          </a>
+                          {isAuthenticated && (
+                            <button
+                              onClick={() => { dispatch(logout()); setAccountOpen(false); }}
+                              className="block w-full text-left text-xs text-red-600 hover:underline font-medium mt-1"
+                            >
+                              {isBn ? "সাইন আউট" : "Sign Out"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Cart → Shopping */}
             <a
