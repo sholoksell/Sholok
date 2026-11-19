@@ -15,6 +15,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import OrdersSignIn from "./pages/OrdersSignIn";
 
 // Shopping redirect — lives at shopping.sholok.com (base: '/'), strip /shopping prefix
 const ShoppingRedirect = () => {
@@ -126,6 +127,7 @@ const App = () => (
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/orders" element={<OrdersSignIn />} />
 
                 {/* Public Routes */}
                 <Route path="/news" element={<NewsRedirect />} />
