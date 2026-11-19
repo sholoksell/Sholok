@@ -55,6 +55,20 @@ const QUICK_LINKS = [
   { label: "weather",  labelBn: "আবহাওয়া",         path: "/weather",                  external: false },
 ];
 
+const DELIVERY_AREAS = [
+  { en: "All Bangladesh", bn: "সারা বাংলাদেশ", value: "BD" },
+  { en: "Dhaka",          bn: "ঢাকা",           value: "DHA" },
+  { en: "Chittagong",     bn: "চট্টগ্রাম",        value: "CTG" },
+  { en: "Sylhet",         bn: "সিলেট",           value: "SYL" },
+  { en: "Rajshahi",       bn: "রাজশাহী",          value: "RAJ" },
+  { en: "Khulna",         bn: "খুলনা",           value: "KHL" },
+  { en: "Barishal",       bn: "বরিশাল",          value: "BAR" },
+  { en: "Mymensingh",     bn: "ময়মনসিংহ",         value: "MYM" },
+  { en: "Rangpur",        bn: "রংপুর",           value: "RAN" },
+  { en: "Cumilla",        bn: "কুমিল্লা",          value: "CUM" },
+  { en: "Narayanganj",    bn: "নারায়ণগঞ্জ",        value: "NRJ" },
+];
+
 const HEADER_BRAND = "#1a0028";
 const NAV_PURPLE   = "#5D0096";
 
@@ -66,8 +80,13 @@ const Header = () => {
   const location = useLocation();
   const [allMenuOpen, setAllMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [deliveryArea, setDeliveryArea] = useState<string>(() => {
+    try { return localStorage.getItem("sholok_delivery_area") || "BD"; } catch { return "BD"; }
+  });
   const isBn = language === "BN";
   const langRef = useRef<HTMLDivElement>(null);
+  const deliveryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!allMenuOpen) return;
@@ -82,6 +101,15 @@ const Header = () => {
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  // Close delivery dropdown on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (deliveryRef.current && !deliveryRef.current.contains(e.target as Node)) setDeliveryOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -133,6 +161,60 @@ const Header = () => {
               SHOLOK
             </span>
           </Link>
+
+          {/* Deliver to — sm+ only, between logo and search */}
+          {(() => {
+            const area = DELIVERY_AREAS.find(a => a.value === deliveryArea) || DELIVERY_AREAS[0];
+            const areaLabel = isBn ? area.bn : area.en;
+            return (
+              <div ref={deliveryRef} className="hidden sm:block relative flex-shrink-0">
+                <button
+                  onClick={() => setDeliveryOpen(v => !v)}
+                  className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
+                >
+                  <span className="text-[10px] text-white/50 flex items-center gap-0.5">
+                    <MapPin className="w-2.5 h-2.5" />
+                    {isBn ? "ডেলিভারি" : "Deliver to"}
+                  </span>
+                  <span className="text-xs font-bold text-white truncate max-w-[88px]">{areaLabel}</span>
+                </button>
+                {deliveryOpen && (
+                  <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[192px]">
+                    <div className="px-3 py-2.5 border-b border-gray-100">
+                      <p className="text-sm font-bold text-gray-800">
+                        {isBn ? "ডেলিভারি এলাকা" : "Delivery Area"}
+                      </p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {DELIVERY_AREAS.map(a => (
+                        <button
+                          key={a.value}
+                          onClick={() => {
+                            setDeliveryArea(a.value);
+                            try { localStorage.setItem("sholok_delivery_area", a.value); } catch {}
+                            setDeliveryOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 flex items-center gap-2 ${deliveryArea === a.value ? "font-bold text-[#5D0096] bg-purple-50/50" : "text-gray-700"}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${deliveryArea === a.value ? "bg-[#5D0096]" : "bg-transparent"}`} />
+                          {isBn ? a.bn : a.en}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
+                      <button
+                        onClick={() => setDeliveryOpen(false)}
+                        className="w-full py-1.5 rounded text-sm font-semibold text-white transition-colors"
+                        style={{ backgroundColor: NAV_PURPLE }}
+                      >
+                        {isBn ? "সম্পন্ন" : "Done"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Search bar — central, flex-1 (Amazon inline compact) */}
           <div className="flex-1 min-w-0">
