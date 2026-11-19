@@ -1,0 +1,282 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, X, Loader2, TrendingUp, ChevronDown, Tag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { categoryService } from '@/services/categoryService';
+import api from '@/lib/axios';
+
+export default function HeaderSearchBar() {
+    const [query, setQuery] = useState('');
+    const [suggestions, setSuggestions] = useState({ products: [], categories: [], brands: [], popularSearches: [] });
+    const [popular, setPopular] = useState({ popular: [], trending: [] });
+    const [isOpen, setIsOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [selectedCat, setSelectedCat] = useState({ id: '__all__', name: 'All', nameBn: 'সব' });
+    const [catDropOpen, setCatDropOpen] = useState(false);
+    const wrapperRef = useRef(null);
+    const catDropRef = useRef(null);
+    const debounceRef = useRef(null);
+    const navigate = useNavigate();
+    const { language, t } = useLanguage();
+    const isBn = language === 'bn';
+
+    // Load categories for dropdown
+    useEffect(() => {
+        categoryService.getPublicAll()
+            .then(data => {
+                const flat = (data || []).filter(c => !c.parentId).slice(0, 20);
+                setCategories([{ id: '__all__', name: 'All', nameBn: 'সব' }, ...flat]);
+            })
+            .catch(() => {});
+    }, []);
+
+    // Load popular/trending
+    useEffect(() => {
+        api.get('/search/popular?limit=6').then(r => setPopular(r.data)).catch(() => {});
+    }, []);
+
+    // Outside click
+    useEffect(() => {
+        const handler = (e) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+                setIsOpen(false);
+                setCatDropOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const fetchSuggestions = useCallback(async (q) => {
+        if (!q.trim()) { setSuggestions({ products: [], categories: [], brands: [], popularSearches: [] }); return; }
+        setLoading(true);
+        try {
+            const params = { q, limit: 6 };
+            if (selectedCat.id !== '__all__') params.category = selectedCat.slug;
+            const res = await api.get('/search/suggestions', { params });
+            setSuggestions(res.data || { products: [], categories: [], brands: [], popularSearches: [] });
+        } catch {
+            setSuggestions({ products: [], categories: [], brands: [], popularSearches: [] });
+        } finally { setLoading(false); }
+    }, [selectedCat]);
+
+    const handleChange = (e) => {
+        const val = e.target.value;
+        setQuery(val);
+        setIsOpen(true);
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchSuggestions(val), 280);
+    };
+
+    const handleSubmit = (e) => {
+        e?.preventDefault();
+        if (query.trim()) {
+            setIsOpen(false);
+            api.post('/search/history', { query: query.trim() }).catch(() => {});
+            const catParam = selectedCat.id !== '__all__' ? `&category=${encodeURIComponent(selectedCat.slug)}` : '';
+            navigate(`/search?q=${encodeURIComponent(query.trim())}${catParam}`);
+        }
+    };
+
+    const selectQuery = (q) => {
+        setQuery(q);
+        setIsOpen(false);
+        api.post('/search/history', { query: q }).catch(() => {});
+        const catParam = selectedCat.id !== '__all__' ? `&category=${encodeURIComponent(selectedCat.slug)}` : '';
+        navigate(`/search?q=${encodeURIComponent(q)}${catParam}`);
+    };
+
+    const clearSearch = () => {
+        setQuery('');
+        setSuggestions({ products: [], categories: [], brands: [], popularSearches: [] });
+        setIsOpen(false);
+    };
+
+    const hasResults = query.trim() && (
+        suggestions.products?.length > 0 || suggestions.categories?.length > 0 ||
+        suggestions.brands?.length > 0 || suggestions.popularSearches?.length > 0
+    );
+    const showPopular = !query.trim() && isOpen && (popular.trending?.length > 0 || popular.popular?.length > 0);
+
+    const catName = (c) => isBn && c.nameBn ? c.nameBn : c.name;
+
+    return (
+        <div ref={wrapperRef} className="relative flex-1 min-w-0 flex items-stretch h-11 max-w-3xl">
+            {/* Category Dropdown */}
+            <div ref={catDropRef} className="relative flex-shrink-0">
+                <button
+                    type="button"
+                    onClick={() => { setCatDropOpen(v => !v); setIsOpen(false); }}
+                    className="h-full flex items-center gap-1 px-3 bg-gray-100 hover:bg-gray-200 border-2 border-r-0 border-primary rounded-l-lg text-gray-700 text-xs font-semibold transition-colors whitespace-nowrap select-none max-w-[110px]"
+                    style={{ minWidth: 60 }}
+                >
+                    <span className="truncate">{catName(selectedCat)}</span>
+                    <ChevronDown className="h-3 w-3 flex-shrink-0 text-gray-500" />
+                </button>
+
+                {catDropOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 max-h-72 overflow-y-auto">
+                        {categories.map(cat => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => { setSelectedCat(cat); setCatDropOpen(false); }}
+                                className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-primary-soft hover:text-primary ${
+                                    cat.id === selectedCat.id ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700'
+                                }`}
+                            >
+                                {catName(cat)}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Search input + button */}
+            <form className="flex flex-1 min-w-0" onSubmit={handleSubmit}>
+                <div className="flex flex-1 items-center border-2 border-l-0 border-primary bg-white overflow-hidden focus-within:border-sale focus-within:shadow-[0_0_0_2px_rgba(211,23,16,0.15)] transition-all">
+                    <input
+                        type="search"
+                        placeholder={isBn ? 'পণ্যের নাম লিখুন...' : 'Search for products, brands and more...'}
+                        value={query}
+                        onChange={handleChange}
+                        onFocus={() => setIsOpen(true)}
+                        className="flex-1 h-full px-4 text-sm text-gray-800 placeholder:text-gray-400 outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-search-cancel-button]:hidden"
+                    />
+                    {query && (
+                        <button type="button" onClick={clearSearch}
+                            className="h-6 w-6 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 mr-1 flex-shrink-0">
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+                <button
+                    type="submit"
+                    className="h-full px-5 bg-sale hover:bg-sale-deep text-white flex items-center justify-center gap-1.5 rounded-r-lg transition-colors flex-shrink-0"
+                    aria-label={isBn ? 'অনুসন্ধান' : 'Search'}
+                >
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                    <span className="hidden sm:inline text-sm font-semibold">{isBn ? 'খুঁজুন' : 'Search'}</span>
+                </button>
+            </form>
+
+            {/* Suggestions dropdown */}
+            {isOpen && (hasResults || showPopular) && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                    <div className="max-h-[420px] overflow-y-auto">
+                        {showPopular && (
+                            <div className="p-3">
+                                {popular.trending?.length > 0 && (
+                                    <div className="mb-3">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                            <TrendingUp size={12} /> {t('trending')}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {popular.trending.slice(0, 5).map((q, i) => (
+                                                <button key={i} onClick={() => selectQuery(q)}
+                                                    className="text-xs bg-orange-50 text-orange-700 px-2.5 py-1 rounded-full hover:bg-orange-100 transition-colors">
+                                                    {q}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {popular.popular?.length > 0 && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                            <Search size={12} /> {t('popularSearches')}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {popular.popular.slice(0, 6).map((q, i) => (
+                                                <button key={i} onClick={() => selectQuery(q)}
+                                                    className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
+                                                    {q}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {query.trim() && (
+                            <>
+                                {suggestions.popularSearches?.length > 0 && (
+                                    <div className="border-b">
+                                        {suggestions.popularSearches.slice(0, 3).map((q, i) => (
+                                            <button key={i} onClick={() => selectQuery(q)}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-left">
+                                                <Search size={14} className="text-gray-400 shrink-0" />
+                                                <span className="text-sm text-gray-700">{q}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {suggestions.categories?.length > 0 && (
+                                    <div className="border-b px-4 py-2">
+                                        <p className="text-xs text-gray-400 mb-1.5">{t('categories')}</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {suggestions.categories.map(c => (
+                                                <a key={c.id} href={`/category/${c.slug}`}
+                                                    onClick={() => setIsOpen(false)}
+                                                    className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full hover:bg-blue-100">
+                                                    {isBn && c.nameBn ? c.nameBn : c.name}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {suggestions.brands?.length > 0 && (
+                                    <div className="border-b px-4 py-2">
+                                        <p className="text-xs text-gray-400 mb-1.5">{t('brands')}</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {suggestions.brands.map(b => (
+                                                <button key={b.id} onClick={() => selectQuery(b.name)}
+                                                    className="text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full hover:bg-purple-100">
+                                                    <Tag size={10} />{b.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {suggestions.products?.length > 0 && (
+                                    <ul>
+                                        {suggestions.products.map(product => (
+                                            <li key={product.id}
+                                                onClick={() => { setIsOpen(false); navigate(`/product/${product.slug}`); }}
+                                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b last:border-0 group">
+                                                {product.thumbnail && (
+                                                    <img src={product.thumbnail} alt="" className="w-9 h-9 rounded object-cover shrink-0 bg-gray-100" onError={e => { e.target.style.display = 'none'; }} />
+                                                )}
+                                                <div className="flex flex-col flex-1 min-w-0">
+                                                    <span className="text-sm font-medium text-gray-800 group-hover:text-primary truncate">{product.name}</span>
+                                                    <span className="text-sm font-bold text-primary ml-auto">৳{(product.sale_price || product.regular_price)?.toLocaleString()}</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                <div onClick={handleSubmit}
+                                    className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 text-center text-sm text-primary font-semibold cursor-pointer hover:from-primary hover:to-primary hover:text-white transition-all flex items-center justify-center gap-2">
+                                    <Search className="h-4 w-4" />
+                                    <span>{isBn ? `"${query}" এর সব ফলাফল` : `See all results for "${query}"`}</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {isOpen && query.trim() && !loading && !hasResults && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
+                    <div className="px-4 py-6 text-center">
+                        <Search className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm">{t('noResultsFound')}</p>
+                        <button onClick={handleSubmit} className="mt-2 text-sm text-primary hover:underline">{t('searchAnyway')}</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

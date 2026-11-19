@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatPrice } from '@/lib/utils';
 import api from '@/lib/axios';
 
-const SmartSearch = ({ className }) => {
+const SmartSearch = ({ className, categorySlug }) => {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState({ products: [], categories: [], brands: [], popularSearches: [] });
     const [popular, setPopular] = useState({ popular: [], trending: [] });
@@ -66,7 +66,8 @@ const SmartSearch = ({ className }) => {
             setIsOpen(false);
             // Track search
             api.post('/search/history', { query: query.trim() }).catch(() => {});
-            navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+            const catParam = categorySlug && categorySlug !== '__all__' ? `&category=${encodeURIComponent(categorySlug)}` : '';
+            navigate(`/search?q=${encodeURIComponent(query.trim())}${catParam}`);
         }
     };
 

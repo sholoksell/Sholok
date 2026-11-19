@@ -16,6 +16,14 @@ export const translations = {
         shopByCategory: "SHOP BY CATEGORY",
         topCategories: "Top Categories",
         allCategories: "Shop by Category",
+        // Amazon-style header labels
+        helloSignIn: "Hello, sign in",
+        accountAndLists: "Account & Lists",
+        returnsAndOrders: "Returns & Orders",
+        allDepartments: "All Departments",
+        searchAll: "Search All",
+        deliverTo: "Deliver to",
+        welcomeMsg: "Welcome to Sholok Shopping!",
 
         // Product Related
         addToBag: "Add to Bag",
@@ -366,6 +374,14 @@ export const translations = {
         shopByCategory: "ক্যাটাগরি অনুযায়ী কিনুন",
         topCategories: "জনপ্রিয় ক্যাটাগরি",
         allCategories: "সকল ক্যাটাগরি",
+        // Amazon-style header labels
+        helloSignIn: "হ্যালো, সাইন ইন",
+        accountAndLists: "অ্যাকাউন্ট ও তালিকা",
+        returnsAndOrders: "রিটার্ন ও অর্ডার",
+        allDepartments: "সব বিভাগ",
+        searchAll: "সব অনুসন্ধান",
+        deliverTo: "ডেলিভারি দিন",
+        welcomeMsg: "শলোক শপিংয়ে স্বাগতম!",
 
         // Product Related
         addToBag: "ব্যাগে যোগ করুন",
