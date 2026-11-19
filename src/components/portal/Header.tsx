@@ -394,6 +394,15 @@ const Header = () => {
               )}
             </div>
 
+            {/* Returns & Orders — sm+ only */}
+            <a
+              href="https://shopping.sholok.com/orders"
+              className="hidden sm:flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight flex-shrink-0"
+            >
+              <span className="text-[10px] text-white/50">{isBn ? "ফেরত" : "Returns"}</span>
+              <span className="text-xs font-bold text-white">{isBn ? "& অর্ডার" : "& Orders"}</span>
+            </a>
+
             {/* Cart → Shopping */}
             <a
               href="https://shopping.sholok.com"
