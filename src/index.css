@@ -104,6 +104,7 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Noto Sans', 'Noto Sans Bengali', sans-serif;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 }
 

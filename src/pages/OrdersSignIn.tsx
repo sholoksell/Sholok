@@ -157,7 +157,7 @@ const OrdersSignIn = () => {
           ))}
         </div>
         <p className="text-center text-xs text-gray-500 pb-6">
-          © 2024–2026, Sholok Inc. {isBn ? "বা এর সহযোগীরা" : "or its affiliates"}
+          © 2025–2026, Sholok Inc. {isBn ? "বা এর সহযোগীরা" : "or its affiliates"}
         </p>
       </div>
     </div>
