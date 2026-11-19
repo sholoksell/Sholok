@@ -187,23 +187,27 @@ const Header = () => {
               )}
             </button>
 
-            {/* Account */}
+            {/* Account — icon only on mobile, text label on sm+ */}
             {isAuthenticated ? (
-              <Link
-                to="/profile"
-                className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight"
-              >
-                <span className="text-[10px] text-white/50">{isBn ? "আমার" : "My"}</span>
-                <span className="text-xs font-bold text-white">{isBn ? "প্রোফাইল" : "Profile"}</span>
-              </Link>
+              <>
+                <Link to="/profile" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Profile">
+                  <User className="w-5 h-5 text-white" />
+                </Link>
+                <Link to="/profile" className="hidden sm:flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight">
+                  <span className="text-[10px] text-white/50">{isBn ? "আমার" : "My"}</span>
+                  <span className="text-xs font-bold text-white">{isBn ? "প্রোফাইল" : "Profile"}</span>
+                </Link>
+              </>
             ) : (
-              <Link
-                to="/login"
-                className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight"
-              >
-                <span className="text-[10px] text-white/50">{isBn ? "হ্যালো," : "Hello,"}</span>
-                <span className="text-xs font-bold text-white">{isBn ? "সাইন ইন" : "Sign In"}</span>
-              </Link>
+              <>
+                <Link to="/login" className="sm:hidden p-1.5 rounded-full hover:bg-white/10 transition-colors" aria-label="Sign In">
+                  <User className="w-5 h-5 text-white" />
+                </Link>
+                <Link to="/login" className="hidden sm:flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight">
+                  <span className="text-[10px] text-white/50">{isBn ? "হ্যালো," : "Hello,"}</span>
+                  <span className="text-xs font-bold text-white">{isBn ? "সাইন ইন" : "Sign In"}</span>
+                </Link>
+              </>
             )}
 
             {/* Cart → Shopping */}

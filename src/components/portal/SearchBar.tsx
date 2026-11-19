@@ -306,8 +306,8 @@ const SearchBar = ({ initialQuery = "", hero = false, amazon = false }: SearchBa
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
         <form onSubmit={handleSearch}>
           <div className="flex items-center h-10 bg-white rounded overflow-hidden w-full">
-            {/* Category selector */}
-            <div className="flex-shrink-0 flex items-center h-full px-2.5 gap-1 bg-gray-100 border-r border-gray-300 hover:bg-gray-200 cursor-default select-none">
+            {/* Category selector — hidden on mobile to save horizontal space */}
+            <div className="hidden sm:flex flex-shrink-0 items-center h-full px-2.5 gap-1 bg-gray-100 border-r border-gray-300 hover:bg-gray-200 cursor-default select-none">
               <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
                 {language === "BN" ? "সব" : "All"}
               </span>
