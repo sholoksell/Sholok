@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Bell, ShoppingCart, User, Menu, X,
   Mail, Coffee, ShoppingCart as CartIcon, Newspaper, LineChart, MapPin,
   BookOpen, Music, FileText, Languages, Wallet, Store,
   TrendingUp, Cloud, Trophy, Tv, BookMarked, Building2,
-  Briefcase, ShieldCheck,
+  Briefcase, ShieldCheck, ChevronDown, Home, Briefcase as BriefcaseIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -43,23 +43,49 @@ const ALL_SERVICES = [
   { icon: ShieldCheck, label: "adminPanel",   color: "bg-gray-200 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300",             path: "/home/admin/" },
 ];
 
+// Quick nav links for second row
+const QUICK_LINKS = [
+  { label: "home",     labelBn: "হোম",           path: "/home",                     external: false },
+  { label: "shopping", labelBn: "শপিং",          path: "https://shopping.sholok.com", external: true  },
+  { label: "news",     labelBn: "নিউজ",           path: "/news",                     external: false },
+  { label: "blog",     labelBn: "ব্লগ",            path: "/blog",                     external: false },
+  { label: "maps",     labelBn: "ম্যাপস",          path: "/maps",                     external: false },
+  { label: "finance",  labelBn: "ফাইন্যান্স",       path: "/finance",                  external: false },
+  { label: "jobPortal",labelBn: "জব পোর্টাল",     path: "/job-portal/",              external: false },
+  { label: "weather",  labelBn: "আবহাওয়া",         path: "/weather",                  external: false },
+];
+
+const HEADER_BRAND = "#1a0028";
+const NAV_PURPLE   = "#5D0096";
+
 const Header = () => {
   const { language, setLanguage, t } = useLanguage();
   const { unreadCount }   = useAppSelector((state) => state.notification);
   const { items: cartItems } = useAppSelector((state) => state.cart);
   const { isAuthenticated }  = useAppSelector((state) => state.auth);
   const location = useLocation();
-  const isHome = location.pathname === "/" || location.pathname === "/home" || location.pathname === "/search";
-  const [servicesOpen, setServicesOpen] = useState(false);
+  const [allMenuOpen, setAllMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const isBn = language === "BN";
+  const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!servicesOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setServicesOpen(false); };
+    if (!allMenuOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setAllMenuOpen(false); };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [servicesOpen]);
+  }, [allMenuOpen]);
 
-  useEffect(() => { setServicesOpen(false); }, [location.pathname]);
+  useEffect(() => { setAllMenuOpen(false); }, [location.pathname]);
+
+  // Close lang dropdown on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   const renderServiceIcon = (service: typeof ALL_SERVICES[0], index: number) => {
     const cls = "flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-secondary/60 transition-colors no-underline group";
@@ -74,128 +100,225 @@ const Header = () => {
       </>
     );
     return EXTERNAL_PATHS.has(service.path) ? (
-      <a key={index} href={service.path} className={cls} onClick={() => setServicesOpen(false)}>{inner}</a>
+      <a key={index} href={service.path} className={cls} onClick={() => setAllMenuOpen(false)}>{inner}</a>
     ) : (
-      <Link key={index} to={service.path} className={cls} onClick={() => setServicesOpen(false)}>{inner}</Link>
+      <Link key={index} to={service.path} className={cls} onClick={() => setAllMenuOpen(false)}>{inner}</Link>
+    );
+  };
+
+  const renderQuickLink = (link: typeof QUICK_LINKS[0], index: number) => {
+    const label = isBn ? link.labelBn : t(link.label);
+    const cls = "px-3 py-1 text-sm font-medium text-white/90 hover:text-white hover:bg-white/15 rounded transition-colors whitespace-nowrap";
+    return link.external ? (
+      <a key={index} href={link.path} className={cls}>{label}</a>
+    ) : (
+      <Link key={index} to={link.path} className={cls}>{label}</Link>
     );
   };
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
-        <div className={`w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 flex gap-1.5 sm:gap-2 ${isHome ? "items-center" : "items-start pt-2.5"}`}>
+      {/* ══════════════════════════════════════════
+          ROW 1 — Dark brand bar
+      ══════════════════════════════════════════ */}
+      <header
+        className="sticky top-0 z-50 shadow-lg"
+        style={{ backgroundColor: HEADER_BRAND }}
+      >
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3">
 
-          {/* ── All-services hamburger — far left ── */}
-          <button
-            onClick={() => setServicesOpen((v) => !v)}
-            className="p-1.5 rounded-full hover:bg-secondary transition-colors flex-shrink-0 mt-px"
-            aria-label="সব সার্ভিস"
-          >
-            {servicesOpen
-              ? <X    className="w-5 h-5 text-muted-foreground" />
-              : <Menu className="w-5 h-5 text-muted-foreground" />
-            }
-          </button>
+          {/* Logo */}
+          <Link to="/home" className="flex-shrink-0 select-none group">
+            <span className="font-logo text-xl sm:text-2xl font-black text-white tracking-tight leading-none group-hover:text-yellow-300 transition-colors">
+              SHOLOK
+            </span>
+            <span className="hidden lg:block text-[10px] text-white/50 tracking-widest font-normal -mt-0.5">
+              {isBn ? "পোর্টাল" : "PORTAL"}
+            </span>
+          </Link>
 
-          {/* ── Logo (home) | SearchBar (other pages) ── */}
-          {isHome ? (
-            <>
-              <Link to="/home" className="flex-shrink-0 select-none">
-                <span className="font-logo text-2xl font-black text-[#5D0096] tracking-tight leading-none">SHOLOK</span>
-              </Link>
-              {/* flex-1 spacer — pushes right-side actions to the edge */}
-              <div className="flex-1" />
-            </>
-          ) : (
-            <div className="flex-1 min-w-0">
-              <SearchBar hero />
+          {/* Search bar — central, flex-1 */}
+          <div className="flex-1 min-w-0">
+            <SearchBar hero />
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+
+            {/* Language selector */}
+            <div ref={langRef} className="relative hidden sm:block">
+              <button
+                onClick={() => setLangOpen(v => !v)}
+                className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
+              >
+                <span className="text-[10px] text-white/50">{isBn ? "ভাষা" : "Language"}</span>
+                <span className="text-xs font-bold text-white flex items-center gap-0.5">
+                  {isBn ? "বাংলা" : "English"}
+                  <ChevronDown className="w-3 h-3 text-white/60" />
+                </span>
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[100px]">
+                  <button
+                    onClick={() => { setLanguage("BN"); setLangOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 ${language === "BN" ? "font-bold text-[#5D0096]" : "text-gray-700"}`}
+                  >বাংলা</button>
+                  <button
+                    onClick={() => { setLanguage("EN"); setLangOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 ${language === "EN" ? "font-bold text-[#5D0096]" : "text-gray-700"}`}
+                  >English</button>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* ── Right-side actions ── */}
-          <div className={`flex items-center gap-0.5 sm:gap-1 flex-shrink-0 ${isHome ? "" : "mt-px"}`}>
+            {/* Theme toggle */}
+            <div className="hidden sm:flex items-center">
+              <div className="h-6 w-px bg-white/20 mx-0.5" />
+              <div className="[&>button]:text-white [&>button]:hover:bg-white/10">
+                <ThemeToggle />
+              </div>
+              <div className="h-6 w-px bg-white/20 mx-0.5" />
+            </div>
 
-            {/* Bell */}
-            <button className="p-1.5 sm:p-2 relative hover:bg-secondary rounded-full transition-colors">
-              <Bell className="w-5 h-5 text-muted-foreground" />
+            {/* Notifications bell */}
+            <button className="p-1.5 relative hover:bg-white/10 rounded-full transition-colors">
+              <Bell className="w-5 h-5 text-white" />
               {unreadCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]">
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
                   {unreadCount}
                 </Badge>
               )}
             </button>
 
-            {/* Cart */}
-            <a href="https://shopping.sholok.com" className="p-1.5 sm:p-2 relative hover:bg-secondary rounded-full transition-colors">
-              <ShoppingCart className="w-5 h-5 text-muted-foreground" />
-              {cartItems.length > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]">
-                  {cartItems.length}
-                </Badge>
-              )}
-            </a>
-
-            {/* Login / Profile */}
+            {/* Account */}
             {isAuthenticated ? (
               <Link
                 to="/profile"
-                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors font-medium text-sm"
+                className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight"
               >
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline">{t("profile")}</span>
+                <span className="text-[10px] text-white/50">{isBn ? "আমার" : "My"}</span>
+                <span className="text-xs font-bold text-white">{isBn ? "প্রোফাইল" : "Profile"}</span>
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors font-medium text-sm whitespace-nowrap"
+                className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight"
               >
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline">{t("login")}</span>
+                <span className="text-[10px] text-white/50">{isBn ? "হ্যালো," : "Hello,"}</span>
+                <span className="text-xs font-bold text-white">{isBn ? "সাইন ইন" : "Sign In"}</span>
               </Link>
             )}
 
-            {/* Theme toggle — hidden on xs, visible sm+ */}
-            <div className="hidden sm:flex items-center gap-1">
-              <div className="h-5 w-px bg-border" />
-              <ThemeToggle />
-            </div>
-
-            {/* Language selector — hidden on mobile (SearchBar has its own mode toggle) */}
-            <select
-              className="hidden sm:block bg-transparent text-sm font-medium text-muted-foreground hover:text-foreground outline-none cursor-pointer"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as "EN" | "BN")}
+            {/* Cart → Shopping */}
+            <a
+              href="https://shopping.sholok.com"
+              className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors"
+              aria-label="Shopping Cart"
             >
-              <option value="EN">EN</option>
-              <option value="BN">বাং</option>
-            </select>
+              <span className="relative">
+                <ShoppingCart className="w-6 h-6 text-white" />
+                {cartItems.length > 0 && (
+                  <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
+                    {cartItems.length}
+                  </Badge>
+                )}
+              </span>
+              <span className="hidden sm:flex flex-col text-left leading-tight">
+                <span className="text-[10px] text-white/50">{isBn ? "শপিং" : "Shopping"}</span>
+                <span className="text-xs font-bold text-yellow-300">{isBn ? "কার্ট" : "Cart"}</span>
+              </span>
+            </a>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════
+            ROW 2 — Purple navigation bar
+        ══════════════════════════════════════════ */}
+        <div
+          className="w-full"
+          style={{ backgroundColor: NAV_PURPLE }}
+        >
+          <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 flex items-center gap-0 overflow-x-auto scrollbar-none h-9">
+            {/* ☰ All button */}
+            <button
+              onClick={() => setAllMenuOpen(v => !v)}
+              className="flex items-center gap-1.5 px-3 h-full font-semibold text-sm text-white hover:bg-white/15 transition-colors flex-shrink-0 border-r border-white/20 mr-1"
+            >
+              <Menu className="w-4 h-4" />
+              <span>{isBn ? "সব" : "All"}</span>
+            </button>
+
+            {/* Quick links */}
+            {QUICK_LINKS.map((link, i) => renderQuickLink(link, i))}
           </div>
         </div>
       </header>
 
-      {/* ── All-services slide-in panel ── */}
-      {servicesOpen && (
+      {/* ══════════════════════════════════════════
+          All-services slide-in panel
+      ══════════════════════════════════════════ */}
+      {allMenuOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40"
-            style={{ top: "49px" }}
-            onClick={() => setServicesOpen(false)}
+            className="fixed inset-0 z-40 bg-black/30 dark:bg-black/50"
+            style={{ top: "89px" }}
+            onClick={() => setAllMenuOpen(false)}
           />
           <div
             className="fixed left-0 z-50 bg-card border-r border-b border-border shadow-2xl overflow-y-auto"
-            style={{ top: "49px", maxHeight: "calc(100vh - 49px)", width: "min(17rem, 90vw)" }}
+            style={{ top: "89px", maxHeight: "calc(100vh - 89px)", width: "min(20rem, 92vw)" }}
           >
-            <div className="flex items-center justify-between px-4 pt-4 pb-2">
-              <span className="text-sm font-semibold text-foreground">সব সার্ভিস</span>
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
+              <span className="text-sm font-bold" style={{ color: NAV_PURPLE }}>
+                {isBn ? "সব সার্ভিস" : "All Services"}
+              </span>
               <button
-                onClick={() => setServicesOpen(false)}
+                onClick={() => setAllMenuOpen(false)}
                 className="p-1 rounded-lg hover:bg-secondary/60 transition-colors"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-0.5 px-2 pb-4">
-              {ALL_SERVICES.map((s, i) => renderServiceIcon(s, i))}
+
+            {/* Sub-websites section */}
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                {isBn ? "শলোক প্ল্যাটফর্ম" : "Sholok Platforms"}
+              </p>
+              <div className="space-y-0.5">
+                {[
+                  { label: isBn ? "মেইন হোম"      : "Main Home",   path: "/home",                       external: false },
+                  { label: isBn ? "শপিং"            : "Shopping",    path: "https://shopping.sholok.com", external: true  },
+                  { label: isBn ? "নিউজ"            : "News",        path: "/news",                       external: false },
+                  { label: isBn ? "ব্লগ"            : "Blog",        path: "/blog",                       external: false },
+                  { label: isBn ? "জব পোর্টাল"     : "Job Portal",  path: "/job-portal/",                external: false },
+                  { label: isBn ? "স্মার্ট স্টোর"  : "Smart Store", path: "/smartstore",                 external: false },
+                ].map((item, i) => {
+                  const cls = "flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors";
+                  return item.external ? (
+                    <a key={i} href={item.path} className={cls} onClick={() => setAllMenuOpen(false)}>
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: NAV_PURPLE }} />
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link key={i} to={item.path} className={cls} onClick={() => setAllMenuOpen(false)}>
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: NAV_PURPLE }} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* All services grid */}
+            <div className="px-4 py-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                {isBn ? "সব সার্ভিস" : "All Services"}
+              </p>
+              <div className="grid grid-cols-4 gap-0.5">
+                {ALL_SERVICES.map((s, i) => renderServiceIcon(s, i))}
+              </div>
             </div>
           </div>
         </>
