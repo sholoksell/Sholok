@@ -1,5 +1,6 @@
 import Header from "@/components/portal/Header";
 import HomeHero from "@/components/portal/HomeHero";
+import NewsStand from "@/components/portal/NewsStand";
 import ShoppingSection from "@/components/portal/ShoppingSection";
 import RealEstateSection from "@/components/portal/RealEstateSection";
 import CafeSection from "@/components/portal/CafeSection";
@@ -17,6 +18,9 @@ const Index = () => {
 
       <main className="flex-1 w-full">
         <HomeHero />
+
+        {/* Newsstand — below hero, above shopping sections */}
+        <NewsStand />
 
         <div className="max-w-7xl mx-auto px-4 pt-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

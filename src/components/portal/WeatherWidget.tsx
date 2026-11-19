@@ -48,6 +48,21 @@ interface WeatherData {
   fetchedAt:     Date;
 }
 
+function cacheKey(lat: number, lon: number) { return `weather_${lat}_${lon}`; }
+
+function saveCache(lat: number, lon: number, data: WeatherData) {
+  try { localStorage.setItem(cacheKey(lat, lon), JSON.stringify({ ...data, fetchedAt: data.fetchedAt.toISOString() })); } catch { /* ignore */ }
+}
+
+function loadCache(lat: number, lon: number): WeatherData | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(lat, lon));
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    return { ...p, fetchedAt: new Date(p.fetchedAt) };
+  } catch { return null; }
+}
+
 async function fetchWeather(lat: number, lon: number): Promise<WeatherData> {
   const url =
     `https://api.open-meteo.com/v1/forecast` +
@@ -57,10 +72,10 @@ async function fetchWeather(lat: number, lon: number): Promise<WeatherData> {
     `&timezone=Asia%2FDhaka&forecast_days=1`;
 
   const r = await fetch(url);
-  if (!r.ok) throw new Error("fetch failed");
+  if (!r.ok) throw new Error(`${r.status}`);
   const d = await r.json();
 
-  return {
+  const data: WeatherData = {
     temperature:   Math.round(d.current.temperature_2m),
     feelsLike:     Math.round(d.current.apparent_temperature),
     humidity:      d.current.relative_humidity_2m,
@@ -72,6 +87,8 @@ async function fetchWeather(lat: number, lon: number): Promise<WeatherData> {
     hourlyRain:    d.hourly.precipitation_probability,
     fetchedAt:     new Date(),
   };
+  saveCache(lat, lon, data);
+  return data;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -89,8 +106,17 @@ const WeatherWidget = () => {
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setWeather(await fetchWeather(city.lat, city.lon)); }
-    catch { setError(isBN ? "আবহাওয়া তথ্য পাওয়া যাচ্ছে না" : "Could not fetch weather"); }
+    try {
+      setWeather(await fetchWeather(city.lat, city.lon));
+    } catch {
+      const cached = loadCache(city.lat, city.lon);
+      if (cached) {
+        setWeather(cached);
+        setError(isBN ? "সাময়িক সমস্যা — পুরনো তথ্য দেখানো হচ্ছে" : "Temporary outage — showing last known data");
+      } else {
+        setError(isBN ? "আবহাওয়া তথ্য পাওয়া যাচ্ছে না" : "Weather unavailable");
+      }
+    }
     finally { setLoading(false); }
   }, [city.lat, city.lon, isBN]);
 
@@ -158,7 +184,7 @@ const WeatherWidget = () => {
           <div className="flex items-center justify-center h-20">
             <RefreshCw className="w-6 h-6 animate-spin text-white/70" />
           </div>
-        ) : error ? (
+        ) : !weather ? (
           <div className="text-center py-4">
             <p className="text-white/80 text-sm">{error}</p>
             <button onClick={load} className="mt-2 text-xs underline text-white/70">
@@ -240,6 +266,11 @@ const WeatherWidget = () => {
       )}
 
       {/* ── Footer ── */}
+      {error && weather && (
+        <div className="px-4 py-1.5 bg-amber-50 dark:bg-amber-950/30 border-t border-amber-200 dark:border-amber-800">
+          <p className="text-[10px] text-amber-700 dark:text-amber-400">{error}</p>
+        </div>
+      )}
       <div className="px-4 py-2 border-t border-border flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground">
           {weather
