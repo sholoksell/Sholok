@@ -125,21 +125,18 @@ const Header = () => {
         className="sticky top-0 z-50 shadow-lg"
         style={{ backgroundColor: HEADER_BRAND }}
       >
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3">
+        <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-2 sm:gap-3">
 
           {/* Logo */}
-          <Link to="/home" className="flex-shrink-0 select-none group">
-            <span className="font-logo text-xl sm:text-2xl font-black text-white tracking-tight leading-none group-hover:text-yellow-300 transition-colors">
+          <Link to="/home" className="flex-shrink-0 select-none group mr-1">
+            <span className="font-logo text-lg sm:text-xl font-black text-white tracking-tight leading-none group-hover:text-yellow-300 transition-colors">
               SHOLOK
-            </span>
-            <span className="hidden lg:block text-[10px] text-white/50 tracking-widest font-normal -mt-0.5">
-              {isBn ? "পোর্টাল" : "PORTAL"}
             </span>
           </Link>
 
-          {/* Search bar — central, flex-1 */}
+          {/* Search bar — central, flex-1 (Amazon inline compact) */}
           <div className="flex-1 min-w-0">
-            <SearchBar hero />
+            <SearchBar amazon />
           </div>
 
           {/* Right actions */}

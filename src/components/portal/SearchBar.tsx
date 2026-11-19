@@ -1,4 +1,4 @@
-import { Mic, MicOff, Camera, Search, X, Tag, LayoutGrid, Sparkles } from "lucide-react";
+import { Mic, MicOff, Camera, Search, X, Tag, LayoutGrid, Sparkles, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -6,7 +6,7 @@ import { transliterateWord, transliterateText, buildSearchTerms } from "@/lib/tr
 import { searchService, SuggestionItem, getLocalizedName } from "@/services/search.service";
 import { ImageSearchModal } from "@/components/portal/ImageSearchModal";
 
-interface SearchBarProps { initialQuery?: string; hero?: boolean; }
+interface SearchBarProps { initialQuery?: string; hero?: boolean; amazon?: boolean; }
 type InputMode = "EN" | "BN";
 
 const SHOPPING_BASE = "https://shopping.sholok.com";
@@ -22,7 +22,7 @@ const getMode = (): InputMode => {
   try { const v = localStorage.getItem(MODE_KEY); return v === "BN" ? "BN" : "EN"; } catch { return "EN"; }
 };
 
-const SearchBar = ({ initialQuery = "", hero = false }: SearchBarProps) => {
+const SearchBar = ({ initialQuery = "", hero = false, amazon = false }: SearchBarProps) => {
   const [query,      setQuery]    = useState(initialQuery);
   const [inputMode,  setMode]     = useState<InputMode>(getMode);
   const [apiResults, setApi]      = useState<SuggestionItem[]>([]);
@@ -294,6 +294,63 @@ const SearchBar = ({ initialQuery = "", hero = false }: SearchBarProps) => {
           </div>
         </div>
 
+        <ImageSearchModal file={imageFile} onClose={() => setImageFile(null)} />
+      </div>
+    );
+  }
+
+  // ── Amazon variant (header integrated compact bar) ──────────────────────────
+  if (amazon) {
+    return (
+      <div className="w-full relative" ref={wrapRef}>
+        <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
+        <form onSubmit={handleSearch}>
+          <div className="flex items-center h-10 bg-white rounded overflow-hidden w-full">
+            {/* Category selector */}
+            <div className="flex-shrink-0 flex items-center h-full px-2.5 gap-1 bg-gray-100 border-r border-gray-300 hover:bg-gray-200 cursor-default select-none">
+              <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                {language === "BN" ? "সব" : "All"}
+              </span>
+              <ChevronDown className="w-3 h-3 text-gray-500" />
+            </div>
+            {/* Search input */}
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => hasDropContent && setDrop(true)}
+              placeholder={language === "BN" ? "খুঁজুন…" : "Search…"}
+              className="flex-1 min-w-0 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-sm px-3"
+              lang={inputMode === "BN" ? "bn" : "en"}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {query && (
+              <button type="button" tabIndex={-1}
+                onClick={() => { setQuery(""); setApi([]); setHints([]); setDrop(false); }}
+                className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {/* Search button */}
+            <button type="submit"
+              className="flex-shrink-0 h-full px-4 bg-[#5D0096] hover:bg-[#4a0078] text-white flex items-center justify-center transition-colors">
+              <Search className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+        {showPreview && (
+          <div className="mt-0.5 px-2 flex items-center gap-1.5 text-xs">
+            <span className="text-white/60">→</span>
+            <button type="button" className="text-yellow-300 font-semibold hover:underline"
+              onClick={() => pickDictHint(wordPreview)}>
+              {wordPreview}
+            </button>
+          </div>
+        )}
+        {dropdown}
         <ImageSearchModal file={imageFile} onClose={() => setImageFile(null)} />
       </div>
     );
