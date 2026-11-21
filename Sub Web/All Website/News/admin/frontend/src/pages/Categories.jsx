@@ -15,7 +15,7 @@ export default function Categories() {
 
   const load = async () => {
     setLoading(true);
-    try { const r = await api.get('/categories?limit=100'); setCats(r.categories || []); } catch {}
+    try { const r = await api.get('/categories?limit=100'); setCats(Array.isArray(r) ? r : (r.categories || [])); } catch {}
     setLoading(false);
   };
 

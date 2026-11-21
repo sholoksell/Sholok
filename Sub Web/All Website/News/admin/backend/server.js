@@ -27,6 +27,7 @@ app.use('/authors', require('./routes/authors'));
 app.use('/media', require('./routes/media'));
 app.use('/sources', require('./routes/sources'));
 app.use('/public', require('./routes/public'));
+app.use('/translate', require('./routes/translate'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'sholok-news-api', port: PORT }));

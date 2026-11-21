@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
 
@@ -21,10 +21,21 @@ const Textarea = ({ style, ...props }) => (
   <textarea style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e0d6f5', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box', resize: 'vertical', ...style }} {...props} />
 );
 
+const TBtn = ({ onClick, loading }) => (
+  <button type="button" onClick={onClick} disabled={loading} title="Translate" style={{
+    marginLeft: 6, padding: '6px 12px', background: loading ? '#ccc' : '#ede9f7',
+    border: `1.5px solid ${P}`, borderRadius: 6, fontSize: 12, color: P,
+    cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 600, whiteSpace: 'nowrap',
+  }}>
+    {loading ? '…' : '🌐 Translate'}
+  </button>
+);
+
 export default function NewsForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const fileRef = useRef(null);
 
   const [form, setForm] = useState({
     title_en: '', title_bn: '', slug: '', summary_en: '', summary_bn: '',
@@ -40,16 +51,18 @@ export default function NewsForm() {
   const [loading, setLoading] = useState(isEdit);
   const [error, setError] = useState('');
   const [tab, setTab] = useState('en');
+  const [uploading, setUploading] = useState(false);
+  const [translating, setTranslating] = useState({});
 
   useEffect(() => {
     Promise.all([
       api.get('/categories?limit=100'),
       api.get('/authors?limit=100'),
-      api.get('/sources?limit=100').catch(() => ({ sources: [] })),
+      api.get('/sources?limit=100').catch(() => []),
     ]).then(([cats, auths, srcs]) => {
-      setCategories(cats.categories || []);
-      setAuthors(auths.authors || []);
-      setSources(srcs.sources || []);
+      setCategories(Array.isArray(cats) ? cats : (cats.categories || []));
+      setAuthors(Array.isArray(auths) ? auths : (auths.authors || []));
+      setSources(Array.isArray(srcs) ? srcs : (srcs.sources || []));
     });
     if (isEdit) {
       api.get(`/news/${id}`).then(r => {
@@ -73,6 +86,38 @@ export default function NewsForm() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const autoSlug = (title) => title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 100);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await api.postForm('/media/upload', fd);
+      if (r.url) set('featured_image', r.url);
+    } catch (err) {
+      setError('Image upload failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const translate = async (field, fromLang, toLang) => {
+    const text = form[`${field}_${fromLang}`];
+    if (!text.trim()) return;
+    const key = `${field}_${toLang}`;
+    setTranslating(t => ({ ...t, [key]: true }));
+    try {
+      const r = await api.post('/translate', { text, from: fromLang, to: toLang });
+      if (r.translation) set(`${field}_${toLang}`, r.translation);
+    } catch (err) {
+      setError('Translation failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setTranslating(t => ({ ...t, [key]: false }));
+    }
+  };
 
   const handleSubmit = async (e, status) => {
     e.preventDefault();
@@ -125,19 +170,37 @@ export default function NewsForm() {
 
             <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 2px 8px rgba(93,0,150,0.07)', marginBottom: 24 }}>
               <Field label={`Title (${tab === 'en' ? 'English' : 'Bengali'})`} required>
-                <Input value={form[`title_${tab}`]} onChange={e => {
-                  set(`title_${tab}`, e.target.value);
-                  if (tab === 'en' && !isEdit) set('slug', autoSlug(e.target.value));
-                }} />
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Input value={form[`title_${tab}`]} onChange={e => {
+                    set(`title_${tab}`, e.target.value);
+                    if (tab === 'en' && !isEdit) set('slug', autoSlug(e.target.value));
+                  }} />
+                  <TBtn
+                    loading={translating[`title_${tab === 'en' ? 'bn' : 'en'}`]}
+                    onClick={() => translate('title', tab, tab === 'en' ? 'bn' : 'en')}
+                  />
+                </div>
               </Field>
               <Field label="Slug" required>
                 <Input value={form.slug} onChange={e => set('slug', e.target.value)} placeholder="auto-generated from title" />
               </Field>
               <Field label={`Summary (${tab === 'en' ? 'English' : 'Bengali'})`}>
-                <Textarea rows={3} value={form[`summary_${tab}`]} onChange={e => set(`summary_${tab}`, e.target.value)} />
+                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                  <Textarea rows={3} value={form[`summary_${tab}`]} onChange={e => set(`summary_${tab}`, e.target.value)} />
+                  <TBtn
+                    loading={translating[`summary_${tab === 'en' ? 'bn' : 'en'}`]}
+                    onClick={() => translate('summary', tab, tab === 'en' ? 'bn' : 'en')}
+                  />
+                </div>
               </Field>
               <Field label={`Body (${tab === 'en' ? 'English' : 'Bengali'})`} required>
-                <Textarea rows={16} value={form[`body_${tab}`]} onChange={e => set(`body_${tab}`, e.target.value)} placeholder="Article content (HTML supported)" />
+                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                  <Textarea rows={16} value={form[`body_${tab}`]} onChange={e => set(`body_${tab}`, e.target.value)} placeholder="Article content (HTML supported)" />
+                  <TBtn
+                    loading={translating[`body_${tab === 'en' ? 'bn' : 'en'}`]}
+                    onClick={() => translate('body', tab, tab === 'en' ? 'bn' : 'en')}
+                  />
+                </div>
               </Field>
             </div>
 
@@ -221,6 +284,19 @@ export default function NewsForm() {
             <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(93,0,150,0.07)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: P, margin: '0 0 14px' }}>Featured Image</h3>
               <Input value={form.featured_image} onChange={e => set('featured_image', e.target.value)} placeholder="Image URL or /news-uploads/…" />
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                  style={{ padding: '8px 14px', background: uploading ? '#ccc' : '#ede9f7', border: `1.5px solid ${P}`, borderRadius: 7, fontSize: 13, color: P, cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+                  {uploading ? 'Uploading…' : '📂 Browse & Upload'}
+                </button>
+                {form.featured_image && (
+                  <button type="button" onClick={() => set('featured_image', '')}
+                    style={{ padding: '8px 10px', background: '#fff0f0', border: `1.5px solid ${A}`, borderRadius: 7, fontSize: 12, color: A, cursor: 'pointer' }}>
+                    ✕ Remove
+                  </button>
+                )}
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
               {form.featured_image && (
                 <img src={form.featured_image} alt="" style={{ marginTop: 10, width: '100%', borderRadius: 8, maxHeight: 160, objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
               )}

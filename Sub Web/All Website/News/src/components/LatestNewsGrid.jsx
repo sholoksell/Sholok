@@ -5,33 +5,38 @@ import { fetchLatest, fetchNews } from '../utils/api';
 import { useInView } from '../hooks/useInView';
 
 function timeAgo(dateStr, isBn) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const diff = Math.floor((Date.now() - date) / 60000);
   if (diff < 1) return isBn ? 'এইমাত্র' : 'Just now';
   if (diff < 60) return isBn ? `${diff} মিনিট আগে` : `${diff}m ago`;
   const h = Math.floor(diff / 60);
   if (h < 24) return isBn ? `${h} ঘণ্টা আগে` : `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return isBn ? `${d} দিন আগে` : `${d}d ago`;
+  const days = Math.floor(h / 24);
+  if (days === 1) return isBn ? 'গতকাল' : 'Yesterday';
+  if (days < 7) return isBn ? `${days} দিন আগে` : `${days}d ago`;
+  return date.toLocaleDateString(isBn ? 'bn-BD' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function NewsCard({ article, isBn, t, large, delay }) {
   const [ref, inView] = useInView(0.08);
   const title = isBn && article.title_bn ? article.title_bn : article.title_en;
-  const excerpt = isBn && article.excerpt_bn ? article.excerpt_bn : article.excerpt_en;
+  const excerpt = isBn && article.summary_bn ? article.summary_bn : article.summary_en;
 
   if (large) {
     return (
       <div ref={ref} className={`reveal ${inView ? 'in-view' : ''}`} style={{ transitionDelay: `${delay}ms` }}>
         <Link to={`/article/${article.slug}`} className="card-news block rounded-2xl overflow-hidden group bg-white dark:bg-surface-dark">
-          {article.image_url && (
+          {article.featured_image && (
             <div className="aspect-[16/9] overflow-hidden bg-gray-100 dark:bg-gray-800">
-              <img src={article.image_url} alt={title} className="w-full h-full object-cover img-hover-zoom" />
+              <img src={article.featured_image} alt={title} className="w-full h-full object-cover img-hover-zoom" />
             </div>
           )}
           <div className="p-5">
             <div className="flex items-center gap-2 mb-2">
               <span className="badge-category text-xs">{article.category_name}</span>
-              <span className={`text-gray-400 text-xs ${isBn ? 'font-bangla' : ''}`}>{timeAgo(article.published_at, isBn)}</span>
+              <span className={`text-gray-400 text-xs ${isBn ? 'font-bangla' : ''}`}>{timeAgo(article.publish_at, isBn)}</span>
             </div>
             <h3 className={`font-editorial font-bold text-gray-900 dark:text-white leading-snug mb-2 group-hover:text-primary-800 dark:group-hover:text-primary-300 transition-colors ${isBn ? 'font-bangla text-lg' : 'text-xl'}`}>
               {title}
@@ -48,9 +53,9 @@ function NewsCard({ article, isBn, t, large, delay }) {
   return (
     <div ref={ref} className={`reveal ${inView ? 'in-view' : ''}`} style={{ transitionDelay: `${delay}ms` }}>
       <Link to={`/article/${article.slug}`} className="card-news flex gap-3 p-3 rounded-xl group">
-        {article.image_url && (
+        {article.featured_image && (
           <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
-            <img src={article.image_url} alt={title} className="w-full h-full object-cover img-hover-zoom" />
+            <img src={article.featured_image} alt={title} className="w-full h-full object-cover img-hover-zoom" />
           </div>
         )}
         <div className="flex-1 min-w-0 py-0.5">
@@ -61,7 +66,7 @@ function NewsCard({ article, isBn, t, large, delay }) {
             {title}
           </h3>
           <span className={`text-[11px] text-gray-400 mt-1.5 block ${isBn ? 'font-bangla' : ''}`}>
-            {timeAgo(article.published_at, isBn)}
+            {timeAgo(article.publish_at, isBn)}
           </span>
         </div>
       </Link>

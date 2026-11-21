@@ -17,9 +17,9 @@ function ArticleRow({ article, isBn, rank }) {
   const title = isBn && article.title_bn ? article.title_bn : article.title_en;
   return (
     <Link to={`/article/${article.slug}`} className="flex items-start gap-3 group py-2.5 border-b border-gray-50 dark:border-gray-800 last:border-0">
-      {article.image_url ? (
+      {article.featured_image ? (
         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
-          <img src={article.image_url} alt={title} className="w-full h-full object-cover img-hover-zoom" />
+          <img src={article.featured_image} alt={title} className="w-full h-full object-cover img-hover-zoom" />
         </div>
       ) : (
         <span className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center text-xs font-bold text-primary-800 dark:text-primary-400 flex-shrink-0 mt-0.5">{rank}</span>
@@ -75,10 +75,10 @@ function CategoryBlock({ catKey, slug, isBn, t }) {
         ) : (
           <>
             {/* Featured article */}
-            {featured.image_url && (
+            {featured.featured_image && (
               <Link to={`/article/${featured.slug}`} className="block group mb-3">
                 <div className="aspect-[16/7] overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 mb-2.5">
-                  <img src={featured.image_url} alt={isBn && featured.title_bn ? featured.title_bn : featured.title_en} className="w-full h-full object-cover img-hover-zoom" />
+                  <img src={featured.featured_image} alt={isBn && featured.title_bn ? featured.title_bn : featured.title_en} className="w-full h-full object-cover img-hover-zoom" />
                 </div>
                 <h4 className={`font-semibold text-sm text-gray-900 dark:text-white leading-snug line-clamp-2 group-hover:text-primary-800 dark:group-hover:text-primary-300 transition-colors ${isBn ? 'font-bangla' : 'font-editorial'}`}>
                   {isBn && featured.title_bn ? featured.title_bn : featured.title_en}

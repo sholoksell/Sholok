@@ -5,26 +5,31 @@ import { fetchFeatured, fetchLatest } from '../utils/api';
 import { useInView } from '../hooks/useInView';
 
 function timeAgo(dateStr, isBn) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const diff = Math.floor((Date.now() - d) / 60000);
   if (diff < 1) return isBn ? 'এইমাত্র' : 'Just now';
   if (diff < 60) return isBn ? `${diff} মিনিট আগে` : `${diff}m ago`;
   const h = Math.floor(diff / 60);
   if (h < 24) return isBn ? `${h} ঘণ্টা আগে` : `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return isBn ? `${d} দিন আগে` : `${d}d ago`;
+  const days = Math.floor(h / 24);
+  if (days === 1) return isBn ? 'গতকাল' : 'Yesterday';
+  if (days < 7) return isBn ? `${days} দিন আগে` : `${days}d ago`;
+  return d.toLocaleDateString(isBn ? 'bn-BD' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function FeaturedCard({ article, isBn, t }) {
   const [ref, inView] = useInView(0.1);
   const title = isBn && article.title_bn ? article.title_bn : article.title_en;
-  const excerpt = isBn && article.excerpt_bn ? article.excerpt_bn : article.excerpt_en;
+  const excerpt = isBn && article.summary_bn ? article.summary_bn : article.summary_en;
 
   return (
     <div ref={ref} className={`reveal ${inView ? 'in-view' : ''}`}>
       <Link to={`/article/${article.slug}`} className="block group relative overflow-hidden rounded-2xl bg-gray-900 aspect-[16/10] lg:aspect-[16/9]">
-        {article.image_url ? (
+        {article.featured_image ? (
           <img
-            src={article.image_url}
+            src={article.featured_image}
             alt={title}
             className="absolute inset-0 w-full h-full object-cover img-hover-zoom opacity-80 group-hover:opacity-90 transition-opacity duration-500"
           />
@@ -39,7 +44,7 @@ function FeaturedCard({ article, isBn, t }) {
           <div className="flex items-center gap-2 mb-3">
             <span className="badge-breaking text-xs">{t('sections.breakingNews')}</span>
             <span className={`text-white/60 text-xs ${isBn ? 'font-bangla' : ''}`}>
-              {timeAgo(article.published_at, isBn)}
+              {timeAgo(article.publish_at, isBn)}
             </span>
           </div>
           <h2 className={`font-editorial font-bold text-white leading-tight mb-3 group-hover:underline underline-offset-4 ${isBn ? 'font-bangla text-2xl lg:text-3xl' : 'text-2xl lg:text-4xl'}`}>
@@ -69,9 +74,9 @@ function SecondaryCard({ article, isBn, t, index }) {
   return (
     <div ref={ref} className={`reveal ${inView ? 'in-view' : ''}`} style={{ transitionDelay: `${index * 80}ms` }}>
       <Link to={`/article/${article.slug}`} className="card-news flex gap-3 p-3 rounded-xl group">
-        {article.image_url && (
+        {article.featured_image && (
           <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
-            <img src={article.image_url} alt={title} className="w-full h-full object-cover img-hover-zoom" />
+            <img src={article.featured_image} alt={title} className="w-full h-full object-cover img-hover-zoom" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -80,7 +85,7 @@ function SecondaryCard({ article, isBn, t, index }) {
             {title}
           </h3>
           <span className={`text-[11px] text-gray-400 mt-1 block ${isBn ? 'font-bangla' : ''}`}>
-            {timeAgo(article.published_at, isBn)}
+            {timeAgo(article.publish_at, isBn)}
           </span>
         </div>
       </Link>
