@@ -1,95 +1,200 @@
-import { FileText, ArrowRight, Calendar, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { FileText, ArrowRight, Clock, AlertCircle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const articles = [
-    {
-        title: "Premier League: Manchester City vs Arsenal Preview",
-        category: "sports",
-        icon: "⚽",
-        time: "4 min",
-        date: "Jan 9, 2024",
-        image: null
-    },
-    {
-        title: "Global Economy Outlook: What to Expect in Q1 2024",
-        category: "economy",
-        icon: "📈",
-        time: "8 min",
-        date: "Jan 8, 2024",
-        image: null
-    },
-    {
-        title: "Winter Fashion Trends 2024: Cozy Meets Chic",
-        category: "fashionBeauty",
-        icon: "👢",
-        time: "5 min",
-        date: "Jan 7, 2024",
-        image: null
-    },
-    {
-        title: "Authentic Biryani Recipe: Secrets from Master Chefs",
-        category: "food",
-        icon: "🥘",
-        time: "10 min",
-        date: "Jan 7, 2024",
-        image: null
-    }
+interface BlogPost {
+  id: number;
+  title: string;
+  titleBn?: string;
+  titleEn?: string;
+  title_bn?: string;
+  title_en?: string;
+  slug: string;
+  featuredImage?: string | null;
+  featured_image?: string | null;
+  publishedAt?: string;
+  published_at?: string;
+  createdAt?: string;
+  created_at?: string;
+  category?: { name_en?: string; name_bn?: string; nameEn?: string; nameBn?: string };
+  category_name_en?: string;
+  category_name_bn?: string;
+}
+
+const BLOG_BASE = "https://blog.sholok.com";
+const API_PATHS = [
+  "/api/posts?limit=6&status=published",
+  "/api/posts?limit=6",
 ];
 
+function timeAgo(dateStr: string | null | undefined, isBn: boolean): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  const diff = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (diff < 1) return isBn ? "এইমাত্র" : "Just now";
+  if (diff < 60) return isBn ? `${diff} মিনিট আগে` : `${diff}m ago`;
+  const h = Math.floor(diff / 60);
+  if (h < 24) return isBn ? `${h} ঘণ্টা আগে` : `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days === 1) return isBn ? "গতকাল" : "Yesterday";
+  if (days < 7) return isBn ? `${days} দিন আগে` : `${days}d ago`;
+  return date.toLocaleDateString(isBn ? "bn-BD" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+async function fetchPosts(): Promise<BlogPost[]> {
+  for (const path of API_PATHS) {
+    try {
+      const r = await fetch(`${BLOG_BASE}${path}`);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const arr: BlogPost[] = Array.isArray(data)
+        ? data
+        : (data.posts ?? data.data ?? data.articles ?? []);
+      if (arr.length > 0) return arr.slice(0, 6);
+    } catch {}
+  }
+  throw new Error("unavailable");
+}
+
 const BlogSection = () => {
-    const { t } = useLanguage();
+  const { language } = useLanguage();
+  const isBn = language === "BN";
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-    return (
-        <div className="w-full max-w-7xl mx-auto px-4 py-8 bg-secondary/30">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-foreground" />
-                    <h2 className="text-xl font-bold text-foreground">{t("blogArticles")}</h2>
-                </div>
-                <Link to="/blog" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
-                    {t("viewAll")} <ArrowRight className="w-4 h-4" />
-                </Link>
-            </div>
+  useEffect(() => {
+    setLoading(true);
+    setFailed(false);
+    fetchPosts()
+      .then(setPosts)
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false));
+  }, []);
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Featured Card */}
-                <div className="md:col-span-1 bg-card rounded-xl border border-border overflow-hidden">
-                    <div className="aspect-video bg-secondary flex items-center justify-center relative">
-                        <span className="absolute top-4 left-4 px-2 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">{t("featured")}</span>
-                        <span className="text-6xl">🎬</span>
-                    </div>
-                    <div className="p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-semibold text-muted-foreground">{t("koreanSeries")}</span>
-                        </div>
-                        <h3 className="text-lg font-bold mb-2">Top 10 Must-Watch K-Dramas of 2024</h3>
-                        <p className="text-xs text-muted-foreground">Discover the latest hits taking the world by storm...</p>
-                    </div>
-                </div>
-
-                {/* List */}
-                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {articles.map((article, index) => (
-                        <Link key={index} to={`/blog/${index}`} className="flex gap-4 p-4 bg-card rounded-xl border border-border hover:shadow-md transition-all">
-                            <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
-                                {article.icon}
-                            </div>
-                            <div>
-                                <span className="text-xs font-semibold text-portal-purple mb-1 block">{t(article.category)}</span>
-                                <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2">{article.title}</h3>
-                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {article.time}</span>
-                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {article.date}</span>
-                                </div>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
-            </div>
+  return (
+    <div className="w-full bg-card rounded-xl border border-border overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">
+            {isBn ? "ব্লগ" : "Blog"}
+          </h2>
         </div>
-    );
+        <a
+          href={BLOG_BASE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          {isBn ? "আরও দেখুন" : "View all"}{" "}
+          <ArrowRight className="w-3 h-3" />
+        </a>
+      </div>
+
+      <div className="p-4">
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex gap-3 animate-pulse">
+                <div className="w-16 h-14 bg-secondary rounded-lg flex-shrink-0" />
+                <div className="flex-1 space-y-2 py-1">
+                  <div className="h-3 bg-secondary rounded w-3/4" />
+                  <div className="h-3 bg-secondary rounded w-1/2" />
+                  <div className="h-2.5 bg-secondary rounded w-1/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error / CORS fallback */}
+        {failed && !loading && (
+          <div className="text-center py-6">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+              <AlertCircle className="w-4 h-4" />
+              {isBn ? "ব্লগ লোড করা যায়নি" : "Could not load blog posts"}
+            </div>
+            <a
+              href={BLOG_BASE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-primary-foreground transition-colors"
+              style={{ backgroundColor: "#5D0096" }}
+            >
+              {isBn ? "ব্লগ পরিদর্শন করুন" : "Visit Blog"}
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+        )}
+
+        {/* Posts list */}
+        {!loading && !failed && posts.length === 0 && (
+          <div className="text-center py-6 text-sm text-muted-foreground">
+            {isBn ? "কোনো পোস্ট পাওয়া যায়নি" : "No posts available"}
+          </div>
+        )}
+
+        {!loading && !failed && posts.length > 0 && (
+          <div className="space-y-1">
+            {posts.map((post, i) => {
+              const title = isBn
+                ? post.titleBn || post.title_bn || post.title
+                : post.titleEn || post.title_en || post.title;
+              const catName = isBn
+                ? post.category?.nameBn || post.category?.name_bn || post.category_name_bn || post.category_name_en || ""
+                : post.category?.nameEn || post.category?.name_en || post.category_name_en || "";
+              const dateStr = post.publishedAt || post.published_at || post.createdAt || post.created_at;
+              const img = post.featuredImage || post.featured_image;
+              const href = `${BLOG_BASE}/${post.slug}`;
+
+              return (
+                <a
+                  key={post.id ?? i}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors group"
+                >
+                  {img ? (
+                    <img
+                      src={img.startsWith("http") ? img : `${BLOG_BASE}${img}`}
+                      alt={title}
+                      className="w-16 h-14 object-cover rounded-lg flex-shrink-0"
+                      onError={e => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-16 h-14 bg-secondary rounded-lg flex-shrink-0 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    {catName && (
+                      <span className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-0.5 block">
+                        {catName}
+                      </span>
+                    )}
+                    <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                      {title}
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{timeAgo(dateStr, isBn)}</span>
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default BlogSection;

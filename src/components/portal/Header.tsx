@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Bell, ShoppingCart, User, Menu, X,
+  Bell, ShoppingCart, User, Menu, X, Search,
   Mail, Coffee, ShoppingCart as CartIcon, Newspaper, LineChart, MapPin,
   BookOpen, Music, FileText, Languages, Wallet, Store,
   TrendingUp, Cloud, Trophy, Tv, BookMarked, Building2,
@@ -21,27 +21,27 @@ const EXTERNAL_PATHS = new Set([
 ]);
 
 const ALL_SERVICES = [
-  { icon: Mail,        label: "mail",        color: "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",             path: "/mail/" },
-  { icon: Coffee,      label: "cafe",         color: "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",         path: "/cafe" },
-  { icon: FileText,    label: "blog",         color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",  path: "/blog" },
-  { icon: CartIcon,    label: "shopping",     color: "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",             path: "https://shopping.sholok.com" },
-  { icon: Newspaper,   label: "news",         color: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400",         path: "/news" },
-  { icon: MapPin,      label: "maps",         color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400",             path: "/maps" },
-  { icon: BookOpen,    label: "webtoon",      color: "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400",     path: "/webtoon/" },
-  { icon: Store,       label: "smartStore",   color: "bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400",             path: "/smartstore" },
-  { icon: Wallet,      label: "pay",          color: "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400",         path: "/pay" },
-  { icon: Music,       label: "music",        color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",     path: "/music/" },
-  { icon: Tv,          label: "tv",           color: "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400",     path: "/tv" },
-  { icon: BookMarked,  label: "series",       color: "bg-pink-100 text-pink-600 dark:bg-pink-900/40 dark:text-pink-400",             path: "/series/" },
-  { icon: Languages,   label: "translate",    color: "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400",     path: "/translate" },
-  { icon: BookOpen,    label: "dictionary",   color: "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/40 dark:text-fuchsia-400", path: "/dictionary" },
-  { icon: TrendingUp,  label: "finance",      color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400",     path: "/finance" },
-  { icon: Trophy,      label: "sports",       color: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",                 path: "/sports/" },
-  { icon: Cloud,       label: "weather",      color: "bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400",                 path: "/weather" },
-  { icon: Building2,   label: "realEstate",   color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400", path: "/realestate" },
-  { icon: LineChart,   label: "knowledgeIn",  color: "bg-lime-100 text-lime-600 dark:bg-lime-900/40 dark:text-lime-400",             path: "/qna" },
-  { icon: Briefcase,   label: "jobPortal",    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",             path: "/job-portal/" },
-  { icon: ShieldCheck, label: "adminPanel",   color: "bg-gray-200 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300",             path: "/home/admin/" },
+  { icon: Mail,        label: "mail",        labelBn: "মেইল",           labelEn: "Mail",         status: "live" as const, category: "communication", color: "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",             path: "/mail/" },
+  { icon: CartIcon,    label: "shopping",    labelBn: "শপিং",            labelEn: "Shopping",     status: "live" as const, category: "shopping",      color: "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",             path: "https://shopping.sholok.com" },
+  { icon: Store,       label: "smartStore",  labelBn: "স্মার্ট স্টোর",   labelEn: "Smart Store",  status: "live" as const, category: "shopping",      color: "bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400",             path: "/smartstore" },
+  { icon: Newspaper,   label: "news",        labelBn: "নিউজ",            labelEn: "News",         status: "live" as const, category: "media",         color: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400",         path: "/news" },
+  { icon: FileText,    label: "blog",        labelBn: "ব্লগ",             labelEn: "Blog",         status: "live" as const, category: "media",         color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",  path: "/blog" },
+  { icon: BookOpen,    label: "webtoon",     labelBn: "ওয়েবটুন",          labelEn: "Webtoon",      status: "beta" as const, category: "media",         color: "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400",     path: "/webtoon/" },
+  { icon: BookMarked,  label: "series",      labelBn: "সিরিজ",            labelEn: "Series",       status: "beta" as const, category: "media",         color: "bg-pink-100 text-pink-600 dark:bg-pink-900/40 dark:text-pink-400",             path: "/series/" },
+  { icon: Tv,          label: "tv",          labelBn: "টিভি",             labelEn: "TV",           status: "soon" as const, category: "media",         color: "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400",     path: "/tv" },
+  { icon: Wallet,      label: "pay",         labelBn: "পে",               labelEn: "Pay",          status: "live" as const, category: "finance",       color: "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400",         path: "/pay" },
+  { icon: TrendingUp,  label: "finance",     labelBn: "ফাইন্যান্স",        labelEn: "Finance",      status: "live" as const, category: "finance",       color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400",     path: "/finance" },
+  { icon: MapPin,      label: "maps",        labelBn: "ম্যাপস",            labelEn: "Maps",         status: "live" as const, category: "location",      color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400",             path: "/maps" },
+  { icon: Building2,   label: "realEstate",  labelBn: "রিয়েল এস্টেট",     labelEn: "Real Estate",  status: "live" as const, category: "location",      color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400", path: "/realestate" },
+  { icon: Music,       label: "music",       labelBn: "মিউজিক",            labelEn: "Music",        status: "beta" as const, category: "entertainment", color: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",     path: "/music/" },
+  { icon: Trophy,      label: "sports",      labelBn: "স্পোর্টস",          labelEn: "Sports",       status: "soon" as const, category: "entertainment", color: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",                 path: "/sports/" },
+  { icon: Coffee,      label: "cafe",        labelBn: "ক্যাফে",            labelEn: "Café",         status: "live" as const, category: "entertainment", color: "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",         path: "/cafe" },
+  { icon: Languages,   label: "translate",   labelBn: "ট্রান্সলেট",         labelEn: "Translate",    status: "live" as const, category: "knowledge",     color: "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400",     path: "/translate" },
+  { icon: BookOpen,    label: "dictionary",  labelBn: "অভিধান",            labelEn: "Dictionary",   status: "live" as const, category: "knowledge",     color: "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/40 dark:text-fuchsia-400", path: "/dictionary" },
+  { icon: LineChart,   label: "knowledgeIn", labelBn: "জ্ঞান ইন",          labelEn: "Knowledge",    status: "live" as const, category: "knowledge",     color: "bg-lime-100 text-lime-600 dark:bg-lime-900/40 dark:text-lime-400",             path: "/qna" },
+  { icon: Cloud,       label: "weather",     labelBn: "আবহাওয়া",           labelEn: "Weather",      status: "live" as const, category: "utility",       color: "bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400",                 path: "/weather" },
+  { icon: Briefcase,   label: "jobPortal",   labelBn: "জব পোর্টাল",        labelEn: "Job Portal",   status: "live" as const, category: "career",        color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",             path: "/job-portal/" },
+  { icon: ShieldCheck, label: "adminPanel",  labelBn: "অ্যাডমিন",           labelEn: "Admin Panel",  status: "live" as const, category: "system",        color: "bg-gray-200 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300",             path: "/home/admin/" },
 ];
 
 // Quick nav links for second row
@@ -70,6 +70,17 @@ const DELIVERY_AREAS = [
   { en: "Narayanganj",    bn: "নারায়ণগঞ্জ",        value: "NRJ" },
 ];
 
+const MEGA_MENU_CATEGORIES = [
+  { key: "all",           labelBn: "সব",        labelEn: "All" },
+  { key: "shopping",      labelBn: "শপিং",       labelEn: "Shopping" },
+  { key: "media",         labelBn: "মিডিয়া",     labelEn: "News & Media" },
+  { key: "entertainment", labelBn: "বিনোদন",      labelEn: "Entertainment" },
+  { key: "finance",       labelBn: "আর্থিক",      labelEn: "Finance" },
+  { key: "knowledge",     labelBn: "জ্ঞান",        labelEn: "Knowledge" },
+  { key: "location",      labelBn: "অবস্থান",      labelEn: "Location" },
+  { key: "career",        labelBn: "ক্যারিয়ার",    labelEn: "Career" },
+];
+
 const HEADER_BRAND = "#1a0028";
 const NAV_PURPLE   = "#5D0096";
 
@@ -84,6 +95,8 @@ const Header = () => {
   const [langOpen, setLangOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [menuSearch, setMenuSearch] = useState("");
+  const [menuCat, setMenuCat] = useState("all");
   const accountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deliveryArea, setDeliveryArea] = useState<string>(() => {
     try { return localStorage.getItem("sholok_delivery_area") || "BD"; } catch { return "BD"; }
@@ -100,6 +113,10 @@ const Header = () => {
   }, [allMenuOpen]);
 
   useEffect(() => { setAllMenuOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!allMenuOpen) { setMenuSearch(""); setMenuCat("all"); }
+  }, [allMenuOpen]);
 
   // Close lang dropdown on outside click
   useEffect(() => {
@@ -157,6 +174,14 @@ const Header = () => {
   };
 
   const deliveryAreaObj = DELIVERY_AREAS.find(a => a.value === deliveryArea) || DELIVERY_AREAS[0];
+
+  const filteredServices = ALL_SERVICES.filter(s => {
+    const matchCat = menuCat === "all" || s.category === menuCat;
+    if (!matchCat) return false;
+    const q = menuSearch.trim().toLowerCase();
+    if (!q) return true;
+    return s.labelBn.includes(q) || s.labelEn.toLowerCase().includes(q);
+  });
 
   const DeliveryDropdown = () => (
     <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden min-w-[192px]">
@@ -523,70 +548,152 @@ const Header = () => {
       </header>
 
       {/* ══════════════════════════════════════════
-          All-services slide-in panel
+          All-services MEGA MENU panel
       ══════════════════════════════════════════ */}
       {allMenuOpen && (
         <>
+          {/* Backdrop */}
           <div
             className="fixed inset-0 z-40 bg-black/30 dark:bg-black/50"
             style={{ top: "89px" }}
             onClick={() => setAllMenuOpen(false)}
           />
+
+          {/* Mega menu panel */}
           <div
-            className="fixed left-0 z-50 bg-card border-r border-b border-border shadow-2xl overflow-y-auto"
-            style={{ top: "89px", maxHeight: "calc(100vh - 89px)", width: "min(20rem, 92vw)" }}
+            className="fixed left-0 z-50 bg-card shadow-2xl flex flex-col"
+            style={{
+              top: "89px",
+              width: "min(700px, 96vw)",
+              maxHeight: "calc(100vh - 100px)",
+              borderRight: "1px solid hsl(var(--border))",
+              borderBottom: "1px solid hsl(var(--border))",
+            }}
           >
-            {/* Panel header */}
-            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
-              <span className="text-sm font-bold" style={{ color: NAV_PURPLE }}>
-                {isBn ? "সব সার্ভিস" : "All Services"}
-              </span>
+            {/* Panel header — title + search + close */}
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-border flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-sm font-bold whitespace-nowrap" style={{ color: NAV_PURPLE }}>
+                  {isBn ? "সব সার্ভিস" : "All Services"}
+                </span>
+                {/* Search */}
+                <div className="relative flex-shrink-0">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    value={menuSearch}
+                    onChange={e => setMenuSearch(e.target.value)}
+                    placeholder={isBn ? "সার্ভিস খুঁজুন..." : "Search services..."}
+                    className="text-xs border border-border rounded-lg pl-7 py-1.5 bg-background text-foreground w-44 focus:outline-none focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60"
+                    style={{ paddingRight: menuSearch ? "1.5rem" : "0.75rem" }}
+                  />
+                  {menuSearch && (
+                    <button
+                      onClick={() => setMenuSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={() => setAllMenuOpen(false)}
-                className="p-1 rounded-lg hover:bg-secondary/60 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-secondary/60 transition-colors flex-shrink-0"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
 
-            {/* Sub-websites section */}
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {isBn ? "শলোক প্ল্যাটফর্ম" : "Sholok Platforms"}
-              </p>
-              <div className="space-y-0.5">
-                {[
-                  { label: isBn ? "মেইন হোম"      : "Main Home",   path: "/home",                       external: false },
-                  { label: isBn ? "শপিং"            : "Shopping",    path: "https://shopping.sholok.com", external: true  },
-                  { label: isBn ? "নিউজ"            : "News",        path: "/news",                       external: false },
-                  { label: isBn ? "ব্লগ"            : "Blog",        path: "/blog",                       external: false },
-                  { label: isBn ? "জব পোর্টাল"     : "Job Portal",  path: "/job-portal/",                external: false },
-                  { label: isBn ? "স্মার্ট স্টোর"  : "Smart Store", path: "/smartstore",                 external: false },
-                ].map((item, i) => {
-                  const cls = "flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors";
-                  return item.external ? (
-                    <a key={i} href={item.path} className={cls} onClick={() => setAllMenuOpen(false)}>
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: NAV_PURPLE }} />
-                      {item.label}
-                    </a>
-                  ) : (
-                    <Link key={i} to={item.path} className={cls} onClick={() => setAllMenuOpen(false)}>
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: NAV_PURPLE }} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
+            {/* Category filter chips */}
+            <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border overflow-x-auto scrollbar-none flex-shrink-0">
+              {MEGA_MENU_CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setMenuCat(cat.key)}
+                  className="px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors flex-shrink-0"
+                  style={
+                    menuCat === cat.key
+                      ? { backgroundColor: NAV_PURPLE, color: "#fff" }
+                      : {}
+                  }
+                  onMouseEnter={e => {
+                    if (menuCat !== cat.key)
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = "hsl(var(--secondary))";
+                  }}
+                  onMouseLeave={e => {
+                    if (menuCat !== cat.key)
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = "";
+                  }}
+                >
+                  {isBn ? cat.labelBn : cat.labelEn}
+                </button>
+              ))}
             </div>
 
-            {/* All services grid */}
-            <div className="px-4 py-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {isBn ? "সব সার্ভিস" : "All Services"}
-              </p>
-              <div className="grid grid-cols-4 gap-0.5">
-                {ALL_SERVICES.map((s, i) => renderServiceIcon(s, i))}
-              </div>
+            {/* Service cards grid */}
+            <div className="overflow-y-auto flex-1 p-4">
+              {filteredServices.length === 0 ? (
+                <div className="text-center py-10 text-sm text-muted-foreground">
+                  {isBn ? "কোনো সার্ভিস পাওয়া যায়নি" : "No services found"}
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                  {filteredServices.map((svc, i) => {
+                    const cardContent = (
+                      <div className="relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl hover:bg-secondary/60 dark:hover:bg-secondary/40 transition-colors text-center group cursor-pointer h-full">
+                        {/* Status badge */}
+                        {svc.status !== "live" && (
+                          <span
+                            className={`absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-tight ${
+                              svc.status === "beta"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                            }`}
+                          >
+                            {svc.status === "beta" ? "Beta" : isBn ? "শীঘ্রই" : "Soon"}
+                          </span>
+                        )}
+                        {/* Icon */}
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center ${svc.color} group-hover:scale-105 transition-transform flex-shrink-0`}
+                        >
+                          <svc.icon style={{ width: 18, height: 18 }} />
+                        </div>
+                        {/* Labels */}
+                        <div className="flex flex-col items-center gap-0">
+                          <span className="text-[11px] font-bold text-foreground leading-tight text-center">
+                            {svc.labelBn}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+                            {svc.labelEn}
+                          </span>
+                        </div>
+                      </div>
+                    );
+
+                    return EXTERNAL_PATHS.has(svc.path) ? (
+                      <a
+                        key={i}
+                        href={svc.path}
+                        className="block no-underline"
+                        onClick={() => setAllMenuOpen(false)}
+                      >
+                        {cardContent}
+                      </a>
+                    ) : (
+                      <Link
+                        key={i}
+                        to={svc.path}
+                        className="block no-underline"
+                        onClick={() => setAllMenuOpen(false)}
+                      >
+                        {cardContent}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </>
