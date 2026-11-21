@@ -2,6 +2,10 @@ import Header from "@/components/portal/Header";
 import HomeHero from "@/components/portal/HomeHero";
 import NewsStand from "@/components/portal/NewsStand";
 import BlogSection from "@/components/portal/BlogSection";
+import ShoppingSection from "@/components/portal/ShoppingSection";
+import RealEstateSection from "@/components/portal/RealEstateSection";
+import CafeSection from "@/components/portal/CafeSection";
+import SmartStoreCarousel from "@/components/portal/SmartStoreCarousel";
 import Footer from "@/components/portal/Footer";
 import WeatherWidget from "@/components/portal/WeatherWidget";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -39,6 +43,10 @@ const Index = () => {
             <div className="lg:col-span-3 space-y-5">
               <NewsStand />
               <BlogSection />
+              <ShoppingSection />
+              <RealEstateSection />
+              <CafeSection />
+              <SmartStoreCarousel />
             </div>
 
             {/* ── Sidebar column (1/4) — desktop only ── */}
