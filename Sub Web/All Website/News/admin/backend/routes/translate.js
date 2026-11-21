@@ -1,11 +1,11 @@
 const express = require('express');
-const { protect } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
 const LANG_MAP = { en: 'en', bn: 'bn-BD' };
 
-router.post('/', protect, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   const { text, from, to } = req.body;
   if (!text || !from || !to) return res.status(400).json({ message: 'text, from, to required' });
 
