@@ -79,8 +79,8 @@ router.get('/users', async (req, res) => {
     const [users] = await pool.execute(
       `SELECT id, username, email, display_name, bio, avatar, role, is_verified, is_active,
               website, location, total_views, last_login, created_at, updated_at
-       FROM users WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), skip]
+       FROM users WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT ${parseInt(limit)} OFFSET ${skip}`,
+      params
     );
     const [[{ total }]] = await pool.execute(
       `SELECT COUNT(*) AS total FROM users WHERE ${where.join(' AND ')}`,
@@ -169,8 +169,8 @@ router.get('/posts', async (req, res) => {
        JOIN users u ON u.id = p.author_id
        JOIN categories c ON c.id = p.category_id
        WHERE ${where.join(' AND ')}
-       ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), skip]
+       ORDER BY p.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${skip}`,
+      params
     );
     const [[{ total }]] = await pool.execute(
       `SELECT COUNT(*) AS total FROM posts p WHERE ${where.join(' AND ')}`,
@@ -262,8 +262,8 @@ router.get('/comments', async (req, res) => {
        JOIN users u ON u.id = c.author_id
        JOIN posts p ON p.id = c.post_id
        WHERE ${where.join(' AND ')}
-       ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), skip]
+       ORDER BY c.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${skip}`,
+      params
     );
     const [[{ total }]] = await pool.execute(
       `SELECT COUNT(*) AS total FROM comments c WHERE ${where.join(' AND ')}`,
