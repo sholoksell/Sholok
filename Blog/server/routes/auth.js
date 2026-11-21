@@ -206,7 +206,6 @@ router.put(
 router.post(
   '/admin-register',
   [
-    body('secretKey').notEmpty().withMessage('Admin secret key is required'),
     body('username').trim().isLength({ min: 3, max: 30 }).matches(/^[a-zA-Z0-9_]+$/),
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
@@ -215,11 +214,7 @@ router.post(
   validate,
   async (req, res) => {
     try {
-      const { secretKey, username, email, password, displayName } = req.body;
-
-      if (secretKey !== process.env.ADMIN_SECRET_KEY) {
-        return res.status(403).json({ success: false, message: 'Invalid admin secret key' });
-      }
+      const { username, email, password, displayName } = req.body;
 
       const [existing] = await pool.execute(
         'SELECT id, email, username FROM users WHERE email = ? OR username = ? LIMIT 1',

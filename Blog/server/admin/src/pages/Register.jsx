@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiShield, FiUser, FiKey } from 'react-icons/fi';
+import { FiMail, FiLock, FiShield, FiUser } from 'react-icons/fi';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ secretKey: '', username: '', displayName: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ username: '', displayName: '', email: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
 
   const set = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
@@ -20,7 +20,6 @@ export default function Register() {
     setLoading(true);
     try {
       await api.post('/auth/admin-register', {
-        secretKey: form.secretKey,
         username: form.username,
         displayName: form.displayName,
         email: form.email,
@@ -48,17 +47,6 @@ export default function Register() {
 
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* Secret Key */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Admin Secret Key</label>
-              <div className="relative">
-                <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input type="password" value={form.secretKey} onChange={set('secretKey')} required
-                  className="input pl-11" placeholder="Enter admin secret key" />
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Contact system owner for the secret key</p>
-            </div>
 
             {/* Display Name */}
             <div>
