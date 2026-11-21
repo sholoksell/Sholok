@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { useLanguage } from '../context/LanguageContext';
-import { FiHome, FiFileText, FiUsers, FiTag, FiBarChart2, FiLogOut, FiMenu, FiX, FiGlobe, FiSettings } from 'react-icons/fi';
+import { FiHome, FiFileText, FiUsers, FiTag, FiBarChart2, FiLogOut, FiMenu, FiX, FiGlobe, FiSettings, FiMessageCircle } from 'react-icons/fi';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ export default function Layout() {
     { to: '/posts', icon: FiFileText, label: t('posts') },
     { to: '/users', icon: FiUsers, label: t('users') },
     { to: '/categories', icon: FiTag, label: t('categories') },
+    { to: '/comments', icon: FiMessageCircle, label: 'Comments' },
     { to: '/analytics', icon: FiBarChart2, label: t('analytics') },
     { to: '/settings', icon: FiSettings, label: 'Settings' },
   ];

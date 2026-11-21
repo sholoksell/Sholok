@@ -303,6 +303,76 @@ router.put('/comments/:id/spam', async (req, res) => {
   }
 });
 
+// GET /api/admin/posts/:id/content — full post for editor (admin only, no view tracking)
+router.get('/posts/:id/content', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.title, p.title_bn, p.title_en, p.slug, p.excerpt, p.featured_image,
+              p.status, p.views, p.is_featured, p.language, p.location, p.subcategory,
+              p.seo_title, p.seo_description, p.published_at, p.scheduled_at,
+              p.created_at, p.updated_at,
+              u.id AS author_id, u.username AS author_username, u.display_name AS author_display_name,
+              c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+       FROM posts p
+       JOIN users u ON u.id = p.author_id
+       JOIN categories c ON c.id = p.category_id
+       WHERE p.id = ? LIMIT 1`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Post not found' });
+    const r = rows[0];
+
+    const [contentRow] = await pool.execute(
+      'SELECT content, content_bn, content_en FROM posts WHERE id = ? LIMIT 1',
+      [req.params.id]
+    );
+    const [tags] = await pool.execute('SELECT tag FROM post_tags WHERE post_id = ?', [req.params.id]);
+
+    res.json({
+      success: true,
+      post: {
+        _id:           String(r.id),
+        title:         r.title,
+        titleBn:       r.title_bn        || '',
+        titleEn:       r.title_en        || '',
+        slug:          r.slug,
+        excerpt:       r.excerpt         || '',
+        featuredImage: r.featured_image  || '',
+        status:        r.status,
+        views:         r.views,
+        isFeatured:    Boolean(r.is_featured),
+        language:      r.language        || 'en',
+        location:      r.location        || '',
+        subcategory:   r.subcategory     || '',
+        seoTitle:      r.seo_title       || '',
+        seoDescription:r.seo_description || '',
+        publishedAt:   r.published_at,
+        scheduledAt:   r.scheduled_at,
+        createdAt:     r.created_at,
+        updatedAt:     r.updated_at,
+        content:       contentRow[0]?.content    || '',
+        contentBn:     contentRow[0]?.content_bn || '',
+        contentEn:     contentRow[0]?.content_en || '',
+        tags:          tags.map((t) => t.tag),
+        category:      { _id: String(r.category_id), name: r.category_name, slug: r.category_slug },
+        author:        { _id: String(r.author_id), username: r.author_username, displayName: r.author_display_name },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/admin/comments/:id (hard delete for admin)
+router.delete('/comments/:id', async (req, res) => {
+  try {
+    await pool.execute('UPDATE comments SET is_deleted = 1 WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Comment deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // POST /api/admin/seed-categories
 router.post('/seed-categories', async (req, res) => {
   try {

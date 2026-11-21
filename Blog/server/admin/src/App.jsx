@@ -11,6 +11,8 @@ import UserManagement from './pages/UserManagement';
 import CategoryManagement from './pages/CategoryManagement';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import PostEditor from './pages/PostEditor';
+import CommentsPage from './pages/CommentsPage';
 import { LanguageProvider } from './context/LanguageContext';
 
 const AuthContext = createContext(null);
@@ -74,6 +76,9 @@ export default function App() {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="posts" element={<PostManagement />} />
+              <Route path="posts/new" element={<PostEditor />} />
+              <Route path="posts/:id/edit" element={<PostEditor />} />
+              <Route path="comments" element={<CommentsPage />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="categories" element={<CategoryManagement />} />
               <Route path="analytics" element={<AnalyticsPage />} />

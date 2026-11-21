@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { FiSearch, FiEye, FiEdit3, FiTrash2, FiStar, FiFilter } from 'react-icons/fi';
+import { FiSearch, FiEye, FiEdit3, FiTrash2, FiStar, FiPlus } from 'react-icons/fi';
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -76,6 +77,9 @@ export default function PostManagement() {
           <h1 className="text-2xl font-heading font-bold text-gray-900">Post Management</h1>
           <p className="text-gray-400 text-sm">{total} total posts</p>
         </div>
+        <Link to="/posts/new" className="btn-primary">
+          <FiPlus className="w-4 h-4" /> New Post
+        </Link>
       </div>
 
       {/* Filters */}
@@ -141,10 +145,14 @@ export default function PostManagement() {
                   <td className="px-5 py-4 text-gray-400 text-xs">{post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : '-'}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
-                      <a href={`http://localhost:5173/blog/${post.slug}`} target="_blank" rel="noreferrer"
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition" title="View">
+                      <a href={`/blog/${post.slug}`} target="_blank" rel="noreferrer"
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition" title="View post">
                         <FiEye className="w-4 h-4" />
                       </a>
+                      <Link to={`/posts/${post._id}/edit`}
+                        className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition" title="Edit post">
+                        <FiEdit3 className="w-4 h-4" />
+                      </Link>
                       <button onClick={() => toggleFeatured(post)} disabled={actionLoading === post._id + '-featured'}
                         className={`p-2 rounded-lg transition ${post.isFeatured ? 'text-yellow-500 bg-yellow-50' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Toggle Featured">
                         <FiStar className={`w-4 h-4 ${post.isFeatured ? 'fill-current' : ''}`} />

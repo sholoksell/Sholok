@@ -32,6 +32,7 @@ const allowedOrigins = [
   'https://sholok.vercel.app',
   'https://blog.sholok.com',
   'https://studio.blog.sholok.com',
+  'https://studio.sholokadmin328.com',
 ].filter(Boolean);
 
 // Stub socket.io so routes that call req.app.get('io').emit(...) don't crash
