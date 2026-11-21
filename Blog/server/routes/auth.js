@@ -40,7 +40,7 @@ router.post(
 
       const hashed = await bcrypt.hash(password, 12);
       const [result] = await pool.execute(
-        'INSERT INTO users (username, email, password, display_name) VALUES (?, ?, ?, ?)',
+        'INSERT INTO users (username, email, password, display_name, bio) VALUES (?, ?, ?, ?, \'\')',
         [username, email, hashed, displayName]
       );
 
@@ -227,7 +227,7 @@ router.post(
 
       const hashed = await bcrypt.hash(password, 12);
       const [result] = await pool.execute(
-        "INSERT INTO users (username, email, password, display_name, role) VALUES (?, ?, ?, ?, 'admin')",
+        "INSERT INTO users (username, email, password, display_name, role, bio) VALUES (?, ?, ?, ?, 'admin', '')",
         [username, email, hashed, displayName]
       );
 
