@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Bell, ShoppingCart, User, Menu, X, Search,
-  Mail, Coffee, ShoppingCart as CartIcon, Newspaper, LineChart, MapPin,
+  Bell, User, Menu, X, Search,
+  Mail, Coffee, ShoppingCart as CartIcon, Newspaper, LineChart,
   BookOpen, Music, FileText, Languages, Wallet, Store,
   TrendingUp, Cloud, Trophy, Tv, BookMarked, Building2,
-  Briefcase, ShieldCheck, ChevronDown, Home, Briefcase as BriefcaseIcon,
+  Briefcase, ShieldCheck, ChevronDown, Home,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -81,8 +81,8 @@ const MEGA_MENU_CATEGORIES = [
   { key: "career",        labelBn: "ক্যারিয়ার",    labelEn: "Career" },
 ];
 
-const HEADER_BRAND = "#1a0028";
-const NAV_PURPLE   = "#5D0096";
+const HEADER_BRAND = "#5D0096";
+const NAV_PURPLE   = "#4a0078";
 
 const Header = () => {
   const { language, setLanguage, t } = useLanguage();
@@ -280,42 +280,11 @@ const Header = () => {
               </Badge>
             )}
           </button>
-
-          {/* Cart */}
-          <a
-            href="https://shopping.sholok.com"
-            className="flex items-center gap-0.5 px-1.5 py-1 rounded hover:bg-white/10 transition-colors"
-            aria-label="Shopping Cart"
-          >
-            <span className="relative">
-              <ShoppingCart className="w-5 h-5 text-white" />
-              {cartItems.length > 0 && (
-                <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
-                  {cartItems.length}
-                </Badge>
-              )}
-            </span>
-            <span className="text-xs font-bold text-yellow-300">{isBn ? "কার্ট" : "Cart"}</span>
-          </a>
         </div>
 
         {/* ── MOBILE search row (< sm) ── */}
         <div className="sm:hidden px-3 pb-2">
           <SearchBar amazon />
-        </div>
-
-        {/* ── MOBILE deliver-to row (< sm) ── */}
-        <div ref={deliveryRef} className="sm:hidden relative border-t border-white/10">
-          <button
-            onClick={() => setDeliveryOpen(v => !v)}
-            className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/10 transition-colors"
-          >
-            <MapPin className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
-            <span className="text-xs text-white/70">{isBn ? "ডেলিভারি করুন" : "Deliver to"}</span>
-            <span className="text-xs font-bold text-white">{isBn ? deliveryAreaObj.bn : deliveryAreaObj.en}</span>
-            <ChevronDown className="w-3 h-3 text-white/60 ml-auto flex-shrink-0" />
-          </button>
-          {deliveryOpen && <DeliveryDropdown />}
         </div>
 
         {/* ── DESKTOP bar (sm+) ── */}
@@ -327,21 +296,6 @@ const Header = () => {
               SHOLOK
             </span>
           </Link>
-
-          {/* Deliver to */}
-          <div ref={deliveryRef} className="relative flex-shrink-0">
-            <button
-              onClick={() => setDeliveryOpen(v => !v)}
-              className="flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight select-none"
-            >
-              <span className="text-[10px] text-white/50 flex items-center gap-0.5">
-                <MapPin className="w-2.5 h-2.5" />
-                {isBn ? "ডেলিভারি" : "Deliver to"}
-              </span>
-              <span className="text-xs font-bold text-white truncate max-w-[88px]">{isBn ? deliveryAreaObj.bn : deliveryAreaObj.en}</span>
-            </button>
-            {deliveryOpen && <DeliveryDropdown />}
-          </div>
 
           {/* Search bar */}
           <div className="flex-1 min-w-0">
@@ -494,34 +448,6 @@ const Header = () => {
               )}
             </div>
 
-            {/* Returns & Orders — sm+ only */}
-            <Link
-              to="/orders"
-              className="hidden sm:flex flex-col items-start px-2 py-1 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors leading-tight flex-shrink-0"
-            >
-              <span className="text-[10px] text-white/50">{isBn ? "ফেরত" : "Returns"}</span>
-              <span className="text-xs font-bold text-white">{isBn ? "& অর্ডার" : "& Orders"}</span>
-            </Link>
-
-            {/* Cart → Shopping */}
-            <a
-              href="https://shopping.sholok.com"
-              className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/10 border border-transparent hover:border-white/20 transition-colors"
-              aria-label="Shopping Cart"
-            >
-              <span className="relative">
-                <ShoppingCart className="w-6 h-6 text-white" />
-                {cartItems.length > 0 && (
-                  <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-[#D31710]">
-                    {cartItems.length}
-                  </Badge>
-                )}
-              </span>
-              <span className="hidden sm:flex flex-col text-left leading-tight">
-                <span className="text-[10px] text-white/50">{isBn ? "শপিং" : "Shopping"}</span>
-                <span className="text-xs font-bold text-yellow-300">{isBn ? "কার্ট" : "Cart"}</span>
-              </span>
-            </a>
           </div>
 
         {/* ══════════════════════════════════════════
