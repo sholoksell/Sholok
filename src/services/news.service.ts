@@ -57,7 +57,7 @@ export const newsService = {
   getImageUrl: (featured_image: string | null): string | null => {
     if (!featured_image) return null;
     if (featured_image.startsWith('http')) return featured_image;
-    return `/news-api/news-uploads/${featured_image}`;
+    return `/news/news-uploads/${featured_image}`;
   },
 
   articleUrl: (slug: string) => `/news/article/${slug}`,
