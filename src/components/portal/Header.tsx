@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Bell, User, Menu, X, Search,
-  Mail, Coffee, ShoppingCart as CartIcon, Newspaper, LineChart,
+  Mail, Coffee, ShoppingCart as CartIcon, Newspaper, LineChart, MapPin,
   BookOpen, Music, FileText, Languages, Wallet, Store,
   TrendingUp, Cloud, Trophy, Tv, BookMarked, Building2,
   Briefcase, ShieldCheck, ChevronDown, Home,
