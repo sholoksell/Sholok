@@ -1,4 +1,4 @@
-// Public API — no auth required, returns only published articles
+// Public API — no auth required, returns only published, non-political articles
 const router = require('express').Router();
 const pool = require('../db');
 
@@ -8,12 +8,14 @@ const BASE_FIELDS = `
   c.name_en as category_name, c.slug as category_slug,
   au.name as author_name`;
 
+const POLITICAL_FILTER = `(a.is_political IS NULL OR a.is_political=0)`;
+
 // GET /public/news?category=&page=1&limit=10
 router.get('/news', async (req, res) => {
   try {
     const { category, page = 1, limit = 12 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = ["a.status='published'", "a.publish_at <= NOW()"], params = [];
+    let where = ["a.status='published'", "a.publish_at <= NOW()", POLITICAL_FILTER], params = [];
     if (category) { where.push('c.slug=?'); params.push(category); }
     const whereStr = 'WHERE ' + where.join(' AND ');
     const [rows] = await pool.query(`
@@ -37,7 +39,7 @@ router.get('/featured', async (req, res) => {
       FROM news_articles a
       LEFT JOIN news_categories c ON a.category_id=c.id
       LEFT JOIN news_authors au ON a.author_id=au.id
-      WHERE a.status='published' AND a.is_featured=1 AND a.publish_at<=NOW()
+      WHERE a.status='published' AND a.is_featured=1 AND a.publish_at<=NOW() AND ${POLITICAL_FILTER}
       ORDER BY a.publish_at DESC LIMIT 1`);
     res.json(row || null);
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -49,7 +51,7 @@ router.get('/breaking', async (req, res) => {
     const [rows] = await pool.query(`
       SELECT a.id, a.title_en, a.title_bn, a.slug
       FROM news_articles a
-      WHERE a.status='published' AND a.is_breaking=1 AND a.publish_at<=NOW()
+      WHERE a.status='published' AND a.is_breaking=1 AND a.publish_at<=NOW() AND ${POLITICAL_FILTER}
       ORDER BY a.publish_at DESC LIMIT 10`);
     res.json(rows);
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -64,7 +66,7 @@ router.get('/most-read', async (req, res) => {
       FROM news_articles a
       LEFT JOIN news_categories c ON a.category_id=c.id
       LEFT JOIN news_authors au ON a.author_id=au.id
-      WHERE a.status='published' AND a.publish_at<=NOW()
+      WHERE a.status='published' AND a.publish_at<=NOW() AND ${POLITICAL_FILTER}
       ORDER BY a.view_count DESC LIMIT ?`, [limit]);
     res.json(rows);
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -79,7 +81,7 @@ router.get('/latest', async (req, res) => {
       FROM news_articles a
       LEFT JOIN news_categories c ON a.category_id=c.id
       LEFT JOIN news_authors au ON a.author_id=au.id
-      WHERE a.status='published' AND a.publish_at<=NOW()
+      WHERE a.status='published' AND a.publish_at<=NOW() AND ${POLITICAL_FILTER}
       ORDER BY a.publish_at DESC LIMIT ?`, [limit]);
     res.json(rows);
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -97,7 +99,7 @@ router.get('/article/:slug', async (req, res) => {
       LEFT JOIN news_categories c ON a.category_id=c.id
       LEFT JOIN news_authors au ON a.author_id=au.id
       LEFT JOIN news_sources s ON a.source_id=s.id
-      WHERE a.slug=? AND a.status='published'`, [req.params.slug]);
+      WHERE a.slug=? AND a.status='published' AND ${POLITICAL_FILTER}`, [req.params.slug]);
     if (!article) return res.status(404).json({ message: 'Not found' });
     pool.query('UPDATE news_articles SET view_count=view_count+1 WHERE id=?', [article.id]).catch(() => {});
     const [tags] = await pool.query(`
@@ -108,7 +110,7 @@ router.get('/article/:slug', async (req, res) => {
       FROM news_articles a
       LEFT JOIN news_categories c ON a.category_id=c.id
       LEFT JOIN news_authors au ON a.author_id=au.id
-      WHERE a.status='published' AND a.category_id=? AND a.id<>? AND a.publish_at<=NOW()
+      WHERE a.status='published' AND a.category_id=? AND a.id<>? AND a.publish_at<=NOW() AND ${POLITICAL_FILTER}
       ORDER BY a.publish_at DESC LIMIT 4`, [article.category_id, article.id]);
     res.json({ article, tags, related });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -135,10 +137,12 @@ router.get('/search', async (req, res) => {
       FROM news_articles a
       LEFT JOIN news_categories c ON a.category_id=c.id
       LEFT JOIN news_authors au ON a.author_id=au.id
-      WHERE a.status='published' AND (a.title_en LIKE ? OR a.title_bn LIKE ? OR a.summary_en LIKE ?)
+      WHERE a.status='published' AND ${POLITICAL_FILTER}
+        AND (a.title_en LIKE ? OR a.title_bn LIKE ? OR a.summary_en LIKE ?)
       ORDER BY a.publish_at DESC LIMIT ? OFFSET ?`, [like, like, like, parseInt(limit), offset]);
     const [[{ total }]] = await pool.query(
-      "SELECT COUNT(*) as total FROM news_articles WHERE status='published' AND (title_en LIKE ? OR title_bn LIKE ?)", [like, like]);
+      `SELECT COUNT(*) as total FROM news_articles WHERE status='published' AND ${POLITICAL_FILTER}
+        AND (title_en LIKE ? OR title_bn LIKE ?)`, [like, like]);
     res.json({ articles: rows, total, page: parseInt(page) });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });

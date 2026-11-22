@@ -27,13 +27,15 @@ async function uniqueSlug(base, excludeId = null) {
 // GET /news — list with filters
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, category, search, page = 1, limit = 20, is_featured, is_breaking } = req.query;
+    const { status, category, search, page = 1, limit = 20, is_featured, is_breaking, is_political } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = [], params = [];
     if (status) { where.push('a.status=?'); params.push(status); }
     if (category) { where.push('a.category_id=?'); params.push(category); }
     if (is_featured === '1') { where.push('a.is_featured=1'); }
     if (is_breaking === '1') { where.push('a.is_breaking=1'); }
+    if (is_political === '1') { where.push('a.is_political=1'); }
+    if (is_political === '0') { where.push('(a.is_political IS NULL OR a.is_political=0)'); }
     if (search) {
       where.push('(a.title_en LIKE ? OR a.title_bn LIKE ?)');
       params.push(`%${search}%`, `%${search}%`);
@@ -41,7 +43,7 @@ router.get('/', auth, async (req, res) => {
     const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const [rows] = await pool.query(`
       SELECT a.id, a.title_en, a.title_bn, a.slug, a.status, a.is_featured,
-             a.is_breaking, a.view_count, a.created_at, a.publish_at,
+             a.is_breaking, a.is_political, a.view_count, a.created_at, a.publish_at,
              c.name_en as category_name, au.name as author_name, a.featured_image
       FROM news_articles a
       LEFT JOIN news_categories c ON a.category_id=c.id
@@ -66,7 +68,6 @@ router.get('/:id', auth, async (req, res) => {
       LEFT JOIN news_sources s ON a.source_id=s.id
       WHERE a.id=?`, [req.params.id]);
     if (!article) return res.status(404).json({ message: 'Not found' });
-    // Get tags
     const [tags] = await pool.query(`
       SELECT t.id, t.name, t.slug FROM news_tags t
       JOIN news_article_tags at ON t.id=at.tag_id
@@ -81,7 +82,7 @@ router.post('/', auth, async (req, res) => {
     const {
       title_en, title_bn, summary_en, summary_bn, body_en, body_bn,
       featured_image, category_id, author_id, source_id, source_url, source_credit,
-      status, is_featured, is_breaking, publish_at,
+      status, is_featured, is_breaking, is_political, publish_at,
       meta_title, meta_description, meta_keywords, tags,
       slug: slugInput,
     } = req.body;
@@ -93,12 +94,12 @@ router.post('/', auth, async (req, res) => {
       `INSERT INTO news_articles
        (title_en,title_bn,slug,summary_en,summary_bn,body_en,body_bn,
         featured_image,category_id,author_id,source_id,source_url,source_credit,
-        status,is_featured,is_breaking,publish_at,
+        status,is_featured,is_breaking,is_political,publish_at,
         meta_title,meta_description,meta_keywords,created_by,updated_by)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [title_en, title_bn||null, slug, summary_en||null, summary_bn||null, body_en||null, body_bn||null,
        featured_image||null, category_id||null, author_id||null, source_id||null, source_url||null, source_credit||null,
-       status||'draft', is_featured?1:0, is_breaking?1:0, pubAt,
+       status||'draft', is_featured?1:0, is_breaking?1:0, is_political?1:0, pubAt,
        meta_title||null, meta_description||null, meta_keywords||null,
        req.admin.id, req.admin.id]
     );
@@ -115,11 +116,10 @@ router.put('/:id', auth, async (req, res) => {
     const {
       title_en, title_bn, summary_en, summary_bn, body_en, body_bn,
       featured_image, category_id, author_id, source_id, source_url, source_credit,
-      status, is_featured, is_breaking, publish_at,
+      status, is_featured, is_breaking, is_political, publish_at,
       meta_title, meta_description, meta_keywords, tags, slug: slugInput,
     } = req.body;
 
-    // Handle slug
     let newSlug = null;
     if (slugInput) newSlug = await uniqueSlug(slugify(slugInput), id);
 
@@ -136,6 +136,7 @@ router.put('/:id', auth, async (req, res) => {
        source_id=COALESCE(?,source_id), source_url=COALESCE(?,source_url),
        source_credit=COALESCE(?,source_credit), status=COALESCE(?,status),
        is_featured=COALESCE(?,is_featured), is_breaking=COALESCE(?,is_breaking),
+       is_political=COALESCE(?,is_political),
        publish_at=COALESCE(?,publish_at),
        meta_title=COALESCE(?,meta_title), meta_description=COALESCE(?,meta_description),
        meta_keywords=COALESCE(?,meta_keywords), updated_by=?
@@ -144,11 +145,26 @@ router.put('/:id', auth, async (req, res) => {
        featured_image, category_id, author_id, source_id, source_url, source_credit,
        status, is_featured != null ? (is_featured?1:0) : null,
        is_breaking != null ? (is_breaking?1:0) : null,
+       is_political != null ? (is_political?1:0) : null,
        pubAt, meta_title, meta_description, meta_keywords,
        req.admin.id, id]
     );
     if (tags !== undefined) await saveTags(id, tags);
     const [[article]] = await pool.query('SELECT * FROM news_articles WHERE id=?', [id]);
+    res.json(article);
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// PATCH /news/:id/political — toggle is_political flag
+router.patch('/:id/political', auth, async (req, res) => {
+  try {
+    const { is_political } = req.body;
+    if (typeof is_political === 'undefined') return res.status(400).json({ message: 'is_political required' });
+    await pool.query('UPDATE news_articles SET is_political=?, updated_by=? WHERE id=?',
+      [is_political ? 1 : 0, req.admin.id, req.params.id]);
+    const [[article]] = await pool.query(
+      'SELECT id, title_en, is_political FROM news_articles WHERE id=?', [req.params.id]);
+    if (!article) return res.status(404).json({ message: 'Not found' });
     res.json(article);
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
