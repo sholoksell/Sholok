@@ -81,8 +81,9 @@ const MEGA_MENU_CATEGORIES = [
   { key: "career",        labelBn: "ক্যারিয়ার",    labelEn: "Career" },
 ];
 
-const HEADER_BRAND = "#0d001a";   // deep dark — makes purple logo pop
-const LOGO_PURPLE  = "#5D0096";   // purple chip behind SHOLOK text
+const HEADER_BRAND = "#5D0096";   // brand purple header
+const LOGO_BG      = "#ffffff";   // white chip behind SHOLOK text
+const LOGO_COLOR   = "#5D0096";   // purple text inside white chip
 const NAV_PURPLE   = "#4a0078";
 
 const Header = () => {
@@ -242,8 +243,8 @@ const Header = () => {
           {/* Logo */}
           <Link to="/home" className="flex-shrink-0 select-none group">
             <span
-              className="font-logo text-lg font-black text-white tracking-tight leading-none px-2.5 py-1 rounded-md group-hover:brightness-110 transition-all"
-              style={{ backgroundColor: LOGO_PURPLE }}
+              className="font-logo text-lg font-black tracking-tight leading-none px-2.5 py-1 rounded-md group-hover:opacity-90 transition-all"
+              style={{ backgroundColor: LOGO_BG, color: LOGO_COLOR }}
             >
               SHOLOK
             </span>
@@ -297,8 +298,8 @@ const Header = () => {
           {/* Logo */}
           <Link to="/home" className="flex-shrink-0 select-none group mr-1">
             <span
-              className="font-logo text-xl font-black text-white tracking-tight leading-none px-3 py-1 rounded-md group-hover:brightness-110 transition-all"
-              style={{ backgroundColor: LOGO_PURPLE }}
+              className="font-logo text-xl font-black tracking-tight leading-none px-3 py-1 rounded-md group-hover:opacity-90 transition-all"
+              style={{ backgroundColor: LOGO_BG, color: LOGO_COLOR }}
             >
               SHOLOK
             </span>
