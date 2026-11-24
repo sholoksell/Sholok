@@ -321,7 +321,7 @@ const SearchBar = ({ initialQuery = "", hero = false, amazon = false }: SearchBa
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               onFocus={() => hasDropContent && setDrop(true)}
-              placeholder={language === "BN" ? "খুঁজুন…" : "Search…"}
+              placeholder={language === "BN" ? "খবর, ব্লগ এবং পণ্য খুঁজুন..." : "Search for news, blogs, products..."}
               className="flex-1 min-w-0 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-sm px-3"
               lang={inputMode === "BN" ? "bn" : "en"}
               autoComplete="off"
