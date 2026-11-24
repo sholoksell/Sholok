@@ -32,8 +32,8 @@ const Index = () => {
       <Header />
 
       <main className="flex-1 w-full">
-        {/* Service navigation shortcuts */}
-        <HomeHero />
+        {/* Service navigation shortcuts — hidden */}
+        {/* <HomeHero /> */}
 
         {/* Two-column layout: main content + sidebar */}
         <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-5 pb-10">
