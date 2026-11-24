@@ -52,7 +52,7 @@ const QUICK_LINKS = [
   { label: "blog",     labelBn: "ব্লগ",            path: "/blog",                     external: false },
   { label: "maps",     labelBn: "ম্যাপস",          path: "/maps",                     external: false },
   { label: "finance",  labelBn: "ফাইন্যান্স",       path: "/finance",                  external: false },
-  { label: "jobPortal",labelBn: "জব পোর্টাল",     path: "/job-portal/",              external: false },
+  { label: "jobPortal",labelBn: "জব পোর্টাল",     path: "/job-portal/",              external: true  },
   { label: "weather",  labelBn: "আবহাওয়া",         path: "/weather",                  external: false },
 ];
 
