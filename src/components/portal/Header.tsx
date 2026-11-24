@@ -47,7 +47,7 @@ const ALL_SERVICES = [
 // Quick nav links for second row
 const QUICK_LINKS = [
   { label: "home",     labelBn: "হোম",           path: "/home",                     external: false },
-  { label: "shopping", labelBn: "শপিং",          path: "https://shopping.sholok.com", external: true  },
+  { label: "shopping", labelBn: "কেনাকাটা",       path: "https://shopping.sholok.com", external: true  },
   { label: "news",     labelBn: "নিউজ",           path: "/news",                     external: false },
   { label: "blog",     labelBn: "ব্লগ",            path: "/blog",                     external: false },
   { label: "maps",     labelBn: "ম্যাপস",          path: "/maps",                     external: false },
