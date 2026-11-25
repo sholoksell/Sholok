@@ -158,6 +158,22 @@ router.post('/rate-groups/sync', auth, async (req, res) => {
       }
     }
 
+    // Reassign orphaned assignments to a remaining group before deleting groups
+    if (groups.length) {
+      const incomingIds = groups.map(g => g.id);
+      const [orphaned] = await conn.query(
+        'SELECT DISTINCT group_id FROM delivery_area_assignments WHERE group_id NOT IN (?)',
+        [incomingIds]
+      );
+      if (orphaned.length > 0) {
+        const fallbackId = incomingIds[0];
+        await conn.query(
+          'UPDATE delivery_area_assignments SET group_id = ? WHERE group_id NOT IN (?)',
+          [fallbackId, incomingIds]
+        );
+      }
+    }
+
     await conn.query('DELETE FROM delivery_rate_groups');
     if (groups.length) {
       const vals = groups.map(g => [
