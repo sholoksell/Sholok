@@ -1419,7 +1419,12 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   const clearSel = () => setSelected(new Set());
 
   const removeSelected = () => {
-    for (const key of selected) onRemoveOverride(key);
+    for (const key of selected) {
+      const a = assignments.find(x => x.key === key);
+      if (a && (a.baseOverride != null || a.additionalOverride != null)) {
+        onRemoveOverride(key);
+      }
+    }
     clearSel();
   };
 

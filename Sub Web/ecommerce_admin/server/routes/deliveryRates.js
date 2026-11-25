@@ -350,7 +350,8 @@ router.put('/assignments/rate-override', auth, async (req, res) => {
 
 router.delete('/assignments/rate-override/:key', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM delivery_zone_rate_overrides WHERE assignment_key = ?', [req.params.key]);
+    const [result] = await pool.query('DELETE FROM delivery_zone_rate_overrides WHERE assignment_key = ?', [req.params.key]);
+    if (result.affectedRows === 0) return res.status(404).json({ ok: false, message: 'No override found for this area' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
