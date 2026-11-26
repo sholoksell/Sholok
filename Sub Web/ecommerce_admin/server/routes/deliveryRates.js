@@ -158,7 +158,7 @@ router.post('/rate-groups/sync', auth, async (req, res) => {
       }
     }
 
-    // Reassign orphaned assignments to a remaining group before deleting groups
+    // Fix orphaned assignments before deleting groups
     if (groups.length) {
       const incomingIds = groups.map(g => g.id);
       const [orphaned] = await conn.query(
@@ -323,6 +323,15 @@ router.post('/assignments/sync', auth, async (req, res) => {
     for (const a of assignments) { if (a.key) seen.set(a.key, a); }
     const valid = [...seen.values()].filter(a => a.key && a.groupId);
 
+    // Validate: at least one assignment must reference a valid rate group
+    const [groupRows] = await conn.query('SELECT id FROM delivery_rate_groups');
+    const groupIds = new Set(groupRows.map(r => r.id));
+    const validAssignments = valid.filter(a => groupIds.has(a.groupId));
+    if (validAssignments.length === 0 && valid.length > 0) {
+      conn.release();
+      return res.status(400).json({ message: 'At least one valid assignment must remain. Blank assignments can be removed.' });
+    }
+
     await conn.beginTransaction();
     await conn.query('DELETE FROM delivery_area_assignments');
     if (valid.length) {
@@ -367,7 +376,7 @@ router.put('/assignments/rate-override', auth, async (req, res) => {
 router.delete('/assignments/rate-override/:key', auth, async (req, res) => {
   try {
     const [result] = await pool.query('DELETE FROM delivery_zone_rate_overrides WHERE assignment_key = ?', [req.params.key]);
-    if (result.affectedRows === 0) return res.status(404).json({ ok: false, message: 'No override found for this area' });
+    if (result.affectedRows === 0) return res.status(404).json({ message: 'Override not found' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
@@ -436,27 +445,102 @@ router.delete('/area-overrides/custom/:key', auth, async (req, res) => {
 
 router.post('/district-rename', auth, async (req, res) => {
   const { division, oldDistrict, newDistrict, standardAreas } = req.body;
-  if (!oldDistrict || !newDistrict) return res.status(400).json({ message: 'oldDistrict and newDistrict required' });
+  if (!division || !oldDistrict || !newDistrict) return res.status(400).json({ message: 'division, oldDistrict and newDistrict required' });
+  if (oldDistrict === newDistrict) return res.json({ ok: true });
+  const conn = await pool.getConnection();
   try {
-    await pool.query(
-      `UPDATE delivery_area_overrides SET district = ? WHERE division = ? AND district = ? AND is_custom = 1`,
-      [newDistrict, division, oldDistrict]
+    await conn.beginTransaction();
+    // Update area_key (PK) + district in delivery_area_overrides
+    await conn.query(
+      `UPDATE delivery_area_overrides
+       SET area_key = CONCAT(division, '|', ?, '|', SUBSTRING_INDEX(area_key, '|', -1)),
+           district = ?
+       WHERE division = ? AND district = ?`,
+      [newDistrict, newDistrict, division, oldDistrict]
     );
-    await pool.query(
-      `UPDATE delivery_area_assignments SET district = ? WHERE division = ? AND district = ?`,
-      [newDistrict, division, oldDistrict]
+    // Update assignment_key (PK) + district in delivery_area_assignments
+    await conn.query(
+      `UPDATE delivery_area_assignments
+       SET assignment_key = CONCAT(store_location, '|', division, '|', ?, '|', area),
+           district = ?
+       WHERE division = ? AND district = ?`,
+      [newDistrict, newDistrict, division, oldDistrict]
     );
+    // Update assignment_key in delivery_zone_rate_overrides
+    await conn.query(
+      `UPDATE delivery_zone_rate_overrides
+       SET assignment_key = REPLACE(assignment_key,
+         CONCAT('|', ?, '|', ?, '|'),
+         CONCAT('|', ?, '|', ?, '|'))
+       WHERE assignment_key LIKE ?`,
+      [division, oldDistrict, division, newDistrict, '%|' + division + '|' + oldDistrict + '|%']
+    );
+    // Upsert standard areas with new district name (is_custom=0 rename markers)
     if (Array.isArray(standardAreas) && standardAreas.length > 0) {
-      const vals = standardAreas.map(a => [a.key, division, newDistrict, a.area, 1]);
-      await pool.query(
-        `INSERT INTO delivery_area_overrides (area_key, division, district, area, is_custom)
-         VALUES ?
-         ON DUPLICATE KEY UPDATE division = VALUES(division), district = VALUES(district), area = VALUES(area)`,
-        [vals]
-      );
+      for (const sa of standardAreas) {
+        const newKey = `${division}|${newDistrict}|${sa.area}`;
+        await conn.query(
+          `INSERT INTO delivery_area_overrides (area_key, division, district, area_name, is_custom, status)
+           VALUES (?, ?, ?, ?, 0, 'Enable')
+           ON DUPLICATE KEY UPDATE division=VALUES(division), district=VALUES(district), area_name=VALUES(area_name)`,
+          [newKey, division, newDistrict, sa.area]
+        );
+      }
     }
+    await conn.commit();
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ message: e.message }); }
+  } catch (e) { await conn.rollback(); res.status(500).json({ message: e.message }); }
+  finally { conn.release(); }
+});
+
+router.post('/division-rename', auth, async (req, res) => {
+  const { oldDivision, newDivision, standardAreas } = req.body;
+  if (!oldDivision || !newDivision) return res.status(400).json({ message: 'oldDivision and newDivision required' });
+  if (oldDivision === newDivision) return res.json({ ok: true });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // Update area_key (PK) + division in delivery_area_overrides
+    await conn.query(
+      `UPDATE delivery_area_overrides
+       SET area_key = CONCAT(?, '|', district, '|', SUBSTRING_INDEX(area_key, '|', -1)),
+           division = ?
+       WHERE division = ?`,
+      [newDivision, newDivision, oldDivision]
+    );
+    // Update assignment_key (PK) + division in delivery_area_assignments
+    await conn.query(
+      `UPDATE delivery_area_assignments
+       SET assignment_key = CONCAT(store_location, '|', ?, '|', district, '|', area),
+           division = ?
+       WHERE division = ?`,
+      [newDivision, newDivision, oldDivision]
+    );
+    // Update assignment_key in delivery_zone_rate_overrides
+    await conn.query(
+      `UPDATE delivery_zone_rate_overrides
+       SET assignment_key = REPLACE(assignment_key,
+         CONCAT('|', ?, '|'),
+         CONCAT('|', ?, '|'))
+       WHERE assignment_key LIKE ?`,
+      [oldDivision, newDivision, '%|' + oldDivision + '|%']
+    );
+    // Upsert all standard areas under the new division name (is_custom=0 rename markers)
+    if (Array.isArray(standardAreas) && standardAreas.length > 0) {
+      for (const sa of standardAreas) {
+        const newKey = `${newDivision}|${sa.district}|${sa.area}`;
+        await conn.query(
+          `INSERT INTO delivery_area_overrides (area_key, division, district, area_name, is_custom, status)
+           VALUES (?, ?, ?, ?, 0, 'Enable')
+           ON DUPLICATE KEY UPDATE division=VALUES(division), district=VALUES(district), area_name=VALUES(area_name)`,
+          [newKey, newDivision, sa.district, sa.area]
+        );
+      }
+    }
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) { await conn.rollback(); res.status(500).json({ message: e.message }); }
+  finally { conn.release(); }
 });
 
 // ── Stats (dashboard) ─────────────────────────────────────────────────────────
@@ -631,8 +715,17 @@ router.delete('/backups/:id', auth, async (req, res) => {
 
 // ── Charge Lookup ─────────────────────────────────────────────────────────────
 
+router.get('/store-locations', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT store_location FROM delivery_rate_groups WHERE store_location IS NOT NULL AND store_location != '' ORDER BY store_location`
+    );
+    res.json(rows.map(r => r.store_location));
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 router.get('/charge', async (req, res) => {
-  const { division, district, area, weight = 1 } = req.query;
+  const { division, district, area, weight = 1, storeLocation } = req.query;
   const kg = Math.max(1, parseFloat(weight) || 1);
   try {
     // Check if this area is explicitly disabled
@@ -648,7 +741,7 @@ router.get('/charge', async (req, res) => {
     }
 
     let row;
-    // 1. Precise lookup by assignment_key — only active rate groups
+    // 1. Precise lookup by area_id — only active rate groups
     if (division && district && area) {
       const aKey = `${division}|${district}|${area}`;
       const [rows] = await pool.query(
@@ -658,9 +751,10 @@ router.get('/charge', async (req, res) => {
          FROM delivery_area_assignments a
          JOIN delivery_rate_groups g ON g.id = a.group_id AND g.is_active = 1
          LEFT JOIN delivery_zone_rate_overrides o ON o.assignment_key = a.assignment_key
-         WHERE a.assignment_key = ?
+         WHERE a.area_id = ? AND (? IS NULL OR a.store_location = ?)
+         ORDER BY CASE WHEN a.store_location = ? THEN 0 ELSE 1 END
          LIMIT 1`,
-        [aKey]
+        [aKey, storeLocation || null, storeLocation || null, storeLocation || '']
       );
       if (rows.length) row = rows[0];
     }

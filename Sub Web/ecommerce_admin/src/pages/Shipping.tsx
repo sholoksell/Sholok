@@ -183,9 +183,12 @@ function areaKey(div: string, dist: string, area: string) {
   return `${div}|${dist}|${area}`;
 }
 
-function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
-  // Map original-key → custom override (for in-place replacement at same row position)
-  const overrideMap = new Map(customAreas.map(ca => [ca.key, ca]));
+function allAreaEntries(
+  customAreas: CustomArea[],
+  renameOverrides: Array<{key: string; division: string; district: string; area: string}> = []
+): AreaEntry[] {
+  const renameMap = new Map(renameOverrides.map(r => [r.key, r]));
+  const customMap = new Map(customAreas.map(ca => [ca.key, ca]));
   const standardKeys = new Set<string>();
   const entries: AreaEntry[] = [];
   for (const div of BD_DIVISIONS) {
@@ -195,21 +198,22 @@ function allAreaEntries(customAreas: CustomArea[]): AreaEntry[] {
       for (const area of areas) {
         const key = areaKey(div, dist, area);
         standardKeys.add(key);
-        const ov = overrideMap.get(key);
+        const custom = customMap.get(key);
+        const rename = renameMap.get(key);
+        const ov = custom || rename;
         if (ov) {
-          // Show override data at the standard area's original row position
-          entries.push({ division: ov.division, district: ov.district, area: ov.area, key, isCustom: true });
+          entries.push({ division: ov.division, district: ov.district, area: ov.area, key, isCustom: !!custom });
         } else {
           entries.push({ division: div, district: dist, area, key, isCustom: false });
         }
       }
     }
   }
-  // Truly new custom areas (no matching standard key) → append at end
   for (const ca of customAreas) {
-    if (!standardKeys.has(ca.key)) {
-      entries.push({ division: ca.division, district: ca.district, area: ca.area, key: ca.key, isCustom: true });
-    }
+    if (!standardKeys.has(ca.key)) entries.push({ division: ca.division, district: ca.district, area: ca.area, key: ca.key, isCustom: true });
+  }
+  for (const ro of renameOverrides) {
+    if (!standardKeys.has(ro.key) && !customMap.has(ro.key)) entries.push({ division: ro.division, district: ro.district, area: ro.area, key: ro.key, isCustom: false });
   }
   return entries;
 }
@@ -269,13 +273,21 @@ export default function Shipping() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [statuses, setStatuses] = useState<AreaStatus[]>([]);
   const [customAreas, setCustomAreas] = useState<CustomArea[]>([]);
+  const [renameOverrides, setRenameOverrides] = useState<Array<{key: string; division: string; district: string; area: string}>>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal states
   const [areaModal, setAreaModal] = useState<{ mode: 'add' | 'edit'; area?: AreaEntry } | null>(null);
   const [districtModal, setDistrictModal] = useState<{ division: string; district: string } | null>(null);
+  const [divisionModal, setDivisionModal] = useState<{ division: string } | null>(null);
   const [groupModal, setGroupModal] = useState<{ mode: 'add' | 'edit'; group?: RateGroup } | null>(null);
   const [overrideModal, setOverrideModal] = useState<Assignment | null>(null);
+  const storeOptions = useMemo(() => {
+    const stores = new Set<string>();
+    for (const g of groups) if (g.store && g.store !== 'Default') stores.add(g.store);
+    return Array.from(stores).sort();
+  }, [groups]);
+
   const [switchGroupModal, setSwitchGroupModal] = useState<{ assignment: Assignment } | null>(null);
 
   const syncGRef = useRef<ReturnType<typeof setTimeout>>();
@@ -294,7 +306,8 @@ export default function Shipping() {
         setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
         const overrides: Array<{ key: string; division?: string; district?: string; area?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
         setStatuses(overrides.filter(r => r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
-        setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })));
+        setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area_name || r.area || '' })));
+        setRenameOverrides(overrides.filter(r => !r.isCustom && r.status !== 'Disable').map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area_name || r.area || '' })));
       } catch {
         toast.error('Failed to load delivery data');
       } finally {
@@ -331,7 +344,16 @@ export default function Shipping() {
   const updateAssignments = (next: Assignment[]) => { setAssignments(next); syncAssignments(next); };
   const updateStatuses = (next: AreaStatus[]) => { setStatuses(next); syncStatuses(next); };
 
-  const allEntries = useMemo(() => allAreaEntries(customAreas), [customAreas]);
+  const allEntries = useMemo(() => allAreaEntries(customAreas, renameOverrides), [customAreas, renameOverrides]);
+  const dynamicDistricts = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const e of allEntries) {
+      if (!map[e.division]) map[e.division] = [];
+      if (!map[e.division].includes(e.district)) map[e.division].push(e.district);
+    }
+    for (const div of Object.keys(map)) map[div].sort((a, b) => a.localeCompare(b));
+    return map;
+  }, [allEntries]);
   const totalAreas = allEntries.length;
   const assignedCount = assignments.length;
   const enabledCount = allEntries.filter(e => statusFor(statuses, e.key) === 'Enable').length;
@@ -391,6 +413,7 @@ export default function Shipping() {
             updateStatuses={updateStatuses}
             onAddCustom={() => setAreaModal({ mode: 'add' })}
             onEditArea={(e) => setAreaModal({ mode: 'edit', area: e })}
+            onEditDivision={(div) => setDivisionModal({ division: div })}
             onEditDistrict={(div, dist) => setDistrictModal({ division: div, district: dist })}
             onDeleteCustom={async (key) => {
               try {
@@ -408,6 +431,11 @@ export default function Shipping() {
             onAdd={() => setGroupModal({ mode: 'add' })}
             onEdit={(g) => setGroupModal({ mode: 'edit', group: g })}
             onDelete={(id) => {
+              const assignedCount = assignments.filter(a => a.groupId === id).length;
+              if (assignedCount > 0) {
+                toast.error(`Cannot delete — ${assignedCount} area${assignedCount !== 1 ? 's are' : ' is'} assigned to this group. Remove assignments first.`);
+                return;
+              }
               const next = groups.filter(g => g.id !== id);
               updateGroups(next);
               toast.success('Rate group deleted');
@@ -419,6 +447,7 @@ export default function Shipping() {
           <AssignSection
             allEntries={allEntries} groups={groups} assignments={assignments}
             statuses={statuses} updateAssignments={updateAssignments}
+            storeOptions={storeOptions}
             onSwitchGroup={(a) => setSwitchGroupModal({ assignment: a })}
           />
         )}
@@ -455,6 +484,7 @@ export default function Shipping() {
         <AreaModal
           mode={areaModal.mode}
           initial={areaModal.area}
+          dynamicDistricts={dynamicDistricts}
           onClose={() => setAreaModal(null)}
           onDelete={areaModal.mode === 'edit' && areaModal.area?.isCustom ? async () => {
             const key = areaModal.area!.key;
@@ -494,19 +524,17 @@ export default function Shipping() {
           }}
         />
       )}
-      {districtModal && (
-        <DistrictModal
-          division={districtModal.division}
-          district={districtModal.district}
-          onClose={() => setDistrictModal(null)}
-          onSave={async (newDistrict) => {
+      {divisionModal && (
+        <DivisionModal
+          division={divisionModal.division}
+          onClose={() => setDivisionModal(null)}
+          onSave={async (newDivision) => {
             try {
-              const standardAreas = (BD_AREAS[districtModal.district] || []).map(a => ({
-                key: areaKey(districtModal.division, districtModal.district, a), area: a,
-              }));
-              await api.post('/delivery-rates/district-rename', {
-                division: districtModal.division, oldDistrict: districtModal.district,
-                newDistrict, standardAreas,
+              const standardAreas = (BD_DISTRICTS[divisionModal.division] || []).flatMap((dist: string) =>
+                (BD_AREAS[dist] || []).map((area: string) => ({ area, district: dist }))
+              );
+              await api.post('/delivery-rates/division-rename', {
+                oldDivision: divisionModal.division, newDivision, standardAreas,
               });
               const [oRes, aRes] = await Promise.all([
                 api.get('/delivery-rates/area-overrides'),
@@ -514,7 +542,34 @@ export default function Shipping() {
               ]);
               const overrides: Array<{ key: string; division?: string; district?: string; area?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
               setStatuses(overrides.filter(r => r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
-              setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area || '' })));
+              setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area_name || r.area || '' })));
+              setRenameOverrides(overrides.filter(r => !r.isCustom && r.status !== 'Disable').map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area_name || r.area || '' })));
+              setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
+              setDivisionModal(null);
+              toast.success(`Division renamed to "${newDivision}"`);
+            } catch (err: any) { toast.error(err?.response?.data?.message || 'Failed to rename division'); }
+          }}
+        />
+      )}
+      {districtModal && (
+        <DistrictModal
+          division={districtModal.division}
+          district={districtModal.district}
+          onClose={() => setDistrictModal(null)}
+          onSave={async (newDistrict) => {
+            try {
+              const standardAreas = (BD_AREAS[districtModal.district] || []).map(a => ({ area: a }));
+              await api.post('/delivery-rates/district-rename', {
+                division: districtModal.division, oldDistrict: districtModal.district, newDistrict, standardAreas,
+              });
+              const [oRes, aRes] = await Promise.all([
+                api.get('/delivery-rates/area-overrides'),
+                api.get('/delivery-rates/assignments'),
+              ]);
+              const overrides: Array<{ key: string; division?: string; district?: string; area?: string; area_name?: string; status: string; isCustom: boolean }> = Array.isArray(oRes.data) ? oRes.data : [];
+              setStatuses(overrides.filter(r => r.status === 'Disable').map(r => ({ key: r.key, status: 'Disable' as const })));
+              setCustomAreas(overrides.filter(r => r.isCustom).map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area_name || r.area || '' })));
+              setRenameOverrides(overrides.filter(r => !r.isCustom && r.status !== 'Disable').map(r => ({ key: r.key, division: r.division || '', district: r.district || '', area: r.area_name || r.area || '' })));
               setAssignments(Array.isArray(aRes.data) ? aRes.data : []);
               setDistrictModal(null);
               toast.success(`District renamed to "${newDistrict}"`);
@@ -527,6 +582,7 @@ export default function Shipping() {
           mode={groupModal.mode}
           initial={groupModal.group}
           totalGroups={groups.length}
+          storeOptions={storeOptions}
           onClose={() => setGroupModal(null)}
           onSave={(g) => {
             if (groupModal.mode === 'add') {
@@ -776,12 +832,13 @@ function DashboardSection({ totalAreas, assignedCount, groupCount, enabledCount,
 const PAGE_SIZE = 50;
 type AreaSortCol = 'division' | 'district' | 'area' | 'status' | 'assignments';
 
-function AreasSection({ allEntries, statuses, customAreas, assignments, updateStatuses, onAddCustom, onEditArea, onEditDistrict, onDeleteCustom }: {
+function AreasSection({ allEntries, statuses, customAreas, assignments, updateStatuses, onAddCustom, onEditArea, onEditDivision, onEditDistrict, onDeleteCustom }: {
   allEntries: AreaEntry[]; statuses: AreaStatus[]; customAreas: CustomArea[];
   assignments: Assignment[];
   updateStatuses: (s: AreaStatus[]) => void;
   onAddCustom: () => void;
   onEditArea: (e: AreaEntry) => void;
+  onEditDivision: (division: string) => void;
   onEditDistrict: (division: string, district: string) => void;
   onDeleteCustom: (key: string) => Promise<void>;
 }) {
@@ -800,22 +857,44 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
     return m;
   }, [assignments]);
 
+  const dynamicDistricts = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const e of allEntries) {
+      if (!map[e.division]) map[e.division] = [];
+      if (!map[e.division].includes(e.district)) map[e.division].push(e.district);
+    }
+    for (const div of Object.keys(map)) map[div].sort((a, b) => a.localeCompare(b));
+    return map;
+  }, [allEntries]);
+
   const filtered = useMemo(() => {
     const list = allEntries.filter(e =>
-      (e.isCustom || statusFor(statuses, e.key) !== 'Disable') &&
       (!filterDiv || e.division === filterDiv) &&
       (!filterDist || e.district === filterDist) &&
       (!search || e.area.toLowerCase().includes(search.toLowerCase()) || e.district.toLowerCase().includes(search.toLowerCase()) || e.division.toLowerCase().includes(search.toLowerCase()))
     );
+    const divIdx = (d: string) => { const i = BD_DIVISIONS.indexOf(d); return i === -1 ? 999 : i; };
     list.sort((a, b) => {
-      let va: string | number, vb: string | number;
-      if (sortCol === 'division')    { va = a.division; vb = b.division; }
-      else if (sortCol === 'district')   { va = a.district; vb = b.district; }
-      else if (sortCol === 'area')       { va = a.area; vb = b.area; }
-      else if (sortCol === 'status')     { va = statusFor(statuses, a.key); vb = statusFor(statuses, b.key); }
-      else { va = asnMap[a.key] || 0; vb = asnMap[b.key] || 0; }
-      const cmp = typeof va === 'number' ? va - vb : va.localeCompare(vb as string);
-      return sortDir === 'asc' ? cmp : -cmp;
+      if (sortCol === 'division') {
+        const dc = divIdx(a.division) - divIdx(b.division);
+        if (dc !== 0) return sortDir === 'asc' ? dc : -dc;
+        const sc = a.district.localeCompare(b.district);
+        if (sc !== 0) return sc;
+        return a.area.localeCompare(b.area);
+      } else if (sortCol === 'district') {
+        const sc = a.district.localeCompare(b.district);
+        if (sc !== 0) return sortDir === 'asc' ? sc : -sc;
+        return a.area.localeCompare(b.area);
+      } else if (sortCol === 'area') {
+        return (sortDir === 'asc' ? 1 : -1) * a.area.localeCompare(b.area);
+      } else if (sortCol === 'status') {
+        const va = statusFor(statuses, a.key); const vb = statusFor(statuses, b.key);
+        const sc = va.localeCompare(vb);
+        return sortDir === 'asc' ? sc : -sc;
+      } else {
+        const va = asnMap[a.key] || 0; const vb = asnMap[b.key] || 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
     });
     return list;
   }, [allEntries, filterDiv, filterDist, search, sortCol, sortDir, statuses, asnMap]);
@@ -897,7 +976,7 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
           options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
           onChange={v => { setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
         <CustomSelect style={{ width: 160 }} value={filterDist} placeholder="All districts"
-          options={(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => ({ value: d, label: d }))}
+          options={(filterDiv ? dynamicDistricts[filterDiv] || BD_DISTRICTS[filterDiv] || [] : []).map(d => ({ value: d, label: d }))}
           onChange={v => { setFilterDist(v); setPage(1); setSelected(new Set()); }} />
         <button className="dm-btn-outline" onClick={exportCsv}><Download size={13} /> Export CSV</button>
       </div>
@@ -940,7 +1019,13 @@ function AreasSection({ allEntries, statuses, customAreas, assignments, updateSt
                   <td style={{ padding: '10px 8px 10px 14px' }}>
                     <input type="checkbox" checked={isSel} style={{ cursor: 'pointer' }} onChange={() => toggleSelect(e.key)} />
                   </td>
-                  <td style={{ color: C.mutedFg }}>{e.division}</td>
+                  <td>
+                    <button style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      title="Edit division" onClick={() => onEditDivision(e.division)}>
+                      <span style={{ color: C.mutedFg, fontWeight: 400, fontSize: 13 }}>{e.division}</span>
+                      <Pencil size={12} style={{ color: C.mutedFg }} />
+                    </button>
+                  </td>
                   <td>
                     <button style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                       title="Edit district" onClick={() => onEditDistrict(e.division, e.district)}>
@@ -1138,7 +1223,12 @@ function GroupsSection({ groups, updateGroups, assignments, onAdd, onEdit, onDel
                       <button className="dm-btn-ghost" style={{ fontSize: 12, padding: '3px 8px', color: C.primary, fontWeight: 500 }} onClick={onViewAssignments}>
                         View assignments
                       </button>
-                      <button className="dm-btn-ghost" style={{ padding: '4px 6px', color: C.destructive }} title="Delete" onClick={() => onDelete(g.id)}>
+                      <button
+                        className="dm-btn-ghost"
+                        style={{ padding: '4px 6px', color: assignedCount > 0 ? C.mutedFg : C.destructive, opacity: assignedCount > 0 ? 0.4 : 1, cursor: assignedCount > 0 ? 'not-allowed' : 'pointer' }}
+                        title={assignedCount > 0 ? `Cannot delete — ${assignedCount} area${assignedCount !== 1 ? 's' : ''} assigned` : 'Delete'}
+                        disabled={assignedCount > 0}
+                        onClick={() => onDelete(g.id)}>
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -1179,22 +1269,37 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
   const [search, setSearch] = useState('');
   const [checked, setChecked] = useState<Set<string>>(new Set());
 
+  const dynamicDistricts = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const e of allEntries) {
+      if (!map[e.division]) map[e.division] = [];
+      if (!map[e.division].includes(e.district)) map[e.division].push(e.district);
+    }
+    for (const div of Object.keys(map)) map[div].sort((a, b) => a.localeCompare(b));
+    return map;
+  }, [allEntries]);
+
   const assignedMap = useMemo(() => {
     const m: Record<string, Assignment> = {};
-    for (const a of assignments) m[a.key] = a;
+    for (const a of assignments) {
+      const aId = a.areaId || a.key;
+      if (!filterDiv || a.store === filterDiv) m[aId] = a;
+    }
     return m;
-  }, [assignments]);
+  }, [assignments, filterDiv]);
 
-  // Show enabled areas only (status = 'Enable' or no entry = enabled by default)
-  // filterDiv = Store location: does NOT filter areas geographically — only filters Rate Group options
+  // Show enabled areas, filtered by geography and store
   const viewList = useMemo(() => {
     return allEntries.filter(e => {
       const enabled = !(statuses.find(s => s.key === e.key)?.status === 'Disable');
-      return enabled &&
-        (!filterGeoDivision || e.division === filterGeoDivision) &&
-        (!filterDist || e.district === filterDist) &&
-        (!search || e.area.toLowerCase().includes(search.toLowerCase()) ||
-          e.district.toLowerCase().includes(search.toLowerCase()));
+      if (!enabled) return false;
+      if (filterGeoDivision && e.division !== filterGeoDivision) return false;
+      if (filterDist && e.district !== filterDist) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!e.area.toLowerCase().includes(q) && !e.district.toLowerCase().includes(q)) return false;
+      }
+      return true;
     });
   }, [allEntries, statuses, filterGeoDivision, filterDist, search]);
 
@@ -1215,21 +1320,37 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
     for (const key of checked) {
       const e = allEntries.find(a => a.key === key);
       if (!e) continue;
-      if (!assignedMap[key]) {
-        toAdd.push({ key, store: grp.store || 'Default', division: e.division, district: e.district, area: e.area, areaId: e.key, groupId: grp.id, groupName: grp.name });
-      } else if (assignedMap[key].groupId !== grp.id) {
+      const aId = e.key; // 3-part: div|dist|area
+      const newKey = grp.store && grp.store !== 'Default' ? `${grp.store}|${aId}` : aId;
+      if (!assignedMap[aId]) {
+        toAdd.push({ key: newKey, store: grp.store || 'Default', division: e.division, district: e.district, area: e.area, areaId: aId, groupId: grp.id, groupName: grp.name });
+      } else if (assignedMap[aId].groupId !== grp.id) {
         // re-assign: replace existing
-        toAdd.push({ key, store: grp.store || 'Default', division: e.division, district: e.district, area: e.area, areaId: e.key, groupId: grp.id, groupName: grp.name });
+        toAdd.push({ key: newKey, store: grp.store || 'Default', division: e.division, district: e.district, area: e.area, areaId: aId, groupId: grp.id, groupName: grp.name });
       }
     }
     if (toAdd.length === 0) { clearSel(); return; }
-    const replaced = new Set(toAdd.map(a => a.key));
-    updateAssignments([...assignments.filter(a => !replaced.has(a.key)), ...toAdd]);
+    const replacedAreaIds = new Set(toAdd.map(a => a.areaId || a.key));
+    // Remove old assignments for the same areaId+store combo, then add new
+    updateAssignments([
+      ...assignments.filter(a => !(replacedAreaIds.has(a.areaId || a.key) && (!filterDiv || a.store === filterDiv))),
+      ...toAdd,
+    ]);
     clearSel();
   };
 
-  const unassignArea = (key: string) =>
-    updateAssignments(assignments.filter(a => a.key !== key));
+  const unassignArea = (key: string) => {
+    // key = e.key = areaId (div|dist|area)
+    const target = assignments.find(x => (x.areaId || x.key) === key && (!filterDiv || x.store === filterDiv));
+    if (!target) return;
+    const isValid = groups.some(g => g.id === target.groupId);
+    const validCount = assignments.filter(x => groups.some(g => g.id === x.groupId)).length;
+    if (isValid && validCount <= 1) {
+      toast.error('At least one valid assignment must remain. Blank assignments can be removed.');
+      return;
+    }
+    updateAssignments(assignments.filter(a => a.key !== target.key));
+  };
 
   const hasGroups = groups.length > 0;
 
@@ -1271,15 +1392,19 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>City / district</div>
           <CustomSelect value={filterDist} placeholder="All districts"
             options={filterGeoDivision
-              ? (BD_DISTRICTS[filterGeoDivision] || []).map(d => ({ value: d, label: d }))
-              : Object.entries(BD_DISTRICTS).flatMap(([div, dists]) => dists.map(d => ({ value: d, label: `${d} · ${div}` })))
+              ? (dynamicDistricts[filterGeoDivision] || BD_DISTRICTS[filterGeoDivision] || []).map(d => ({ value: d, label: d }))
+              : Object.entries(dynamicDistricts).length > 0
+                ? Object.entries(dynamicDistricts).flatMap(([div, dists]) => dists.map(d => ({ value: d, label: `${d} · ${div}` })))
+                : Object.entries(BD_DISTRICTS).flatMap(([div, dists]) => dists.map(d => ({ value: d, label: `${d} · ${div}` })))
             }
             onChange={v => { setFilterDist(v); setChecked(new Set()); }} />
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Rate group</div>
           <CustomSelect value={selectedGroupId} placeholder="Select a rate group"
-            options={groups.map(g => ({ value: g.id, label: g.name }))}
+            options={groups
+              .filter(g => !filterDiv || g.store === filterDiv)
+              .map(g => ({ value: g.id, label: filterDiv ? g.name : `${g.name} (${g.store})` }))}
             onChange={v => setSelectedGroupId(v)} />
         </div>
       </div>
@@ -1306,7 +1431,9 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
           <div style={{ padding: 40, textAlign: 'center', color: C.mutedFg, fontSize: 13 }}>No areas found</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            {viewList.map((e, i) => {
+            {(() => {
+              const validCount = assignments.filter(x => groups.some(g => g.id === x.groupId)).length;
+              return viewList.map((e, i) => {
               const existing = assignedMap[e.key];
               const isSel = checked.has(e.key);
               const isAssignedHere = existing && existing.groupId === selectedGroupId;
@@ -1315,6 +1442,8 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
               const row = Math.floor(i / 3);
               const totalRows = Math.ceil(viewList.length / 3);
               const isLastRow = row === totalRows - 1;
+              const existingIsValid = existing && groups.some(g => g.id === existing.groupId);
+              const canRemove = existing && !(existingIsValid && validCount <= 1);
               return (
                 <div key={e.key} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
@@ -1336,15 +1465,17 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
                     <span style={{ fontSize: 11, color: C.mutedFg, flexShrink: 0 }}>Available</span>
                   )}
                   {existing && (
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: C.mutedFg, flexShrink: 0 }}
-                      title="Remove assignment"
-                      onClick={ev => { ev.stopPropagation(); unassignArea(e.key); setChecked(p => { const n = new Set(p); n.delete(e.key); return n; }); }}>
+                    <button style={{ background: 'none', border: 'none', cursor: canRemove ? 'pointer' : 'not-allowed', padding: 2, color: canRemove ? C.mutedFg : C.border, flexShrink: 0, opacity: canRemove ? 1 : 0.4 }}
+                      title={canRemove ? 'Remove assignment' : 'Cannot remove last valid assignment'}
+                      disabled={!canRemove}
+                      onClick={ev => { ev.stopPropagation(); if (canRemove) { unassignArea(e.key); setChecked(p => { const n = new Set(p); n.delete(e.key); return n; }); } }}>
                       <Trash2 size={12} />
                     </button>
                   )}
                 </div>
               );
-            })}
+            });
+            })()}
           </div>
         )}
       </div>
@@ -1367,7 +1498,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   onOverride: (a: Assignment) => void;
   onRemoveOverride: (key: string) => void;
 }) {
-  const [filterStore, setFilterStore] = useState('');
+
   const [filterGroup, setFilterGroup] = useState('');
   const [filterDiv, setFilterDiv] = useState('');
   const [filterDist, setFilterDist] = useState('');
@@ -1382,7 +1513,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const list = assignments.filter(a =>
-      (!filterStore || a.division === filterStore) &&
+
       (!filterGroup || a.groupId === filterGroup) &&
       (!filterDiv || a.division === filterDiv) &&
       (!filterDist || a.district === filterDist) &&
@@ -1470,9 +1601,9 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
           <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
           <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search store, group, district, area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
-        <CustomSelect style={{ flex: 1, minWidth: 140 }} value={filterStore} placeholder="All store locations"
+        <CustomSelect style={{ flex: 1, minWidth: 140 }} value={filterDiv} placeholder="All divisions"
           options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
-          onChange={v => { setFilterStore(v); setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
+          onChange={v => { setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
         <CustomSelect style={{ flex: 1, minWidth: 130 }} value={filterDist} placeholder="All districts"
           options={(filterDiv ? BD_DISTRICTS[filterDiv] || [] : []).map(d => ({ value: d, label: d }))}
           onChange={v => { setFilterDist(v); setPage(1); setSelected(new Set()); }} />
@@ -1885,18 +2016,19 @@ function CsOption({ label, selected, onClick }: { label: string; selected: boole
   );
 }
 
-function AreaModal({ mode, initial, onClose, onSave, onDelete }: {
+function AreaModal({ mode, initial, onClose, onSave, onDelete, dynamicDistricts }: {
   mode: 'add' | 'edit'; initial?: AreaEntry;
   onClose: () => void;
   onSave: (div: string, dist: string, area: string) => void;
   onDelete?: () => void;
+  dynamicDistricts?: Record<string, string[]>;
 }) {
   const [div, setDiv] = useState(initial?.division || '');
   const [distSelect, setDistSelect] = useState(initial?.district || '');
   const [customDist, setCustomDist] = useState('');
   const [area, setArea] = useState(initial?.area || '');
 
-  const districtOptions = div ? (BD_DISTRICTS[div] || []) : [];
+  const districtOptions = div ? ((dynamicDistricts && dynamicDistricts[div]) || BD_DISTRICTS[div] || []) : [];
   const effectiveDist = customDist.trim() || distSelect;
 
   const handleSave = () => {
@@ -1983,6 +2115,27 @@ function AreaModal({ mode, initial, onClose, onSave, onDelete }: {
   );
 }
 
+function DivisionModal({ division, onClose, onSave }: {
+  division: string;
+  onClose: () => void; onSave: (newDivision: string) => void;
+}) {
+  const [divName, setDivName] = useState(division);
+  return (
+    <DialogFrame title="Edit Division" onClose={onClose}
+      footer={<><button className="dm-btn-outline" onClick={onClose}>Cancel</button><button className="dm-btn-primary" onClick={() => { if (divName.trim()) onSave(divName.trim()); }}>Save</button></>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <label className="dm-label">Division *</label>
+          <input className="dm-input" value={divName} onChange={e => setDivName(e.target.value)} placeholder="Enter division name" autoFocus />
+        </div>
+        <div style={{ fontSize: 12, color: '#e07020', background: '#fff8f0', border: '1px solid #f0c080', borderRadius: 6, padding: '8px 12px' }}>
+          This will rename the division everywhere — all areas, assignments, and rate overrides will update automatically.
+        </div>
+      </div>
+    </DialogFrame>
+  );
+}
+
 function DistrictModal({ division, district, onClose, onSave }: {
   division: string; district: string;
   onClose: () => void; onSave: (newDistrict: string) => void;
@@ -2007,10 +2160,10 @@ function DistrictModal({ division, district, onClose, onSave }: {
   );
 }
 
-function GroupModal({ mode, initial, onClose, onSave, totalGroups }: {
+function GroupModal({ mode, initial, onClose, onSave, totalGroups, storeOptions }: {
   mode: 'add' | 'edit'; initial?: RateGroup;
   onClose: () => void; onSave: (g: RateGroup) => void;
-  totalGroups: number;
+  totalGroups: number; storeOptions?: string[];
 }) {
   const [name, setName] = useState(initial?.name || '');
   const [store, setStore] = useState(initial?.store && initial.store !== 'Default' ? initial.store : '');
@@ -2055,10 +2208,12 @@ function GroupModal({ mode, initial, onClose, onSave, totalGroups }: {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
               <label className="dm-label">Store location</label>
-              <select className="dm-input" value={store} onChange={e => setStore(e.target.value)}>
-                <option value="">Select location</option>
-                {BD_DIVISIONS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <input className="dm-input" list="grp-store-list" value={store}
+                onChange={e => setStore(e.target.value)}
+                placeholder="e.g. Dhaka, Chittagong" />
+              <datalist id="grp-store-list">
+                {(storeOptions || []).map(s => <option key={s} value={s} />)}
+              </datalist>
             </div>
             <div>
               <label className="dm-label">Rate group name</label>

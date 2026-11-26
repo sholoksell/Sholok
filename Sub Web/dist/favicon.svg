@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6B00AA"/>
+      <stop offset="100%" stop-color="#5D0096"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Purple rounded-square background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+
+  <!-- Subtle inner glow / highlight at top -->
+  <rect width="32" height="16" rx="7" fill="white" opacity="0.06"/>
+
+  <!-- Bold white S -->
+  <text
+    x="16" y="24"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Arial', 'Helvetica Neue', sans-serif"
+    font-size="22"
+    font-weight="900"
+    fill="white"
+  >S</text>
+
+  <!-- Red-orange badge dot — top-right corner -->
+  <circle cx="26" cy="6.5" r="4" fill="#D31710"/>
+</svg>
