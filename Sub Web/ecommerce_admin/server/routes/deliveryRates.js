@@ -450,6 +450,12 @@ router.post('/district-rename', auth, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    // Pre-delete stale/disabled entries in target district to avoid PK conflicts
+    await conn.query(
+      `DELETE FROM delivery_area_overrides
+       WHERE area_key LIKE ? AND (status = 'Disable' OR is_custom = 0)`,
+      [division + '|' + newDistrict + '|%']
+    );
     // Update area_key (PK) + district in delivery_area_overrides
     await conn.query(
       `UPDATE delivery_area_overrides
@@ -488,6 +494,12 @@ router.post('/division-rename', auth, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    // Pre-delete stale/disabled entries in target division to avoid PK conflicts
+    await conn.query(
+      `DELETE FROM delivery_area_overrides
+       WHERE area_key LIKE ? AND (status = 'Disable' OR is_custom = 0)`,
+      [newDivision + '|%']
+    );
     // Update area_key (PK) + division in delivery_area_overrides
     await conn.query(
       `UPDATE delivery_area_overrides
