@@ -1500,6 +1500,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
   onRemoveOverride: (key: string) => void;
 }) {
 
+  const [filterStore, setFilterStore] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
   const [filterDiv, setFilterDiv] = useState('');
   const [filterDist, setFilterDist] = useState('');
@@ -1515,6 +1516,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
     const q = search.toLowerCase();
     const list = assignments.filter(a =>
 
+      (!filterStore || a.store === filterStore) &&
       (!filterGroup || a.groupId === filterGroup) &&
       (!filterDiv || a.division === filterDiv) &&
       (!filterDist || a.district === filterDist) &&
@@ -1535,7 +1537,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return list;
-  }, [assignments, groups, filterGroup, filterDiv, filterDist, search, sortCol, sortDir]);
+  }, [assignments, groups, filterStore, filterGroup, filterDiv, filterDist, search, sortCol, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const display = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -1602,6 +1604,9 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
           <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.mutedFg }} />
           <input className="dm-input" style={{ paddingLeft: 30 }} placeholder="Search store, group, district, area..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); setSelected(new Set()); }} />
         </div>
+        <CustomSelect style={{ flex: 1, minWidth: 150 }} value={filterStore} placeholder="All stores"
+          options={[...new Set(groups.map((g: RateGroup) => g.store).filter(Boolean))].sort().map((s: string) => ({ value: s, label: s }))}
+          onChange={v => { setFilterStore(v); setPage(1); setSelected(new Set()); }} />
         <CustomSelect style={{ flex: 1, minWidth: 140 }} value={filterDiv} placeholder="All divisions"
           options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
           onChange={v => { setFilterDiv(v); setFilterDist(''); setPage(1); setSelected(new Set()); }} />
