@@ -1525,7 +1525,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
       const ga = groups.find(g => g.id === a.groupId);
       const gb = groups.find(g => g.id === b.groupId);
       let va: string | number, vb: string | number;
-      if (sortCol === 'store')    { va = ga?.name || ''; vb = gb?.name || ''; }
+      if (sortCol === 'store')    { va = a.store || ''; vb = b.store || ''; }
       else if (sortCol === 'group')    { va = ga?.name || ''; vb = gb?.name || ''; }
       else if (sortCol === 'division') { va = a.division; vb = b.division; }
       else if (sortCol === 'district') { va = a.district; vb = b.district; }
@@ -1659,7 +1659,7 @@ function RatesSection({ assignments, groups, onOverride, onRemoveOverride }: {
                   <td style={{ padding: '10px 8px 10px 0' }}>
                     <input type="checkbox" checked={isSel} style={{ cursor: 'pointer' }} onChange={() => toggleSel(a.key)} />
                   </td>
-                  <td style={{ fontWeight: 500, color: C.fg }}>{grp?.name || a.groupId}</td>
+                  <td style={{ fontWeight: 500, color: C.fg }}>{a.store || grp?.name || a.groupId}</td>
                   <td><span className="dm-badge dm-badge-purple" style={{ fontSize: 11 }}>{grp?.name || a.groupId}</span></td>
                   <td style={{ color: C.mutedFg }}>{a.division}</td>
                   <td style={{ color: C.primary }}>{a.district}</td>
