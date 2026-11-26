@@ -475,18 +475,6 @@ router.post('/district-rename', auth, async (req, res) => {
        WHERE assignment_key LIKE ?`,
       [division, oldDistrict, division, newDistrict, '%|' + division + '|' + oldDistrict + '|%']
     );
-    // Upsert standard areas with new district name (is_custom=0 rename markers)
-    if (Array.isArray(standardAreas) && standardAreas.length > 0) {
-      for (const sa of standardAreas) {
-        const newKey = `${division}|${newDistrict}|${sa.area}`;
-        await conn.query(
-          `INSERT INTO delivery_area_overrides (area_key, division, district, area_name, is_custom, status)
-           VALUES (?, ?, ?, ?, 0, 'Enable')
-           ON DUPLICATE KEY UPDATE division=VALUES(division), district=VALUES(district), area_name=VALUES(area_name)`,
-          [newKey, division, newDistrict, sa.area]
-        );
-      }
-    }
     await conn.commit();
     res.json({ ok: true });
   } catch (e) { await conn.rollback(); res.status(500).json({ message: e.message }); }
@@ -525,19 +513,7 @@ router.post('/division-rename', auth, async (req, res) => {
        WHERE assignment_key LIKE ?`,
       [oldDivision, newDivision, '%|' + oldDivision + '|%']
     );
-    // Upsert all standard areas under the new division name (is_custom=0 rename markers)
-    if (Array.isArray(standardAreas) && standardAreas.length > 0) {
-      for (const sa of standardAreas) {
-        const newKey = `${newDivision}|${sa.district}|${sa.area}`;
-        await conn.query(
-          `INSERT INTO delivery_area_overrides (area_key, division, district, area_name, is_custom, status)
-           VALUES (?, ?, ?, ?, 0, 'Enable')
-           ON DUPLICATE KEY UPDATE division=VALUES(division), district=VALUES(district), area_name=VALUES(area_name)`,
-          [newKey, newDivision, sa.district, sa.area]
-        );
-      }
-    }
-    await conn.commit();
+        await conn.commit();
     res.json({ ok: true });
   } catch (e) { await conn.rollback(); res.status(500).json({ message: e.message }); }
   finally { conn.release(); }
