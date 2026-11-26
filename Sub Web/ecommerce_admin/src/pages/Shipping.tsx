@@ -1256,10 +1256,11 @@ function GroupsSection({ groups, updateGroups, assignments, onAdd, onEdit, onDel
 }
 
 // ── Assign Section ─────────────────────────────────────────────────────────────
-function AssignSection({ allEntries, groups, assignments, statuses, updateAssignments, onSwitchGroup }: {
+function AssignSection({ allEntries, groups, assignments, statuses, updateAssignments, storeOptions, onSwitchGroup }: {
   allEntries: AreaEntry[]; groups: RateGroup[]; assignments: Assignment[];
   statuses: AreaStatus[];
   updateAssignments: (a: Assignment[]) => void;
+  storeOptions?: string[];
   onSwitchGroup: (a: Assignment) => void;
 }) {
   const [selectedGroupId, setSelectedGroupId] = useState('');
@@ -1379,8 +1380,8 @@ function AssignSection({ allEntries, groups, assignments, statuses, updateAssign
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Store location</div>
           <CustomSelect value={filterDiv} placeholder="Select a store"
-            options={BD_DIVISIONS.map(d => ({ value: d, label: d }))}
-            onChange={v => { setFilterDiv(v); setChecked(new Set()); }} />
+            options={(storeOptions || []).map(s => ({ value: s, label: s }))}
+            onChange={v => { setFilterDiv(v); setSelectedGroupId(''); setChecked(new Set()); }} />
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.mutedFg, fontWeight: 500, marginBottom: 5 }}>Division</div>
